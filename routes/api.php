@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\OrderController;
@@ -45,6 +46,7 @@ Route::middleware(['auth:sanctum', 'tenant.scoped'])->prefix('tenants/{tenant_id
     });
 
     // Core entity routes
+    Route::apiResource('categories', CategoryController::class);
     Route::apiResource('stores', StoreController::class);
     Route::apiResource('warehouses', WarehouseController::class);
     Route::apiResource('products', ProductController::class);
