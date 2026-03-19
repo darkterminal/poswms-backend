@@ -14,6 +14,7 @@ class CategoryFactory extends Factory
     public function definition(): array
     {
         $name = fake()->unique()->word();
+
         return [
             'tenant_id' => null,
             'parent_id' => null,

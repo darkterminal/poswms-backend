@@ -3,6 +3,9 @@
 namespace Database\Factories;
 
 use App\Models\Inventory;
+use App\Models\Product;
+use App\Models\Tenant;
+use App\Models\Warehouse;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -13,10 +16,10 @@ class InventoryFactory extends Factory
     public function definition(): array
     {
         return [
-            'tenant_id' => null,
-            'product_id' => null,
+            'tenant_id' => Tenant::factory(),
+            'product_id' => Product::factory(),
             'store_id' => null,
-            'warehouse_id' => null,
+            'warehouse_id' => Warehouse::factory(),
             'quantity' => fake()->numberBetween(10, 1000),
             'reserved' => 0,
             'available' => fake()->numberBetween(10, 1000),
@@ -30,6 +33,8 @@ class InventoryFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'tenant_id' => $tenantId,
+            'product_id' => Product::factory()->forTenant($tenantId),
+            'warehouse_id' => Warehouse::factory()->forTenant($tenantId),
         ]);
     }
 

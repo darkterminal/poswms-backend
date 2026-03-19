@@ -14,7 +14,7 @@ class OrderFactory extends Factory
     {
         return [
             'tenant_id' => null,
-            'order_number' => 'ORD-' . strtoupper(fake()->unique()->bothify('???###')),
+            'order_number' => 'ORD-'.strtoupper(fake()->unique()->bothify('???###')),
             'customer_id' => null,
             'store_id' => null,
             'warehouse_id' => null,
@@ -25,7 +25,6 @@ class OrderFactory extends Factory
             'tax' => fake()->randomFloat(2, 0, 500),
             'discount' => 0,
             'shipping' => fake()->randomFloat(2, 0, 100),
-            'total' => fake()->randomFloat(2, 50, 5000),
             'payment_status' => 'pending',
             'payment_method' => null,
             'notes' => null,

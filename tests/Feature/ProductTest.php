@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -16,7 +17,7 @@ class ProductTest extends TestCase
     private function createAdmin(Tenant $tenant): User
     {
         $admin = User::factory()->forTenant($tenant->id)->create();
-        \App\Models\Role::create([
+        Role::create([
             'tenant_id' => $tenant->id,
             'name' => 'Admin',
             'slug' => 'admin',
@@ -24,6 +25,7 @@ class ProductTest extends TestCase
             'is_system' => true,
         ]);
         $admin->assignRole('admin');
+
         return $admin;
     }
 
@@ -33,7 +35,7 @@ class ProductTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
             ->postJson("/api/v1/tenants/{$tenant->id}/products", [
                 'name' => 'Test Product',
                 'sku' => 'TEST-SKU-001',
@@ -53,7 +55,7 @@ class ProductTest extends TestCase
         Product::factory()->forTenant($tenant->id)->count(5)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
             ->getJson("/api/v1/tenants/{$tenant->id}/products");
 
         $response->assertStatus(200)

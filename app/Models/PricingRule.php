@@ -60,6 +60,7 @@ class PricingRule extends Model
         if ($this->ends_at && $now->gt($this->ends_at)) {
             return false;
         }
+
         return true;
     }
 
@@ -71,12 +72,13 @@ class PricingRule extends Model
         if ($this->max_quantity && $quantity > $this->max_quantity) {
             return false;
         }
+
         return true;
     }
 
     public function calculatePrice(float $basePrice, int $quantity): float
     {
-        if (!$this->isActive() || !$this->appliesToQuantity($quantity)) {
+        if (! $this->isActive() || ! $this->appliesToQuantity($quantity)) {
             return $basePrice;
         }
 

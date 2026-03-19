@@ -14,6 +14,7 @@ class OrderItemFactory extends Factory
     {
         $unitPrice = fake()->randomFloat(2, 10, 500);
         $quantity = fake()->numberBetween(1, 10);
+
         return [
             'tenant_id' => null,
             'order_id' => null,

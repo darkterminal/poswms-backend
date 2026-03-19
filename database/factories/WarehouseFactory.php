@@ -14,8 +14,8 @@ class WarehouseFactory extends Factory
     {
         return [
             'tenant_id' => null,
-            'name' => fake()->company() . ' Warehouse',
-            'code' => 'WH-' . strtoupper(fake()->unique()->bothify('???###')),
+            'name' => fake()->company().' Warehouse',
+            'code' => 'WH-'.strtoupper(fake()->unique()->bothify('???###')),
             'address' => fake()->address(),
             'city' => fake()->city(),
             'state' => fake()->state(),

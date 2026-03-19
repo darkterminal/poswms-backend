@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\Customer;
 use App\Models\PricingRule;
 use App\Models\PricingTier;
-use App\Models\Product;
+use App\Models\Role;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -18,7 +18,7 @@ class PricingTest extends TestCase
     private function createAdmin(Tenant $tenant): User
     {
         $admin = User::factory()->forTenant($tenant->id)->create();
-        \App\Models\Role::create([
+        Role::create([
             'tenant_id' => $tenant->id,
             'name' => 'Admin',
             'slug' => 'admin',
@@ -26,6 +26,7 @@ class PricingTest extends TestCase
             'is_system' => true,
         ]);
         $admin->assignRole('admin');
+
         return $admin;
     }
 
@@ -35,7 +36,7 @@ class PricingTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
             ->postJson("/api/v1/tenants/{$tenant->id}/pricing-tiers", [
                 'name' => 'Gold Tier',
                 'slug' => 'gold',
@@ -53,7 +54,7 @@ class PricingTest extends TestCase
         $tier = PricingTier::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
             ->postJson("/api/v1/tenants/{$tenant->id}/pricing-rules", [
                 'pricing_tier_id' => $tier->id,
                 'type' => 'percentage',

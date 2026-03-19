@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Role;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
@@ -15,7 +16,7 @@ class StoreTest extends TestCase
     private function createAdmin(Tenant $tenant): User
     {
         $admin = User::factory()->forTenant($tenant->id)->create();
-        \App\Models\Role::create([
+        Role::create([
             'tenant_id' => $tenant->id,
             'name' => 'Admin',
             'slug' => 'admin',
@@ -23,6 +24,7 @@ class StoreTest extends TestCase
             'is_system' => true,
         ]);
         $admin->assignRole('admin');
+
         return $admin;
     }
 
@@ -32,7 +34,7 @@ class StoreTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
             ->postJson("/api/v1/tenants/{$tenant->id}/stores", [
                 'name' => 'Test Store',
                 'code' => 'TEST-001',
@@ -52,7 +54,7 @@ class StoreTest extends TestCase
         Store::factory()->forTenant($tenant->id)->count(3)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
             ->getJson("/api/v1/tenants/{$tenant->id}/stores");
 
         $response->assertStatus(200)
@@ -66,7 +68,7 @@ class StoreTest extends TestCase
         $store = Store::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
             ->getJson("/api/v1/tenants/{$tenant->id}/stores/{$store->id}");
 
         $response->assertStatus(200)
@@ -80,7 +82,7 @@ class StoreTest extends TestCase
         $store = Store::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
             ->putJson("/api/v1/tenants/{$tenant->id}/stores/{$store->id}", [
                 'name' => 'Updated Store',
             ]);
@@ -96,7 +98,7 @@ class StoreTest extends TestCase
         $store = Store::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
             ->deleteJson("/api/v1/tenants/{$tenant->id}/stores/{$store->id}");
 
         $response->assertStatus(200);

@@ -14,7 +14,7 @@ class PricingTierFactory extends Factory
     {
         return [
             'tenant_id' => null,
-            'name' => fake()->unique()->word() . ' Tier',
+            'name' => fake()->unique()->word().' Tier',
             'slug' => fake()->unique()->word(),
             'description' => fake()->sentence(),
             'priority' => 0,

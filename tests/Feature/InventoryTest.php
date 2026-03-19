@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Inventory;
 use App\Models\Product;
+use App\Models\Role;
+use App\Models\StockMovement;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -17,7 +19,7 @@ class InventoryTest extends TestCase
     private function createAdmin(Tenant $tenant): User
     {
         $admin = User::factory()->forTenant($tenant->id)->create();
-        \App\Models\Role::create([
+        Role::create([
             'tenant_id' => $tenant->id,
             'name' => 'Admin',
             'slug' => 'admin',
@@ -25,6 +27,7 @@ class InventoryTest extends TestCase
             'is_system' => true,
         ]);
         $admin->assignRole('admin');
+
         return $admin;
     }
 
@@ -36,7 +39,7 @@ class InventoryTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
             ->postJson("/api/v1/tenants/{$tenant->id}/inventory", [
                 'product_id' => $product->id,
                 'warehouse_id' => $warehouse->id,
@@ -78,7 +81,7 @@ class InventoryTest extends TestCase
         $tenant = Tenant::factory()->active()->create();
         $product = Product::factory()->forTenant($tenant->id)->create();
 
-        \App\Models\StockMovement::recordMovement(
+        StockMovement::recordMovement(
             $tenant->id,
             $product->id,
             'in',

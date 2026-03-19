@@ -16,7 +16,7 @@ class ProductFactory extends Factory
             'tenant_id' => null,
             'category_id' => null,
             'name' => fake()->unique()->words(3, true),
-            'sku' => 'SKU-' . strtoupper(fake()->unique()->bothify('???###')),
+            'sku' => 'SKU-'.strtoupper(fake()->unique()->bothify('???###')),
             'barcode' => fake()->unique()->ean13(),
             'description' => fake()->paragraph(),
             'price' => fake()->randomFloat(2, 10, 1000),

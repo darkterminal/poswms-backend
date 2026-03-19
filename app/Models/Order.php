@@ -15,7 +15,7 @@ class Order extends Model
     protected $fillable = [
         'tenant_id', 'order_number', 'customer_id', 'store_id', 'warehouse_id',
         'user_id', 'status', 'type', 'subtotal', 'tax', 'discount', 'shipping',
-        'total', 'payment_status', 'payment_method', 'notes', 'shipping_address',
+        'payment_status', 'payment_method', 'notes', 'shipping_address',
         'shipping_city', 'shipping_state', 'shipping_country', 'shipping_postal_code',
         'confirmed_at', 'fulfilled_at', 'cancelled_at',
     ];
@@ -32,6 +32,14 @@ class Order extends Model
             'fulfilled_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Get the order's total.
+     */
+    public function getTotalAttribute(): float
+    {
+        return $this->subtotal + $this->tax + $this->shipping - $this->discount;
     }
 
     public function tenant(): BelongsTo

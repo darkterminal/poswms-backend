@@ -15,7 +15,7 @@ class StoreFactory extends Factory
         return [
             'tenant_id' => null,
             'name' => fake()->company(),
-            'code' => 'ST-' . strtoupper(fake()->unique()->bothify('???###')),
+            'code' => 'ST-'.strtoupper(fake()->unique()->bothify('???###')),
             'address' => fake()->address(),
             'city' => fake()->city(),
             'state' => fake()->state(),
