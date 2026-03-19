@@ -17,8 +17,9 @@ use Illuminate\Support\Facades\Route;
 // Public routes
 Route::post('/auth/login', [LoginController::class, 'login'])->name('auth.login');
 
-// Protected routes (require Sanctum authentication)
-Route::middleware('auth:sanctum')->group(function () {
+// Protected routes (require Sanctum authentication and tenant scoping)
+// All tenant-scoped routes must include {tenant_id} parameter
+Route::middleware(['auth:sanctum', 'tenant.scoped'])->prefix('tenants/{tenant_id}')->group(function () {
     Route::post('/auth/logout', [LoginController::class, 'logout'])->name('auth.logout');
     Route::post('/auth/refresh', [LoginController::class, 'refresh'])->name('auth.refresh');
     Route::get('/auth/me', [LoginController::class, 'me'])->name('auth.me');
