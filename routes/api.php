@@ -4,6 +4,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\InventoryReportController;
+use App\Http\Controllers\InventoryTransferController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\PricingRuleController;
@@ -53,6 +55,16 @@ Route::middleware(['auth:sanctum', 'tenant.scoped'])->prefix('tenants/{tenant_id
     Route::apiResource('customers', CustomerController::class);
     Route::apiResource('inventory', InventoryController::class);
     Route::apiResource('orders', OrderController::class);
+
+    // Inventory actions
+    Route::post('/inventory/transfer', [InventoryTransferController::class, 'transfer']);
+    Route::get('/inventory/product/{productId}/transferable', [InventoryTransferController::class, 'getTransferableInventory']);
+
+    // Inventory reports
+    Route::get('/reports/inventory/low-stock', [InventoryReportController::class, 'lowStock']);
+    Route::get('/reports/inventory', [InventoryReportController::class, 'report']);
+    Route::get('/reports/inventory/stock-levels', [InventoryReportController::class, 'stockLevels']);
+    Route::get('/reports/inventory/movements', [InventoryReportController::class, 'movements']);
 
     // Order actions
     Route::post('/orders/{order}/confirm', [OrderController::class, 'confirm']);
