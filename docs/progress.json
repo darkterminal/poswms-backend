@@ -1,0 +1,758 @@
+{
+  "project": "POSWMS Backend",
+  "framework": "Laravel 13.x (PHP 8.3)",
+  "trackingStarted": "2026-03-19",
+  "lastUpdated": "2026-03-19T13:00:00Z",
+  "phases": {
+    "phase1": {
+      "id": 1,
+      "name": "Foundation & Authentication",
+      "priority": "CRITICAL",
+      "status": "in_progress",
+      "estimatedHours": 15,
+      "timeSpent": 1,
+      "tasks": {
+        "1.1": {
+          "id": "1.1",
+          "name": "Install Laravel Sanctum",
+          "description": "API token authentication",
+          "status": "completed",
+          "estimatedHours": 1,
+          "timeSpent": 1,
+          "startedAt": "2026-03-19T12:00:00Z",
+          "completedAt": "2026-03-19T13:00:00Z",
+          "notes": "Sanctum installed, configured, and tested. All 8 auth tests passing."
+        },
+        "1.2": {
+          "id": "1.2",
+          "name": "Create Tenant Model & Migration",
+          "description": "Multi-tenant architecture foundation",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "1.3": {
+          "id": "1.3",
+          "name": "Update Users Table",
+          "description": "Add tenant_id, role, store_id, warehouse_id columns",
+          "status": "pending",
+          "estimatedHours": 1,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "1.4": {
+          "id": "1.4",
+          "name": "Create Tenant Middleware",
+          "description": "Automatic tenant scoping for all queries",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "1.5": {
+          "id": "1.5",
+          "name": "Build Authentication Endpoints",
+          "description": "/api/v1/auth/login, /logout, /refresh, /me",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "1.6": {
+          "id": "1.6",
+          "name": "Create Role & Permission System",
+          "description": "RBAC middleware and policies",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "1.7": {
+          "id": "1.7",
+          "name": "Write Auth Tests",
+          "description": "Authentication & authorization feature tests",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        }
+      },
+      "deliverables": [
+        { "item": "tenants table migration", "completed": false },
+        { "item": "Updated users table migration", "completed": false },
+        { "item": "Tenant and updated User models", "completed": false },
+        { "item": "EnsureTenantIsScoped middleware", "completed": false },
+        { "item": "Authentication controllers", "completed": false },
+        { "item": "API routes for auth", "completed": false },
+        { "item": "Feature tests for authentication", "completed": false }
+      ]
+    },
+    "phase2": {
+      "id": 2,
+      "name": "Core Entities",
+      "priority": "HIGH",
+      "status": "not_started",
+      "estimatedHours": 25,
+      "timeSpent": 0,
+      "tasks": {
+        "2.1": {
+          "id": "2.1",
+          "name": "Stores Module",
+          "description": "Model, migration, factory, seeder, CRUD API endpoints",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "2.2": {
+          "id": "2.2",
+          "name": "Warehouses Module",
+          "description": "Model, migration, factory, CRUD API endpoints",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "2.3": {
+          "id": "2.3",
+          "name": "Categories Module",
+          "description": "Product categorization with parent-child relationships",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "2.4": {
+          "id": "2.4",
+          "name": "Products Module",
+          "description": "Model with SKU, pricing, relationships",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "2.5": {
+          "id": "2.5",
+          "name": "Customers Module",
+          "description": "Customer management with optional pricing tier",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "2.6": {
+          "id": "2.6",
+          "name": "Shared Reference Tables",
+          "description": "Countries, currencies, product_attributes",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "2.7": {
+          "id": "2.7",
+          "name": "API Resources",
+          "description": "JSON resource classes for all entities",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "2.8": {
+          "id": "2.8",
+          "name": "Form Requests",
+          "description": "Validation classes for all endpoints",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        }
+      },
+      "deliverables": [
+        { "item": "Migrations: stores, warehouses, categories, products, customers, countries, currencies", "completed": false },
+        { "item": "Models with relationships", "completed": false },
+        { "item": "Factories and seeders", "completed": false },
+        { "item": "API Resource classes", "completed": false },
+        { "item": "Form Request validators", "completed": false },
+        { "item": "CRUD controllers", "completed": false },
+        { "item": "Feature tests", "completed": false }
+      ]
+    },
+    "phase3": {
+      "id": 3,
+      "name": "Inventory Management",
+      "priority": "HIGH",
+      "status": "not_started",
+      "estimatedHours": 16,
+      "timeSpent": 0,
+      "tasks": {
+        "3.1": {
+          "id": "3.1",
+          "name": "Inventory Model & Migration",
+          "description": "Track stock per warehouse/store",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "3.2": {
+          "id": "3.2",
+          "name": "Inventory CRUD Endpoints",
+          "description": "Get, update stock levels",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "3.3": {
+          "id": "3.3",
+          "name": "Stock Transfer System",
+          "description": "Transfer between warehouses/stores",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "3.4": {
+          "id": "3.4",
+          "name": "Low Stock Alerts",
+          "description": "Automatic notifications when below threshold",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "3.5": {
+          "id": "3.5",
+          "name": "Inventory Reporting",
+          "description": "Stock levels, movement history",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "3.6": {
+          "id": "3.6",
+          "name": "Inventory Jobs",
+          "description": "Queue jobs for stock adjustments",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        }
+      },
+      "deliverables": [
+        { "item": "inventory and stock_movements tables", "completed": false },
+        { "item": "Inventory model with scopes", "completed": false },
+        { "item": "Inventory management controllers", "completed": false },
+        { "item": "Stock transfer job classes", "completed": false },
+        { "item": "Low stock notification system", "completed": false },
+        { "item": "Inventory report endpoints", "completed": false },
+        { "item": "Feature tests", "completed": false }
+      ]
+    },
+    "phase4": {
+      "id": 4,
+      "name": "Order Management",
+      "priority": "HIGH",
+      "status": "not_started",
+      "estimatedHours": 19,
+      "timeSpent": 0,
+      "tasks": {
+        "4.1": {
+          "id": "4.1",
+          "name": "Orders Model & Migration",
+          "description": "Order header with status tracking",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "4.2": {
+          "id": "4.2",
+          "name": "Order Items Migration",
+          "description": "Line items for orders",
+          "status": "pending",
+          "estimatedHours": 1,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "4.3": {
+          "id": "4.3",
+          "name": "Order CRUD Endpoints",
+          "description": "Create, read, update, cancel",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "4.4": {
+          "id": "4.4",
+          "name": "Order Fulfillment",
+          "description": "/fulfill endpoint to process orders",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "4.5": {
+          "id": "4.5",
+          "name": "Order Number Generation",
+          "description": "Sequential numbering per tenant",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "4.6": {
+          "id": "4.6",
+          "name": "Inventory Deduction",
+          "description": "Auto-decrement stock on order fulfillment",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "4.7": {
+          "id": "4.7",
+          "name": "Order Tests",
+          "description": "Full workflow testing",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        }
+      },
+      "deliverables": [
+        { "item": "orders and order_items tables", "completed": false },
+        { "item": "Order and OrderItem models", "completed": false },
+        { "item": "Order controllers", "completed": false },
+        { "item": "Order fulfillment service", "completed": false },
+        { "item": "Order number generator", "completed": false },
+        { "item": "Inventory deduction logic", "completed": false },
+        { "item": "Comprehensive feature tests", "completed": false }
+      ]
+    },
+    "phase5": {
+      "id": 5,
+      "name": "Multi-Level Pricing",
+      "priority": "MEDIUM",
+      "status": "pending",
+      "estimatedHours": 16,
+      "timeSpent": 0,
+      "tasks": {
+        "5.1": {
+          "id": "5.1",
+          "name": "Pricing Tiers Module",
+          "description": "Bronze/Silver/Gold customer tiers",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "5.2": {
+          "id": "5.2",
+          "name": "Pricing Rules Engine",
+          "description": "Flexible rule-based pricing",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "5.3": {
+          "id": "5.3",
+          "name": "Price Calculation Service",
+          "description": "Apply rules to calculate final price",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "5.4": {
+          "id": "5.4",
+          "name": "Pricing API Endpoints",
+          "description": "CRUD for tiers and rules",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "5.5": {
+          "id": "5.5",
+          "name": "Price Calculation Endpoint",
+          "description": "/calculate-price with all rules applied",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        }
+      },
+      "deliverables": [
+        { "item": "pricing_tiers and pricing_rules tables", "completed": false },
+        { "item": "PricingTier and PricingRule models", "completed": false },
+        { "item": "Price calculation service class", "completed": false },
+        { "item": "Pricing controllers", "completed": false },
+        { "item": "Price calculation API endpoint", "completed": false },
+        { "item": "Feature tests", "completed": false }
+      ]
+    },
+    "phase6": {
+      "id": 6,
+      "name": "Reporting & Analytics",
+      "priority": "MEDIUM",
+      "status": "pending",
+      "estimatedHours": 12,
+      "timeSpent": 0,
+      "tasks": {
+        "6.1": {
+          "id": "6.1",
+          "name": "Sales Reports",
+          "description": "Revenue, orders by period, top products",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "6.2": {
+          "id": "6.2",
+          "name": "Inventory Reports",
+          "description": "Stock levels, valuation, movement",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "6.3": {
+          "id": "6.3",
+          "name": "Low Stock Report",
+          "description": "Items below minimum threshold",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "6.4": {
+          "id": "6.4",
+          "name": "Dashboard Metrics",
+          "description": "KPIs for tenant admin",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        }
+      },
+      "deliverables": [
+        { "item": "Report controller classes", "completed": false },
+        { "item": "Report query builders", "completed": false },
+        { "item": "Report API endpoints", "completed": false },
+        { "item": "Dashboard metrics endpoint", "completed": false },
+        { "item": "Feature tests", "completed": false }
+      ]
+    },
+    "phase7": {
+      "id": 7,
+      "name": "Advanced Features",
+      "priority": "LOW",
+      "status": "pending",
+      "estimatedHours": 17,
+      "timeSpent": 0,
+      "tasks": {
+        "7.1": {
+          "id": "7.1",
+          "name": "API Rate Limiting",
+          "description": "Per-tenant/user limits",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "7.2": {
+          "id": "7.2",
+          "name": "Audit Logging",
+          "description": "Track sensitive operations",
+          "status": "pending",
+          "estimatedHours": 3,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "7.3": {
+          "id": "7.3",
+          "name": "Export Functionality",
+          "description": "CSV/PDF exports for reports",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "7.4": {
+          "id": "7.4",
+          "name": "Webhooks",
+          "description": "Notify external systems of events",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "7.5": {
+          "id": "7.5",
+          "name": "API Documentation",
+          "description": "OpenAPI/Swagger specs",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        }
+      },
+      "deliverables": [
+        { "item": "Rate limiter configuration", "completed": false },
+        { "item": "Audit log model and listeners", "completed": false },
+        { "item": "Export service classes", "completed": false },
+        { "item": "Webhook system", "completed": false },
+        { "item": "OpenAPI documentation", "completed": false }
+      ]
+    },
+    "phase8": {
+      "id": 8,
+      "name": "Production Readiness",
+      "priority": "CRITICAL",
+      "status": "pending",
+      "estimatedHours": 50,
+      "timeSpent": 0,
+      "tasks": {
+        "8.1": {
+          "id": "8.1",
+          "name": "Comprehensive Test Suite",
+          "description": "80%+ code coverage",
+          "status": "pending",
+          "estimatedHours": 20,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "8.2": {
+          "id": "8.2",
+          "name": "Database Seeders",
+          "description": "Demo data for development",
+          "status": "pending",
+          "estimatedHours": 4,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "8.3": {
+          "id": "8.3",
+          "name": "Environment Configuration",
+          "description": "Dev/staging/production configs",
+          "status": "pending",
+          "estimatedHours": 2,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "8.4": {
+          "id": "8.4",
+          "name": "CI/CD Pipeline",
+          "description": "Automated testing & deployment",
+          "status": "pending",
+          "estimatedHours": 8,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "8.5": {
+          "id": "8.5",
+          "name": "Performance Optimization",
+          "description": "Query optimization, caching",
+          "status": "pending",
+          "estimatedHours": 8,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        },
+        "8.6": {
+          "id": "8.6",
+          "name": "Security Hardening",
+          "description": "Penetration testing, security review",
+          "status": "pending",
+          "estimatedHours": 8,
+          "timeSpent": 0,
+          "startedAt": null,
+          "completedAt": null,
+          "notes": ""
+        }
+      },
+      "deliverables": [
+        { "item": "Complete test suite", "completed": false },
+        { "item": "Database seeders", "completed": false },
+        { "item": "Environment configs", "completed": false },
+        { "item": "CI/CD pipeline configuration", "completed": false },
+        { "item": "Performance optimization report", "completed": false },
+        { "item": "Security audit report", "completed": false }
+      ]
+    }
+  },
+  "sessionLogs": [
+    {
+      "sessionNumber": 1,
+      "date": "2026-03-19",
+      "startTime": "00:00",
+      "endTime": "00:00",
+      "durationMinutes": 0,
+      "phase": "Phase 1 - Foundation & Authentication",
+      "focusArea": "Initial setup and progress tracking creation",
+      "objectives": [
+        "Create progress tracking system",
+        "Set up development environment",
+        "Begin Phase 1 implementation"
+      ],
+      "workCompleted": [
+        {
+          "taskId": null,
+          "description": "Created PROGRESS_TRACKER.md",
+          "timeMinutes": 15,
+          "status": "done"
+        },
+        {
+          "taskId": null,
+          "description": "Created SESSION_LOG_TEMPLATE.md",
+          "timeMinutes": 10,
+          "status": "done"
+        },
+        {
+          "taskId": null,
+          "description": "Created progress.json data file",
+          "timeMinutes": 10,
+          "status": "done"
+        }
+      ],
+      "issuesResolved": [],
+      "currentBlockers": [],
+      "keyDecisions": [
+        {
+          "decision": "Created progress tracking system",
+          "alternatives": ["Manual tracking", "External project management tool"],
+          "rationale": "Enable systematic tracking of development sessions and task completion within the codebase"
+        }
+      ],
+      "metrics": {
+        "developmentTime": 0,
+        "testingTime": 0,
+        "debuggingTime": 0,
+        "documentationTime": 35
+      },
+      "nextSessionPlan": [
+        "Continue with Phase 1.1: Install Laravel Sanctum",
+        "Review .env configuration",
+        "Run initial migrations"
+      ],
+      "notes": ""
+    }
+  ],
+  "statistics": {
+    "totalTasks": 48,
+    "completedTasks": 1,
+    "inProgressTasks": 0,
+    "pendingTasks": 47,
+    "totalEstimatedHours": 170,
+    "totalTimeSpent": 1,
+    "completionPercentage": 2,
+    "phaseProgress": {
+      "phase1": 14,
+      "phase2": 0,
+      "phase3": 0,
+      "phase4": 0,
+      "phase5": 0,
+      "phase6": 0,
+      "phase7": 0,
+      "phase8": 0
+    }
+  }
+}
