@@ -74,6 +74,46 @@ class Tenant extends Model
     }
 
     /**
+     * Get the pricing tiers belonging to this tenant.
+     */
+    public function pricingTiers(): HasMany
+    {
+        return $this->hasMany(PricingTier::class);
+    }
+
+    /**
+     * Get the categories belonging to this tenant.
+     */
+    public function categories(): HasMany
+    {
+        return $this->hasMany(Category::class);
+    }
+
+    /**
+     * Get the products belonging to this tenant.
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+
+    /**
+     * Get the customers belonging to this tenant.
+     */
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class);
+    }
+
+    /**
+     * Get the inventories belonging to this tenant.
+     */
+    public function inventories(): HasMany
+    {
+        return $this->hasMany(Inventory::class);
+    }
+
+    /**
      * Check if tenant is active.
      */
     public function isActive(): bool

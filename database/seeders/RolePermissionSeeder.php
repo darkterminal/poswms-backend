@@ -70,16 +70,38 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'Manage Roles', 'slug' => 'roles.manage', 'group' => 'settings'],
         ];
 
-        // Create permissions
+        // Create permissions - manually check existence due to schema unique constraint issue
         foreach ($permissions as $permissionData) {
-            Permission::firstOrCreate(
-                ['tenant_id' => $tenantId, 'slug' => $permissionData['slug']],
-                [
+            $permission = Permission::where('tenant_id', $tenantId)
+                ->where('slug', $permissionData['slug'])
+                ->first();
+
+            if ($permission) {
+                $permission->update([
                     'name' => $permissionData['name'],
                     'group' => $permissionData['group'],
                     'description' => "Allows user to {$permissionData['name']}",
-                ]
-            );
+                ]);
+            } else {
+                // Check if slug exists globally
+                $existing = Permission::where('slug', $permissionData['slug'])->first();
+                if ($existing) {
+                    $existing->update([
+                        'tenant_id' => $tenantId,
+                        'name' => $permissionData['name'],
+                        'group' => $permissionData['group'],
+                        'description' => "Allows user to {$permissionData['name']}",
+                    ]);
+                } else {
+                    Permission::create([
+                        'tenant_id' => $tenantId,
+                        'name' => $permissionData['name'],
+                        'slug' => $permissionData['slug'],
+                        'group' => $permissionData['group'],
+                        'description' => "Allows user to {$permissionData['name']}",
+                    ]);
+                }
+            }
         }
 
         // Create default roles
@@ -142,15 +164,39 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($roles as $roleData) {
-            Role::firstOrCreate(
-                ['tenant_id' => $tenantId, 'slug' => $roleData['slug']],
-                [
+            $role = Role::where('tenant_id', $tenantId)
+                ->where('slug', $roleData['slug'])
+                ->first();
+
+            if ($role) {
+                $role->update([
                     'name' => $roleData['name'],
                     'description' => $roleData['description'],
                     'is_system' => $roleData['is_system'],
                     'permissions' => $roleData['permissions'],
-                ]
-            );
+                ]);
+            } else {
+                // Check if slug exists globally
+                $existing = Role::where('slug', $roleData['slug'])->first();
+                if ($existing) {
+                    $existing->update([
+                        'tenant_id' => $tenantId,
+                        'name' => $roleData['name'],
+                        'description' => $roleData['description'],
+                        'is_system' => $roleData['is_system'],
+                        'permissions' => $roleData['permissions'],
+                    ]);
+                } else {
+                    Role::create([
+                        'tenant_id' => $tenantId,
+                        'name' => $roleData['name'],
+                        'slug' => $roleData['slug'],
+                        'description' => $roleData['description'],
+                        'is_system' => $roleData['is_system'],
+                        'permissions' => $roleData['permissions'],
+                    ]);
+                }
+            }
         }
     }
 }
