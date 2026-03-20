@@ -18,6 +18,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -56,6 +57,12 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
         Route::get('/audit-logs/summary', [AuditLogController::class, 'summary']);
         Route::get('/audit-logs/by-user/{userId}', [AuditLogController::class, 'byUser']);
         Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
+
+        // Webhook routes (admin only)
+        Route::apiResource('webhooks', WebhookController::class);
+        Route::post('/webhooks/{webhook}/test', [WebhookController::class, 'test']);
+        Route::get('/webhooks/{webhook}/attempts', [WebhookController::class, 'deliveryAttempts']);
+        Route::post('/webhooks/{webhook}/retry', [WebhookController::class, 'retry']);
 
         // Inventory report exports (admin only)
         Route::get('/reports/inventory/export/stock-levels', [InventoryReportController::class, 'exportStockLevels']);
