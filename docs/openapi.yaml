@@ -327,6 +327,205 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Permission'
+    post:
+      tags:
+        - Roles & Permissions
+      summary: Create Permission
+      description: Create a new permission
+      operationId: createPermission
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - slug
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Permission created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Permission'
+  /tenants/{tenant_id}/permissions/{permissionId}:
+    get:
+      tags:
+        - Roles & Permissions
+      summary: Get Permission
+      description: Get a specific permission
+      operationId: getPermission
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: permissionId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Permission ID
+      responses:
+        '200':
+          description: Permission details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Permission'
+    put:
+      tags:
+        - Roles & Permissions
+      summary: Update Permission
+      description: Update a permission
+      operationId: updatePermission
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: permissionId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Permission ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '200':
+          description: Permission updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Permission'
+    delete:
+      tags:
+        - Roles & Permissions
+      summary: Delete Permission
+      description: Delete a permission
+      operationId: deletePermission
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: permissionId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Permission ID
+      responses:
+        '200':
+          description: Permission deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+  /tenants/{tenant_id}/users/{userId}/assign-role:
+    post:
+      tags:
+        - Roles & Permissions
+      summary: Assign Role to User
+      description: Assign a role to a user
+      operationId: assignRoleToUser
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role_id
+              properties:
+                role_id:
+                  type: integer
+      responses:
+        '200':
+          description: Role assigned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/User'
+  /tenants/{tenant_id}/users/{userId}/remove-role/{roleId}:
+    delete:
+      tags:
+        - Roles & Permissions
+      summary: Remove Role from User
+      description: Remove a role from a user
+      operationId: removeRoleFromUser
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Role ID
+      responses:
+        '200':
+          description: Role removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
   # ==================== Stores ====================
   /tenants/{tenant_id}/stores:
     get:
@@ -672,6 +871,376 @@ paths:
                     type: boolean
                   message:
                     type: string
+  # ==================== Categories ====================
+  /tenants/{tenant_id}/categories:
+    get:
+      tags:
+        - Categories
+      summary: List Categories
+      description: Get all categories for the tenant
+      operationId: listCategories
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/Pagination'
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      tags:
+        - Categories
+      summary: Create Category
+      description: Create a new category
+      operationId: createCategory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                parent_id:
+                  type: integer
+                is_active:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Category'
+  /tenants/{tenant_id}/categories/{categoryId}:
+    get:
+      tags:
+        - Categories
+      summary: Get Category
+      description: Get a specific category
+      operationId: getCategory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Category ID
+      responses:
+        '200':
+          description: Category details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Category'
+    put:
+      tags:
+        - Categories
+      summary: Update Category
+      description: Update a category
+      operationId: updateCategory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Category ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                parent_id:
+                  type: integer
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Category'
+    delete:
+      tags:
+        - Categories
+      summary: Delete Category
+      description: Delete a category
+      operationId: deleteCategory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Category ID
+      responses:
+        '200':
+          description: Category deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+  # ==================== Customers ====================
+  /tenants/{tenant_id}/customers:
+    get:
+      tags:
+        - Customers
+      summary: List Customers
+      description: Get all customers for the tenant
+      operationId: listCustomers
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/Pagination'
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name or email
+        - name: pricing_tier_id
+          in: query
+          schema:
+            type: integer
+          description: Filter by pricing tier
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Customer'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      tags:
+        - Customers
+      summary: Create Customer
+      description: Create a new customer
+      operationId: createCustomer
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                phone:
+                  type: string
+                pricing_tier_id:
+                  type: integer
+                address:
+                  type: string
+                city:
+                  type: string
+                state:
+                  type: string
+                country:
+                  type: string
+                postal_code:
+                  type: string
+                notes:
+                  type: string
+                is_active:
+                  type: boolean
+                  default: true
+      responses:
+        '201':
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Customer'
+  /tenants/{tenant_id}/customers/{customerId}:
+    get:
+      tags:
+        - Customers
+      summary: Get Customer
+      description: Get a specific customer
+      operationId: getCustomer
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Customer ID
+      responses:
+        '200':
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Customer'
+    put:
+      tags:
+        - Customers
+      summary: Update Customer
+      description: Update a customer
+      operationId: updateCustomer
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Customer ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                phone:
+                  type: string
+                pricing_tier_id:
+                  type: integer
+                address:
+                  type: string
+                city:
+                  type: string
+                state:
+                  type: string
+                country:
+                  type: string
+                postal_code:
+                  type: string
+                notes:
+                  type: string
+                is_active:
+                  type: boolean
+      responses:
+        '200':
+          description: Customer updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Customer'
+    delete:
+      tags:
+        - Customers
+      summary: Delete Customer
+      description: Delete a customer
+      operationId: deleteCustomer
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Customer ID
+      responses:
+        '200':
+          description: Customer deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
   # ==================== Products ====================
   /tenants/{tenant_id}/products:
     get:
@@ -890,6 +1459,172 @@ paths:
                       $ref: '#/components/schemas/Inventory'
                   meta:
                     $ref: '#/components/schemas/PaginationMeta'
+    post:
+      tags:
+        - Inventory
+      summary: Create Inventory
+      description: Create a new inventory record
+      operationId: createInventory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - product_id
+                - location_type
+                - location_id
+              properties:
+                product_id:
+                  type: integer
+                location_type:
+                  type: string
+                  enum: [warehouse, store]
+                location_id:
+                  type: integer
+                quantity:
+                  type: integer
+                  default: 0
+                min_stock_level:
+                  type: integer
+      responses:
+        '201':
+          description: Inventory created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Inventory'
+  /tenants/{tenant_id}/inventory/{inventoryId}:
+    get:
+      tags:
+        - Inventory
+      summary: Get Inventory
+      description: Get a specific inventory record
+      operationId: getInventory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: inventoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Inventory ID
+      responses:
+        '200':
+          description: Inventory details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Inventory'
+    put:
+      tags:
+        - Inventory
+      summary: Update Inventory
+      description: Update an inventory record
+      operationId: updateInventory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: inventoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Inventory ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                min_stock_level:
+                  type: integer
+      responses:
+        '200':
+          description: Inventory updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Inventory'
+    delete:
+      tags:
+        - Inventory
+      summary: Delete Inventory
+      description: Delete an inventory record
+      operationId: deleteInventory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: inventoryId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Inventory ID
+      responses:
+        '200':
+          description: Inventory deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+  /tenants/{tenant_id}/inventory/product/{productId}/transferable:
+    get:
+      tags:
+        - Inventory
+      summary: Get Transferable Inventory
+      description: Get transferable inventory for a product
+      operationId: getTransferableInventory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Product ID
+      responses:
+        '200':
+          description: Transferable inventory
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TransferableInventory'
   /tenants/{tenant_id}/inventory/transfer:
     post:
       tags:
@@ -1056,6 +1791,105 @@ paths:
                     type: boolean
                   data:
                     $ref: '#/components/schemas/Order'
+    put:
+      tags:
+        - Orders
+      summary: Update Order
+      description: Update an order
+      operationId: updateOrder
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/OrderId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_id:
+                  type: integer
+                order_date:
+                  type: string
+                  format: date-time
+                notes:
+                  type: string
+                status:
+                  type: string
+                  enum: [pending, confirmed, fulfilling, completed, cancelled]
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - product_id
+                      - quantity
+                    properties:
+                      product_id:
+                        type: integer
+                      quantity:
+                        type: integer
+                      unit_price:
+                        type: number
+      responses:
+        '200':
+          description: Order updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Order'
+    delete:
+      tags:
+        - Orders
+      summary: Delete Order
+      description: Delete an order
+      operationId: deleteOrder
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Order deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+  /tenants/{tenant_id}/orders/{orderId}/confirm:
+    post:
+      tags:
+        - Orders
+      summary: Confirm Order
+      description: Confirm an order
+      operationId: confirmOrder
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/OrderId'
+      responses:
+        '200':
+          description: Order confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Order'
   /tenants/{tenant_id}/orders/{orderId}/fulfill:
     post:
       tags:
@@ -1166,6 +2000,100 @@ paths:
                     type: boolean
                   data:
                     $ref: '#/components/schemas/PricingTier'
+  /tenants/{tenant_id}/pricing-tiers/{pricingTierId}:
+    get:
+      tags:
+        - Pricing
+      summary: Get Pricing Tier
+      description: Get a specific pricing tier
+      operationId: getPricingTier
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: pricingTierId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Pricing Tier ID
+      responses:
+        '200':
+          description: Pricing tier details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PricingTier'
+    put:
+      tags:
+        - Pricing
+      summary: Update Pricing Tier
+      description: Update a pricing tier
+      operationId: updatePricingTier
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: pricingTierId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Pricing Tier ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                description:
+                  type: string
+                discount_percentage:
+                  type: number
+      responses:
+        '200':
+          description: Pricing tier updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PricingTier'
+    delete:
+      tags:
+        - Pricing
+      summary: Delete Pricing Tier
+      description: Delete a pricing tier
+      operationId: deletePricingTier
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: pricingTierId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Pricing Tier ID
+      responses:
+        '200':
+          description: Pricing tier deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
   /tenants/{tenant_id}/pricing-rules:
     get:
       tags:
@@ -1230,6 +2158,102 @@ paths:
                     type: boolean
                   data:
                     $ref: '#/components/schemas/PricingRule'
+  /tenants/{tenant_id}/pricing-rules/{pricingRuleId}:
+    get:
+      tags:
+        - Pricing
+      summary: Get Pricing Rule
+      description: Get a specific pricing rule
+      operationId: getPricingRule
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: pricingRuleId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Pricing Rule ID
+      responses:
+        '200':
+          description: Pricing rule details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PricingRule'
+    put:
+      tags:
+        - Pricing
+      summary: Update Pricing Rule
+      description: Update a pricing rule
+      operationId: updatePricingRule
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: pricingRuleId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Pricing Rule ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pricing_tier_id:
+                  type: integer
+                product_id:
+                  type: integer
+                price:
+                  type: number
+                min_quantity:
+                  type: integer
+                max_quantity:
+                  type: integer
+      responses:
+        '200':
+          description: Pricing rule updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/PricingRule'
+    delete:
+      tags:
+        - Pricing
+      summary: Delete Pricing Rule
+      description: Delete a pricing rule
+      operationId: deletePricingRule
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: pricingRuleId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Pricing Rule ID
+      responses:
+        '200':
+          description: Pricing rule deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
   /tenants/{tenant_id}/prices/calculate:
     post:
       tags:
@@ -1267,6 +2291,62 @@ paths:
                     type: boolean
                   data:
                     $ref: '#/components/schemas/PriceCalculation'
+  /tenants/{tenant_id}/prices/calculate-cart:
+    post:
+      tags:
+        - Pricing
+      summary: Calculate Cart Price
+      description: Calculate total price for a cart with all rules applied
+      operationId: calculateCartPrice
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - customer_id
+                - items
+              properties:
+                customer_id:
+                  type: integer
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - product_id
+                      - quantity
+                    properties:
+                      product_id:
+                        type: integer
+                      quantity:
+                        type: integer
+      responses:
+        '200':
+          description: Cart price calculated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      subtotal:
+                        type: number
+                      discount:
+                        type: number
+                      total:
+                        type: number
+                      applied_rules:
+                        type: array
+                        items:
+                          type: object
   # ==================== Reports ====================
   /tenants/{tenant_id}/reports/sales/revenue:
     get:
@@ -1309,6 +2389,485 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/RevenueReport'
+  /tenants/{tenant_id}/reports/sales/orders-by-period:
+    get:
+      tags:
+        - Reports
+      summary: Orders By Period Report
+      description: Get orders grouped by period
+      operationId: getOrdersByPeriodReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: group_by
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month, year]
+            default: day
+      responses:
+        '200':
+          description: Orders by period report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        period:
+                          type: string
+                        orders_count:
+                          type: integer
+                        total_amount:
+                          type: number
+  /tenants/{tenant_id}/reports/sales/top-products:
+    get:
+      tags:
+        - Reports
+      summary: Top Products Report
+      description: Get top selling products
+      operationId: getTopProductsReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Number of products to return
+      responses:
+        '200':
+          description: Top products report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        product_id:
+                          type: integer
+                        product_name:
+                          type: string
+                        quantity_sold:
+                          type: integer
+                        revenue:
+                          type: number
+  /tenants/{tenant_id}/reports/sales/dashboard:
+    get:
+      tags:
+        - Reports
+      summary: Sales Dashboard Metrics
+      description: Get sales metrics for dashboard
+      operationId: getSalesDashboardMetrics
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Sales dashboard metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      today_revenue:
+                        type: number
+                      month_revenue:
+                        type: number
+                      orders_count:
+                        type: integer
+                      average_order_value:
+                        type: number
+  /tenants/{tenant_id}/reports/sales/export/revenue:
+    get:
+      tags:
+        - Reports
+      summary: Export Revenue Report
+      description: Export revenue report (CSV/Excel)
+      operationId: exportRevenueReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, xlsx]
+            default: csv
+      responses:
+        '200':
+          description: Revenue report exported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      download_url:
+                        type: string
+                      expires_at:
+                        type: string
+                        format: date-time
+  /tenants/{tenant_id}/reports/sales/export/orders-by-period:
+    get:
+      tags:
+        - Reports
+      summary: Export Orders By Period Report
+      description: Export orders by period report (CSV/Excel)
+      operationId: exportOrdersByPeriodReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: group_by
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month, year]
+            default: day
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, xlsx]
+            default: csv
+      responses:
+        '200':
+          description: Orders report exported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      download_url:
+                        type: string
+                      expires_at:
+                        type: string
+                        format: date-time
+  /tenants/{tenant_id}/reports/sales/export/top-products:
+    get:
+      tags:
+        - Reports
+      summary: Export Top Products Report
+      description: Export top products report (CSV/Excel)
+      operationId: exportTopProductsReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, xlsx]
+            default: csv
+      responses:
+        '200':
+          description: Top products report exported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      download_url:
+                        type: string
+                      expires_at:
+                        type: string
+                        format: date-time
+  /tenants/{tenant_id}/reports/inventory:
+    get:
+      tags:
+        - Reports
+      summary: Inventory Report
+      description: Get comprehensive inventory report
+      operationId: getInventoryReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: warehouse_id
+          in: query
+          schema:
+            type: integer
+        - name: store_id
+          in: query
+          schema:
+            type: integer
+        - name: product_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Inventory report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Inventory'
+  /tenants/{tenant_id}/reports/inventory/movements:
+    get:
+      tags:
+        - Reports
+      summary: Inventory Movements Report
+      description: Get inventory movement history
+      operationId: getInventoryMovementsReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: product_id
+          in: query
+          schema:
+            type: integer
+        - name: warehouse_id
+          in: query
+          schema:
+            type: integer
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Inventory movements report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StockMovement'
+  /tenants/{tenant_id}/reports/inventory/export/stock-levels:
+    get:
+      tags:
+        - Reports
+      summary: Export Stock Levels Report
+      description: Export stock levels report (CSV/Excel)
+      operationId: exportStockLevelsReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: warehouse_id
+          in: query
+          schema:
+            type: integer
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, xlsx]
+            default: csv
+      responses:
+        '200':
+          description: Stock levels report exported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      download_url:
+                        type: string
+                      expires_at:
+                        type: string
+                        format: date-time
+  /tenants/{tenant_id}/reports/inventory/export/movements:
+    get:
+      tags:
+        - Reports
+      summary: Export Inventory Movements Report
+      description: Export inventory movements report (CSV/Excel)
+      operationId: exportInventoryMovementsReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: product_id
+          in: query
+          schema:
+            type: integer
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, xlsx]
+            default: csv
+      responses:
+        '200':
+          description: Inventory movements report exported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      download_url:
+                        type: string
+                      expires_at:
+                        type: string
+                        format: date-time
+  /tenants/{tenant_id}/reports/inventory/export/low-stock:
+    get:
+      tags:
+        - Reports
+      summary: Export Low Stock Report
+      description: Export low stock report (CSV/Excel)
+      operationId: exportLowStockReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [csv, xlsx]
+            default: csv
+      responses:
+        '200':
+          description: Low stock report exported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      download_url:
+                        type: string
+                      expires_at:
+                        type: string
+                        format: date-time
   /tenants/{tenant_id}/reports/inventory/stock-levels:
     get:
       tags:
@@ -1711,6 +3270,45 @@ paths:
                     type: boolean
                   data:
                     $ref: '#/components/schemas/AuditLog'
+  /tenants/{tenant_id}/audit-logs/by-user/{userId}:
+    get:
+      tags:
+        - Audit Logs
+      summary: Audit Logs By User
+      description: Get audit logs for a specific user
+      operationId: getAuditLogsByUser
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: User ID
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Audit logs by user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
   /tenants/{tenant_id}/audit-logs/summary:
     get:
       tags:
@@ -1806,6 +3404,48 @@ components:
       required: true
       schema:
         type: integer
+    CategoryId:
+      name: categoryId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Category ID
+    CustomerId:
+      name: customerId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Customer ID
+    InventoryId:
+      name: inventoryId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Inventory ID
+    PricingTierId:
+      name: pricingTierId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Pricing Tier ID
+    PricingRuleId:
+      name: pricingRuleId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Pricing Rule ID
+    PermissionId:
+      name: permissionId
+      in: path
+      required: true
+      schema:
+        type: integer
+      description: Permission ID
     Pagination:
       name: page
       in: query
@@ -1896,6 +3536,85 @@ components:
           type: string
           format: date-time
     # ==================== Entities ====================
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        slug:
+          type: string
+        parent_id:
+          type: integer
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        pricing_tier_id:
+          type: integer
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country:
+          type: string
+        postal_code:
+          type: string
+        notes:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TransferableInventory:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        product_name:
+          type: string
+        location_type:
+          type: string
+          enum: [warehouse, store]
+        location_id:
+          type: integer
+        location_name:
+          type: string
+        available_quantity:
+          type: integer
+        transferable_quantity:
+          type: integer
     Store:
       type: object
       properties:
