@@ -35,6 +35,20 @@ class PricingRuleFactory extends Factory
         ]);
     }
 
+    public function forPricingTier($tierId): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'pricing_tier_id' => $tierId,
+        ]);
+    }
+
+    public function forProduct($productId): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'product_id' => $productId,
+        ]);
+    }
+
     public function percentageDiscount(float $value): static
     {
         return $this->state(fn (array $attributes) => [

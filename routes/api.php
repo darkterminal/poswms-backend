@@ -8,6 +8,7 @@ use App\Http\Controllers\InventoryReportController;
 use App\Http\Controllers\InventoryTransferController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PermissionController;
+use App\Http\Controllers\PriceCalculationController;
 use App\Http\Controllers\PricingRuleController;
 use App\Http\Controllers\PricingTierController;
 use App\Http\Controllers\ProductController;
@@ -70,6 +71,10 @@ Route::middleware(['auth:sanctum', 'tenant.scoped'])->prefix('tenants/{tenant_id
     Route::post('/orders/{order}/confirm', [OrderController::class, 'confirm']);
     Route::post('/orders/{order}/fulfill', [OrderController::class, 'fulfill']);
     Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
+
+    // Price calculation routes
+    Route::post('/prices/calculate', [PriceCalculationController::class, 'calculate']);
+    Route::post('/prices/calculate-cart', [PriceCalculationController::class, 'calculateCart']);
 
     // Test routes for authorization
     Route::get('/admin-only', fn () => response()->json(['message' => 'Admin access granted']))->middleware('role:admin');
