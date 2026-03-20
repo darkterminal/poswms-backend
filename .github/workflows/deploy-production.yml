@@ -1,8 +1,20 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy (default: main)'
+        required: true
+        default: 'main'
+        type: string
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
 
 jobs:
   deploy:
@@ -62,3 +74,4 @@ jobs:
           echo "✅ Production deployment completed successfully!"
           echo "🌐 URL: https://app.mswms.example.com"
           echo "📦 Commit: ${{ github.sha }}"
+          echo "🔀 Branch: ${{ inputs.branch }}"

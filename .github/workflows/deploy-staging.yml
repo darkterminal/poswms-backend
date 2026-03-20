@@ -1,8 +1,20 @@
 name: Deploy to Staging
 
 on:
-  push:
-    branches: [develop]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to deploy (default: develop)'
+        required: true
+        default: 'develop'
+        type: string
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
 
 jobs:
   deploy:
@@ -62,3 +74,4 @@ jobs:
           echo "✅ Staging deployment completed successfully!"
           echo "🌐 URL: https://staging.mswms.example.com"
           echo "📦 Commit: ${{ github.sha }}"
+          echo "🔀 Branch: ${{ inputs.branch }}"

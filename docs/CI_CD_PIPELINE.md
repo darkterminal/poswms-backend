@@ -60,9 +60,13 @@ The MSWMS CI/CD pipeline automates testing, code quality checks, and deployment 
 
 ### 3. Deploy to Staging (`deploy-staging.yml`)
 
-**Trigger:** Push to `develop` branch
+**Trigger:** Manual (workflow_dispatch) via GitHub Actions UI
 
-**Purpose:** Automatically deploy changes to staging environment
+**Purpose:** Manually deploy changes to staging environment
+
+**Inputs:**
+- `branch`: Branch to deploy (default: develop)
+- `environment`: Environment to deploy to (staging)
 
 **Environment:** `staging` (https://staging.mswms.example.com)
 
@@ -84,9 +88,13 @@ The MSWMS CI/CD pipeline automates testing, code quality checks, and deployment 
 
 ### 4. Deploy to Production (`deploy-production.yml`)
 
-**Trigger:** Push to `main` branch
+**Trigger:** Manual (workflow_dispatch) via GitHub Actions UI
 
-**Purpose:** Deploy to production environment
+**Purpose:** Manually deploy changes to production environment
+
+**Inputs:**
+- `branch`: Branch to deploy (default: main)
+- `environment`: Environment to deploy to (production)
 
 **Environment:** `production` (https://app.mswms.example.com)
 
@@ -213,19 +221,22 @@ Navigate to: **Repository Settings → Environments**
    - Merge to `main`
    - Automatic deployment to production
 
-### Manual Deployment (If Needed)
+### Manual Deployment
 
-```bash
-# Deploy to staging manually
-git checkout develop
-git pull origin develop
-# Trigger workflow manually via GitHub Actions UI
+**Deploy to Staging:**
+1. Go to **Actions** tab in GitHub
+2. Select **Deploy to Staging** workflow
+3. Click **Run workflow**
+4. Select branch (default: develop)
+5. Click **Run workflow**
 
-# Deploy to production manually
-git checkout main
-git pull origin main
-# Trigger workflow manually via GitHub Actions UI
-```
+**Deploy to Production:**
+1. Go to **Actions** tab in GitHub
+2. Select **Deploy to Production** workflow
+3. Click **Run workflow**
+4. Select branch (default: main)
+5. Click **Run workflow**
+6. **Requires approval** if environment protection is enabled
 
 ---
 
