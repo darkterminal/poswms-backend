@@ -34,7 +34,7 @@ class CategoryTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/categories", [
                 'name' => 'Electronics',
                 'description' => 'Electronic products',
@@ -52,7 +52,7 @@ class CategoryTest extends TestCase
         $parent = Category::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/categories", [
                 'name' => 'Phones',
                 'parent_id' => $parent->id,
@@ -69,7 +69,7 @@ class CategoryTest extends TestCase
         Category::factory()->forTenant($tenant->id)->count(3)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/categories");
 
         $response->assertStatus(200)
@@ -83,7 +83,7 @@ class CategoryTest extends TestCase
         $category = Category::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/categories/{$category->id}");
 
         $response->assertStatus(200)
@@ -97,7 +97,7 @@ class CategoryTest extends TestCase
         $category = Category::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->putJson("/api/v1/tenants/{$tenant->id}/categories/{$category->id}", [
                 'name' => 'Updated Category',
             ]);
@@ -113,7 +113,7 @@ class CategoryTest extends TestCase
         $category = Category::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->deleteJson("/api/v1/tenants/{$tenant->id}/categories/{$category->id}");
 
         $response->assertStatus(200);
@@ -128,7 +128,7 @@ class CategoryTest extends TestCase
         $category = Category::factory()->forTenant($tenant2->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant1->id}/categories/{$category->id}");
 
         $response->assertStatus(404);

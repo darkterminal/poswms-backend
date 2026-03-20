@@ -48,7 +48,7 @@ class OrderSeeder extends Seeder
                 }
 
                 $status = fake()->randomElement($statuses);
-                $orderNumber = 'ORD-'.$tenant->slug.'-'.strtoupper(fake()->unique()->bothify('???####'));
+                $orderNumber = 'ORD-' . $tenant->slug . '-' . strtoupper(fake()->unique()->bothify('???####'));
 
                 $order = Order::create([
                     'tenant_id' => $tenant->id,
@@ -93,7 +93,7 @@ class OrderSeeder extends Seeder
                     $subtotal += $product->price * $qty;
                 }
 
-                $orderNumber = 'ORD-'.$tenant->slug.'-'.strtoupper(fake()->unique()->bothify('???####'));
+                $orderNumber = 'ORD-' . $tenant->slug . '-' . strtoupper(fake()->unique()->bothify('???####'));
 
                 $order = Order::create([
                     'tenant_id' => $tenant->id,

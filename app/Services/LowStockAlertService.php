@@ -9,7 +9,7 @@ use App\Models\User;
 class LowStockAlertService
 {
     /**
-     * Check all products for low stock and return alerts
+     * Check all products for low stock and return alerts.
      */
     public function checkLowStock(int $tenantId): array
     {
@@ -44,7 +44,7 @@ class LowStockAlertService
     }
 
     /**
-     * Check specific product for low stock
+     * Check specific product for low stock.
      */
     public function isProductLowStock(int $productId): bool
     {
@@ -58,7 +58,7 @@ class LowStockAlertService
     }
 
     /**
-     * Get users who should receive stock alerts
+     * Get users who should receive stock alerts.
      */
     public function getAlertRecipients(int $tenantId, string $role = 'admin'): array
     {
@@ -71,7 +71,7 @@ class LowStockAlertService
     }
 
     /**
-     * Generate low stock report
+     * Generate low stock report.
      */
     public function generateReport(int $tenantId, ?int $warehouseId = null, ?int $storeId = null): array
     {
@@ -89,8 +89,8 @@ class LowStockAlertService
         $inventories = $query->get();
 
         $totalProducts = $inventories->count();
-        $lowStockCount = $inventories->filter(fn ($i) => $i->product && $i->available <= $i->product->min_stock)->count();
-        $outOfStockCount = $inventories->filter(fn ($i) => $i->available === 0)->count();
+        $lowStockCount = $inventories->filter(fn($i) => $i->product && $i->available <= $i->product->min_stock)->count();
+        $outOfStockCount = $inventories->filter(fn($i) => $i->available === 0)->count();
 
         return [
             'summary' => [
@@ -102,8 +102,8 @@ class LowStockAlertService
                     : 100,
             ],
             'low_stock_items' => $inventories
-                ->filter(fn ($i) => $i->product && $i->available <= $i->product->min_stock)
-                ->map(fn ($i) => [
+                ->filter(fn($i) => $i->product && $i->available <= $i->product->min_stock)
+                ->map(fn($i) => [
                     'product' => $i->product->name,
                     'sku' => $i->product->sku,
                     'location' => $this->getLocationName($i),
@@ -113,8 +113,8 @@ class LowStockAlertService
                 ->values()
                 ->toArray(),
             'out_of_stock_items' => $inventories
-                ->filter(fn ($i) => $i->available === 0)
-                ->map(fn ($i) => [
+                ->filter(fn($i) => $i->available === 0)
+                ->map(fn($i) => [
                     'product' => $i->product->name,
                     'sku' => $i->product->sku,
                     'location' => $this->getLocationName($i),
@@ -125,7 +125,7 @@ class LowStockAlertService
     }
 
     /**
-     * Get location name from inventory
+     * Get location name from inventory.
      */
     private function getLocationName(Inventory $inventory): string
     {
@@ -141,7 +141,7 @@ class LowStockAlertService
     }
 
     /**
-     * Determine alert severity
+     * Determine alert severity.
      */
     private function getSeverity(int $available, int $minStock): string
     {

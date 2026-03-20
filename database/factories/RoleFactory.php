@@ -32,7 +32,7 @@ class RoleFactory extends Factory
      */
     public function system(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'is_system' => true,
         ]);
     }
@@ -42,7 +42,7 @@ class RoleFactory extends Factory
      */
     public function admin(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'name' => 'Admin',
             'slug' => 'admin',
             'is_system' => true,
@@ -55,7 +55,7 @@ class RoleFactory extends Factory
      */
     public function manager(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'name' => 'Manager',
             'slug' => 'manager',
             'permissions' => ['products.view', 'products.create', 'products.edit', 'orders.view', 'orders.manage'],
@@ -67,7 +67,7 @@ class RoleFactory extends Factory
      */
     public function user(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'name' => 'User',
             'slug' => 'user',
             'permissions' => ['products.view', 'orders.view'],
@@ -79,7 +79,7 @@ class RoleFactory extends Factory
      */
     public function forTenant($tenantId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => $tenantId,
         ]);
     }

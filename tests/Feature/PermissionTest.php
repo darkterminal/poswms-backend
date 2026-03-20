@@ -37,7 +37,7 @@ class PermissionTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->getJson("/api/v1/tenants/{$tenant->id}/permissions");
 
         $response->assertStatus(200)
@@ -65,7 +65,7 @@ class PermissionTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->getJson("/api/v1/tenants/{$tenant->id}/permissions?group=products");
 
         $response->assertStatus(200);
@@ -86,7 +86,7 @@ class PermissionTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->postJson("/api/v1/tenants/{$tenant->id}/permissions", [
             'name' => 'Test Permission',
             'slug' => 'test.permission',
@@ -118,7 +118,7 @@ class PermissionTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->postJson("/api/v1/tenants/{$tenant->id}/permissions", [
             'name' => 'Duplicate Permission',
             'slug' => 'test.permission',
@@ -140,7 +140,7 @@ class PermissionTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->putJson("/api/v1/tenants/{$tenant->id}/permissions/{$permission->id}", [
             'name' => 'Updated Permission',
             'group' => 'updated',
@@ -169,7 +169,7 @@ class PermissionTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->deleteJson("/api/v1/tenants/{$tenant->id}/permissions/{$permission->id}");
 
         $response->assertStatus(200)

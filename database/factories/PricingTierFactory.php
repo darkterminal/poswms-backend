@@ -14,7 +14,7 @@ class PricingTierFactory extends Factory
     {
         return [
             'tenant_id' => null,
-            'name' => fake()->unique()->word().' Tier',
+            'name' => fake()->unique()->word() . ' Tier',
             'slug' => fake()->unique()->word(),
             'description' => fake()->sentence(),
             'priority' => 0,
@@ -24,14 +24,14 @@ class PricingTierFactory extends Factory
 
     public function forTenant($tenantId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => $tenantId,
         ]);
     }
 
     public function bronze(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'name' => 'Bronze',
             'slug' => 'bronze',
             'priority' => 1,
@@ -40,7 +40,7 @@ class PricingTierFactory extends Factory
 
     public function silver(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'name' => 'Silver',
             'slug' => 'silver',
             'priority' => 2,
@@ -49,7 +49,7 @@ class PricingTierFactory extends Factory
 
     public function gold(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'name' => 'Gold',
             'slug' => 'gold',
             'priority' => 3,
@@ -58,7 +58,7 @@ class PricingTierFactory extends Factory
 
     public function inactive(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'active' => false,
         ]);
     }

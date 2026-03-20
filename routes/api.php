@@ -113,7 +113,7 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
     Route::post('/prices/calculate-cart', [PriceCalculationController::class, 'calculateCart']);
 
     // Test routes for authorization
-    Route::get('/admin-only', fn () => response()->json(['message' => 'Admin access granted']))->middleware('role:admin');
-    Route::get('/admin-or-manager', fn () => response()->json(['message' => 'Access granted']))->middleware('role:admin,manager');
-    Route::post('/products/create-or-edit', fn () => response()->json(['message' => 'Access granted']))->middleware('permission:products.create,products.edit');
+    Route::get('/admin-only', fn() => response()->json(['message' => 'Admin access granted']))->middleware('role:admin');
+    Route::get('/admin-or-manager', fn() => response()->json(['message' => 'Access granted']))->middleware('role:admin,manager');
+    Route::post('/products/create-or-edit', fn() => response()->json(['message' => 'Access granted']))->middleware('permission:products.create,products.edit');
 });

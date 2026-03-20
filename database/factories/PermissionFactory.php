@@ -31,7 +31,7 @@ class PermissionFactory extends Factory
      */
     public function forTenant($tenantId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => $tenantId,
         ]);
     }
@@ -41,7 +41,7 @@ class PermissionFactory extends Factory
      */
     public function group(string $group): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'group' => $group,
         ]);
     }

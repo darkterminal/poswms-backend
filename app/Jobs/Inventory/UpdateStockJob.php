@@ -58,7 +58,7 @@ class UpdateStockJob implements ShouldQueue
             warehouseId: $inventory->warehouse_id,
             userId: $this->userId,
             reason: $this->reason,
-            reference: 'JOB-'.uniqid()
+            reference: 'JOB-' . uniqid()
         );
     }
 }

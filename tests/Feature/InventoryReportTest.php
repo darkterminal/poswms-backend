@@ -48,7 +48,7 @@ class InventoryReportTest extends TestCase
             'available' => 30,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/reports/inventory/low-stock");
 
         $response->assertStatus(200)
@@ -82,7 +82,7 @@ class InventoryReportTest extends TestCase
             'available' => 80,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/reports/inventory");
 
         $response->assertStatus(200)
@@ -119,7 +119,7 @@ class InventoryReportTest extends TestCase
             'cost' => 50,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/reports/inventory/stock-levels");
 
         $response->assertStatus(200)
@@ -157,7 +157,7 @@ class InventoryReportTest extends TestCase
             'quantity' => 100,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/reports/inventory/movements");
 
         $response->assertStatus(200)
@@ -184,7 +184,7 @@ class InventoryReportTest extends TestCase
             'available' => 0,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/reports/inventory/low-stock");
 
         $response->assertStatus(200);
@@ -216,7 +216,7 @@ class InventoryReportTest extends TestCase
             'quantity' => 50,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/reports/inventory/stock-levels?warehouse_id={$warehouse1->id}");
 
         $response->assertStatus(200);

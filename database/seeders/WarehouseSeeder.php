@@ -27,7 +27,7 @@ class WarehouseSeeder extends Seeder
 
             if ($mainWarehouse) {
                 $mainWarehouse->update([
-                    'name' => $tenant->name.' - Main Warehouse',
+                    'name' => $tenant->name . ' - Main Warehouse',
                     'address' => $tenant->address,
                     'city' => $tenant->city,
                     'state' => $tenant->state,
@@ -46,7 +46,7 @@ class WarehouseSeeder extends Seeder
                 if ($existing) {
                     $existing->update([
                         'tenant_id' => $tenant->id,
-                        'name' => $tenant->name.' - Main Warehouse',
+                        'name' => $tenant->name . ' - Main Warehouse',
                         'address' => $tenant->address,
                         'city' => $tenant->city,
                         'state' => $tenant->state,
@@ -63,7 +63,7 @@ class WarehouseSeeder extends Seeder
                     Warehouse::create([
                         'tenant_id' => $tenant->id,
                         'code' => 'WH-MAIN-001',
-                        'name' => $tenant->name.' - Main Warehouse',
+                        'name' => $tenant->name . ' - Main Warehouse',
                         'address' => $tenant->address,
                         'city' => $tenant->city,
                         'state' => $tenant->state,

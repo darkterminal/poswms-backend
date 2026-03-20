@@ -4,33 +4,42 @@ namespace App\Http\Controllers;
 
 use App\Models\Inventory;
 use App\Models\Order;
-use App\Models\Tenant;
+use App\Services\CacheService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private CacheService $cacheService,
+    ) {}
+
     /**
-     * Get unified dashboard metrics for tenant admin
+     * Get unified dashboard metrics for tenant admin.
      */
     public function index(Request $request, int $tenantId): JsonResponse
     {
-        $period = $request->query('period', 'today'); // today, week, month, year, all
-        $dateRange = $this->getDateRange($period);
+        $period = $request->query('period', 'today');
 
-        return response()->json([
-            'success' => true,
-            'data' => [
+        $data = $this->cacheService->rememberDashboardMetrics($tenantId, $period, function () use ($tenantId, $period) {
+            $dateRange = $this->getDateRange($period);
+
+            return [
                 'period' => $period,
                 'sales' => $this->getSalesMetrics($tenantId, $dateRange),
                 'inventory' => $this->getInventoryMetrics($tenantId),
                 'orders' => $this->getOrderMetrics($tenantId, $dateRange),
-            ],
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
         ]);
     }
 
     /**
-     * Get sales metrics
+     * Get sales metrics.
      */
     private function getSalesMetrics(int $tenantId, array $dateRange): array
     {
@@ -52,14 +61,14 @@ class DashboardController extends Controller
         $previousDateRange = $this->getPreviousDateRange($dateRange);
         $previousRevenue = Order::where('tenant_id', $tenantId)
             ->whereIn('status', ['confirmed', 'fulfilled'])
-            ->when($previousDateRange['start'], fn ($q) => $q->whereDate('created_at', '>=', $previousDateRange['start']))
-            ->when($previousDateRange['end'], fn ($q) => $q->whereDate('created_at', '<=', $previousDateRange['end']))
+            ->when($previousDateRange['start'], fn($q) => $q->whereDate('created_at', '>=', $previousDateRange['start']))
+            ->when($previousDateRange['end'], fn($q) => $q->whereDate('created_at', '<=', $previousDateRange['end']))
             ->sum('subtotal');
 
         $previousOrders = Order::where('tenant_id', $tenantId)
             ->whereIn('status', ['confirmed', 'fulfilled'])
-            ->when($previousDateRange['start'], fn ($q) => $q->whereDate('created_at', '>=', $previousDateRange['start']))
-            ->when($previousDateRange['end'], fn ($q) => $q->whereDate('created_at', '<=', $previousDateRange['end']))
+            ->when($previousDateRange['start'], fn($q) => $q->whereDate('created_at', '>=', $previousDateRange['start']))
+            ->when($previousDateRange['end'], fn($q) => $q->whereDate('created_at', '<=', $previousDateRange['end']))
             ->count();
 
         $revenueGrowth = $previousRevenue > 0 ? (($currentRevenue - $previousRevenue) / $previousRevenue) * 100 : 0;
@@ -84,67 +93,63 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get inventory metrics
+     * Get inventory metrics.
      */
     private function getInventoryMetrics(int $tenantId): array
     {
-        $inventories = Inventory::where('tenant_id', $tenantId)
-            ->with(['product'])
-            ->get();
+        return $this->cacheService->rememberInventoryMetrics($tenantId, function () use ($tenantId) {
+            // Use optimized query instead of loading all inventories
+            $totalProducts = Inventory::forTenant($tenantId)->count();
+            $totalQuantity = Inventory::forTenant($tenantId)->sum('quantity');
+            $totalAvailable = Inventory::forTenant($tenantId)->sum('available');
+            $totalReserved = Inventory::forTenant($tenantId)->sum('reserved');
+            $totalValue = Inventory::forTenant($tenantId)
+                ->selectRaw('SUM(quantity * COALESCE(cost, 0)) as value')
+                ->value('value') ?? 0;
 
-        $totalProducts = $inventories->count();
-        $totalQuantity = $inventories->sum('quantity');
-        $totalAvailable = $inventories->sum('available');
-        $totalReserved = $inventories->sum('reserved');
-        $totalValue = $inventories->sum(fn ($i) => $i->quantity * ($i->cost ?? 0));
+            // Low stock and out of stock counts using optimized queries
+            $lowStockCount = Inventory::forTenant($tenantId)
+                ->join('products', 'inventories.product_id', '=', 'products.id')
+                ->whereColumn('inventories.available', '<=', 'products.min_stock')
+                ->count();
 
-        // Low stock and out of stock counts
-        $lowStockCount = $inventories->filter(function ($inventory) {
-            return $inventory->product && $inventory->available <= $inventory->product->min_stock;
-        })->count();
+            $outOfStockCount = Inventory::forTenant($tenantId)
+                ->where('available', 0)
+                ->count();
 
-        $outOfStockCount = $inventories->filter(fn ($i) => $i->available === 0)->count();
+            // Inventory health percentage
+            $healthPercentage = $totalProducts > 0
+                ? round((($totalProducts - $lowStockCount) / $totalProducts) * 100, 2)
+                : 100;
 
-        // Inventory health percentage
-        $healthPercentage = $totalProducts > 0
-            ? round((($totalProducts - $lowStockCount) / $totalProducts) * 100, 2)
-            : 100;
-
-        return [
-            'total_products' => $totalProducts,
-            'total_quantity' => $totalQuantity,
-            'total_available' => $totalAvailable,
-            'total_reserved' => $totalReserved,
-            'total_value' => round($totalValue, 2),
-            'low_stock_count' => $lowStockCount,
-            'out_of_stock_count' => $outOfStockCount,
-            'health_percentage' => $healthPercentage,
-        ];
+            return [
+                'total_products' => $totalProducts,
+                'total_quantity' => $totalQuantity,
+                'total_available' => $totalAvailable,
+                'total_reserved' => $totalReserved,
+                'total_value' => round($totalValue, 2),
+                'low_stock_count' => $lowStockCount,
+                'out_of_stock_count' => $outOfStockCount,
+                'health_percentage' => $healthPercentage,
+            ];
+        });
     }
 
     /**
-     * Get order metrics
+     * Get order metrics.
      */
     private function getOrderMetrics(int $tenantId, array $dateRange): array
     {
-        // Order status counts (all time for the tenant)
-        $allOrders = Order::where('tenant_id', $tenantId)->get();
-
-        $statusCounts = [
-            'total' => $allOrders->count(),
-            'pending' => $allOrders->where('status', 'pending')->count(),
-            'confirmed' => $allOrders->where('status', 'confirmed')->count(),
-            'fulfilled' => $allOrders->where('status', 'fulfilled')->count(),
-            'cancelled' => $allOrders->where('status', 'cancelled')->count(),
-        ];
+        // Use optimized query instead of loading all orders
+        $statusCounts = Order::getSummaryForTenant($tenantId);
 
         // Today's orders
-        $todaysOrders = Order::where('tenant_id', $tenantId)
+        $todaysOrders = Order::forTenant($tenantId)
             ->whereDate('created_at', '>=', now()->startOfDay())
             ->count();
 
         // Pending fulfillment
-        $pendingFulfillment = Order::where('tenant_id', $tenantId)
+        $pendingFulfillment = Order::forTenant($tenantId)
             ->whereIn('status', ['pending', 'confirmed'])
             ->count();
 
@@ -156,7 +161,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get date range for metrics
+     * Get date range for metrics.
      */
     private function getDateRange(string $period): array
     {
@@ -171,7 +176,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get previous date range for comparison
+     * Get previous date range for comparison.
      */
     private function getPreviousDateRange(array $currentRange): array
     {

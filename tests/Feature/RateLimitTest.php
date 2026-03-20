@@ -37,7 +37,7 @@ class RateLimitTest extends TestCase
     }
 
     /**
-     * Test that login endpoint is rate limited
+     * Test that login endpoint is rate limited.
      */
     public function test_login_endpoint_is_rate_limited(): void
     {
@@ -57,7 +57,7 @@ class RateLimitTest extends TestCase
     }
 
     /**
-     * Test that authenticated users have higher rate limits
+     * Test that authenticated users have higher rate limits.
      */
     public function test_authenticated_user_has_higher_rate_limit(): void
     {
@@ -66,7 +66,7 @@ class RateLimitTest extends TestCase
         // Make requests up to the limit (100 per minute for authenticated users)
         for ($i = 0; $i < 105; $i++) {
             $response = $this->withHeaders([
-                'Authorization' => 'Bearer '.$token,
+                'Authorization' => 'Bearer ' . $token,
             ])->getJson("{$this->apiBaseUrl}/products");
 
             // Should not be rate limited until after 100 requests
@@ -79,7 +79,7 @@ class RateLimitTest extends TestCase
     }
 
     /**
-     * Test that unauthenticated requests have lower rate limits
+     * Test that unauthenticated requests have lower rate limits.
      */
     public function test_unauthenticated_request_to_protected_route_returns_401(): void
     {
@@ -89,7 +89,7 @@ class RateLimitTest extends TestCase
     }
 
     /**
-     * Test that admin users have higher rate limits
+     * Test that admin users have higher rate limits.
      */
     public function test_admin_user_has_higher_rate_limit(): void
     {
@@ -99,7 +99,7 @@ class RateLimitTest extends TestCase
         // We'll test a smaller subset to avoid hitting the limit
         for ($i = 0; $i < 50; $i++) {
             $response = $this->withHeaders([
-                'Authorization' => 'Bearer '.$token,
+                'Authorization' => 'Bearer ' . $token,
             ])->getJson("{$this->apiBaseUrl}/roles");
 
             // Should not be rate limited
@@ -108,14 +108,14 @@ class RateLimitTest extends TestCase
     }
 
     /**
-     * Test that rate limit headers are returned
+     * Test that rate limit headers are returned.
      */
     public function test_rate_limit_headers_are_present(): void
     {
         $token = $this->regularUser->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->getJson("{$this->apiBaseUrl}/products");
 
         $response->assertStatus(200);
@@ -126,7 +126,7 @@ class RateLimitTest extends TestCase
     }
 
     /**
-     * Test that rate limiter resets after time window
+     * Test that rate limiter resets after time window.
      */
     public function test_rate_limiter_key_is_user_specific(): void
     {
@@ -146,13 +146,13 @@ class RateLimitTest extends TestCase
         // Make requests with user 1
         for ($i = 0; $i < 50; $i++) {
             $this->withHeaders([
-                'Authorization' => 'Bearer '.$token1,
+                'Authorization' => 'Bearer ' . $token1,
             ])->getJson("{$this->apiBaseUrl}/products");
         }
 
         // User 2 should still have full rate limit available
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token2,
+            'Authorization' => 'Bearer ' . $token2,
         ])->getJson("{$this->apiBaseUrl}/products");
 
         $response->assertStatus(200);
@@ -162,7 +162,7 @@ class RateLimitTest extends TestCase
     }
 
     /**
-     * Test that 429 response includes proper error message
+     * Test that 429 response includes proper error message.
      */
     public function test_rate_limited_response_includes_error_message(): void
     {

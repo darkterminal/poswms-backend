@@ -47,7 +47,7 @@ class AuthorizationTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->getJson("/api/v1/tenants/{$tenant->id}/admin-only");
 
         // Should not return 403
@@ -65,7 +65,7 @@ class AuthorizationTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->getJson("/api/v1/tenants/{$tenant->id}/admin-only");
 
         $response->assertStatus(403);
@@ -89,7 +89,7 @@ class AuthorizationTest extends TestCase
         // This tests that user can access a route that doesn't require specific permission
         // Since we don't have a products permission-protected route, we test role-based access
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->getJson("/api/v1/tenants/{$tenant->id}/auth/me");
 
         // Should succeed (200) since user is authenticated
@@ -116,7 +116,7 @@ class AuthorizationTest extends TestCase
         $token = $manager->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->getJson("/api/v1/tenants/{$tenant->id}/admin-or-manager");
 
         $response->assertStatus(200);
@@ -139,7 +139,7 @@ class AuthorizationTest extends TestCase
 
         // User has products.edit, route requires products.create OR products.edit
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->postJson("/api/v1/tenants/{$tenant->id}/products/create-or-edit", [
             'name' => 'Test',
         ]);

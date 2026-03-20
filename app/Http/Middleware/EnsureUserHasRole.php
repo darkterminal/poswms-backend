@@ -28,7 +28,7 @@ class EnsureUserHasRole
         if (! $user->hasAnyRole($roles)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Insufficient role permissions. Required: '.implode(' or ', $roles),
+                'message' => 'Insufficient role permissions. Required: ' . implode(' or ', $roles),
             ], 403);
         }
 

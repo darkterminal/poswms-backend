@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,6 +33,63 @@ class Order extends Model
             'fulfilled_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Scope to filter by tenant.
+     */
+    public function scopeForTenant(Builder $query, int $tenantId): Builder
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
+    /**
+     * Scope to filter by status.
+     */
+    public function scopeStatus(Builder $query, string $status): Builder
+    {
+        return $query->where('status', $status);
+    }
+
+    /**
+     * Scope to filter by date range.
+     */
+    public function scopeDateRange(Builder $query, ?string $startDate, ?string $endDate): Builder
+    {
+        return $query->when($startDate, fn($q) => $q->whereDate('created_at', '>=', $startDate))
+            ->when($endDate, fn($q) => $q->whereDate('created_at', '<=', $endDate));
+    }
+
+    /**
+     * Scope to get pending orders.
+     */
+    public function scopePending(Builder $query): Builder
+    {
+        return $query->where('status', 'pending');
+    }
+
+    /**
+     * Scope to get confirmed orders.
+     */
+    public function scopeConfirmed(Builder $query): Builder
+    {
+        return $query->where('status', 'confirmed');
+    }
+
+    /**
+     * Scope to get fulfilled orders.
+     */
+    public function scopeFulfilled(Builder $query): Builder
+    {
+        return $query->where('status', 'fulfilled');
+    }
+
+    /**
+     * Scope to get cancelled orders.
+     */
+    public function scopeCancelled(Builder $query): Builder
+    {
+        return $query->where('status', 'cancelled');
     }
 
     /**
@@ -75,6 +133,23 @@ class Order extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    /**
+     * Get order summary for tenant with optimized query.
+     */
+    public static function getSummaryForTenant(int $tenantId): array
+    {
+        return [
+            'total' => self::forTenant($tenantId)->count(),
+            'pending' => self::forTenant($tenantId)->pending()->count(),
+            'confirmed' => self::forTenant($tenantId)->confirmed()->count(),
+            'fulfilled' => self::forTenant($tenantId)->fulfilled()->count(),
+            'cancelled' => self::forTenant($tenantId)->cancelled()->count(),
+            'revenue' => self::forTenant($tenantId)
+                ->whereIn('status', ['confirmed', 'fulfilled'])
+                ->sum('subtotal'),
+        ];
     }
 
     public function isPending(): bool

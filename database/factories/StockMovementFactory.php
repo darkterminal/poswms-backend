@@ -31,21 +31,21 @@ class StockMovementFactory extends Factory
 
     public function forTenant($tenantId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => $tenantId,
         ]);
     }
 
     public function stockIn(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'type' => 'in',
         ]);
     }
 
     public function stockOut(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'type' => 'out',
         ]);
     }

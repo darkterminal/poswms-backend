@@ -124,7 +124,7 @@ class CategorySeeder extends Seeder
             // Create additional random categories with unique slugs per tenant
             for ($i = 0; $i < 5; $i++) {
                 $randomName = fake()->word();
-                $slug = $tenant->slug.'-cat-'.Str::slug($randomName).'-'.$i.'-'.time();
+                $slug = $tenant->slug . '-cat-' . Str::slug($randomName) . '-' . $i . '-' . time();
 
                 Category::create([
                     'tenant_id' => $tenant->id,

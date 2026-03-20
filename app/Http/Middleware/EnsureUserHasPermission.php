@@ -28,7 +28,7 @@ class EnsureUserHasPermission
         if (! $user->hasAnyPermission($permissions)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Insufficient permissions. Required: '.implode(' or ', $permissions),
+                'message' => 'Insufficient permissions. Required: ' . implode(' or ', $permissions),
             ], 403);
         }
 

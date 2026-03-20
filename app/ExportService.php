@@ -21,7 +21,7 @@ class ExportService
             $output = fopen('php://output', 'w');
 
             // Add BOM for UTF-8 encoding
-            fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+            fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
             // Write header row
             fputcsv($output, array_values($columns));
@@ -39,7 +39,7 @@ class ExportService
             fclose($output);
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
 
@@ -70,7 +70,7 @@ class ExportService
 
         return Response::make($html, 200, [
             'Content-Type' => 'text/html',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
 
@@ -85,7 +85,7 @@ class ExportService
         $output = fopen('php://temp', 'r+');
 
         // Add BOM for UTF-8 encoding
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
         // Write header row
         fputcsv($output, array_values($columns));

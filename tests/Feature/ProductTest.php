@@ -35,7 +35,7 @@ class ProductTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/products", [
                 'name' => 'Test Product',
                 'sku' => 'TEST-SKU-001',
@@ -55,7 +55,7 @@ class ProductTest extends TestCase
         Product::factory()->forTenant($tenant->id)->count(5)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/products");
 
         $response->assertStatus(200)

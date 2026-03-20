@@ -102,7 +102,7 @@ class PriceCalculationService
             })
             ->orderBy('id', 'desc')
             ->get()
-            ->filter(fn ($rule) => $rule->appliesToQuantity($quantity))
+            ->filter(fn($rule) => $rule->appliesToQuantity($quantity))
             ->values()
             ->all();
     }
@@ -133,7 +133,7 @@ class PriceCalculationService
             })
             ->orderBy('id', 'desc')
             ->get()
-            ->filter(fn ($rule) => $rule->appliesToQuantity($quantity))
+            ->filter(fn($rule) => $rule->appliesToQuantity($quantity))
             ->values()
             ->all();
     }

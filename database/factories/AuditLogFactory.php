@@ -39,7 +39,7 @@ class AuditLogFactory extends Factory
      */
     public function created(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'event_type' => 'created',
             'old_values' => null,
         ]);
@@ -50,7 +50,7 @@ class AuditLogFactory extends Factory
      */
     public function updated(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'event_type' => 'updated',
         ]);
     }
@@ -60,7 +60,7 @@ class AuditLogFactory extends Factory
      */
     public function deleted(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'event_type' => 'deleted',
             'new_values' => null,
         ]);
@@ -71,7 +71,7 @@ class AuditLogFactory extends Factory
      */
     public function login(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'event_type' => 'logged_in',
             'auditable_type' => 'App\Models\User',
         ]);
@@ -82,7 +82,7 @@ class AuditLogFactory extends Factory
      */
     public function logout(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'event_type' => 'logged_out',
             'auditable_type' => 'App\Models\User',
         ]);

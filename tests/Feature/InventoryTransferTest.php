@@ -49,7 +49,7 @@ class InventoryTransferTest extends TestCase
             'available' => 100,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/inventory/transfer", [
                 'product_id' => $product->id,
                 'quantity' => 30,
@@ -102,7 +102,7 @@ class InventoryTransferTest extends TestCase
             'available' => 30,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/inventory/transfer", [
                 'product_id' => $product->id,
                 'quantity' => 50,
@@ -132,7 +132,7 @@ class InventoryTransferTest extends TestCase
             'available' => 100,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/inventory/transfer", [
                 'product_id' => $product->id,
                 'quantity' => 25,
@@ -164,7 +164,7 @@ class InventoryTransferTest extends TestCase
             'available' => 80,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/inventory/product/{$product->id}/transferable");
 
         $response->assertStatus(200)

@@ -36,7 +36,7 @@ class WebhookFactory extends Factory
      */
     public function active(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'active' => true,
         ]);
     }
@@ -46,7 +46,7 @@ class WebhookFactory extends Factory
      */
     public function inactive(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'active' => false,
         ]);
     }
@@ -56,8 +56,8 @@ class WebhookFactory extends Factory
      */
     public function withSecret(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'secret' => 'test-secret-key-'.fake()->randomNumber(8),
+        return $this->state(fn(array $attributes) => [
+            'secret' => 'test-secret-key-' . fake()->randomNumber(8),
         ]);
     }
 
@@ -66,7 +66,7 @@ class WebhookFactory extends Factory
      */
     public function formData(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'content_type' => 'form-data',
         ]);
     }
@@ -76,7 +76,7 @@ class WebhookFactory extends Factory
      */
     public function withRetrySettings(int $count = 5, int $timeout = 60): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'retry_count' => $count,
             'timeout' => $timeout,
         ]);

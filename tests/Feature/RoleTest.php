@@ -46,7 +46,7 @@ class RoleTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->postJson("/api/v1/tenants/{$tenant->id}/roles", [
             'name' => 'Custom Role',
             'slug' => 'custom_role',
@@ -77,7 +77,7 @@ class RoleTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->postJson("/api/v1/tenants/{$tenant->id}/roles", [
             'name' => 'Test Role',
             'slug' => 'test_role',
@@ -100,7 +100,7 @@ class RoleTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->getJson("/api/v1/tenants/{$tenant->id}/roles");
 
         $response->assertStatus(200)
@@ -126,7 +126,7 @@ class RoleTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->getJson("/api/v1/tenants/{$tenant->id}/roles/{$role->id}");
 
         $response->assertStatus(200)
@@ -153,7 +153,7 @@ class RoleTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->putJson("/api/v1/tenants/{$tenant->id}/roles/{$role->id}", [
             'name' => 'Updated Role',
             'permissions' => ['products.view'],
@@ -180,7 +180,7 @@ class RoleTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->deleteJson("/api/v1/tenants/{$tenant->id}/roles/{$adminRole->id}");
 
         $response->assertStatus(403)
@@ -203,7 +203,7 @@ class RoleTest extends TestCase
         $token = $admin->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->postJson("/api/v1/tenants/{$tenant->id}/users/{$user->id}/assign-role", [
             'role_id' => $role->id,
         ]);

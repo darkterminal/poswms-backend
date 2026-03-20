@@ -27,7 +27,7 @@ class StoreSeeder extends Seeder
 
             if ($mainStore) {
                 $mainStore->update([
-                    'name' => $tenant->name.' - Main Store',
+                    'name' => $tenant->name . ' - Main Store',
                     'address' => $tenant->address,
                     'city' => $tenant->city,
                     'state' => $tenant->state,
@@ -44,7 +44,7 @@ class StoreSeeder extends Seeder
                 if ($existing) {
                     $existing->update([
                         'tenant_id' => $tenant->id,
-                        'name' => $tenant->name.' - Main Store',
+                        'name' => $tenant->name . ' - Main Store',
                         'address' => $tenant->address,
                         'city' => $tenant->city,
                         'state' => $tenant->state,
@@ -59,7 +59,7 @@ class StoreSeeder extends Seeder
                     Store::create([
                         'tenant_id' => $tenant->id,
                         'code' => 'ST-MAIN-001',
-                        'name' => $tenant->name.' - Main Store',
+                        'name' => $tenant->name . ' - Main Store',
                         'address' => $tenant->address,
                         'city' => $tenant->city,
                         'state' => $tenant->state,

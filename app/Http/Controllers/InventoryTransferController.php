@@ -13,7 +13,7 @@ class InventoryTransferController extends Controller
     ) {}
 
     /**
-     * Transfer stock between locations
+     * Transfer stock between locations.
      */
     public function transfer(Request $request): JsonResponse
     {
@@ -72,7 +72,7 @@ class InventoryTransferController extends Controller
     }
 
     /**
-     * Get transferable inventory for a product
+     * Get transferable inventory for a product.
      */
     public function getTransferableInventory(Request $request, int $productId): JsonResponse
     {

@@ -42,7 +42,7 @@ class CustomerSeeder extends Seeder
 
             foreach ($sampleCustomers as $index => $customerData) {
                 // Make email unique per tenant
-                $uniqueEmail = $tenant->slug.'.'.$customerData['email'];
+                $uniqueEmail = $tenant->slug . '.' . $customerData['email'];
 
                 // Check if customer already exists
                 $customer = Customer::where('tenant_id', $tenant->id)
@@ -96,7 +96,7 @@ class CustomerSeeder extends Seeder
 
             // Create additional random customers with unique emails
             for ($i = 0; $i < 15; $i++) {
-                $randomEmail = $tenant->slug.'.customer'.$i.'@example.com';
+                $randomEmail = $tenant->slug . '.customer' . $i . '@example.com';
 
                 // Check if customer with this email already exists
                 $existingCustomer = Customer::where('email', $randomEmail)->first();

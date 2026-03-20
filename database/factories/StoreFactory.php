@@ -15,7 +15,7 @@ class StoreFactory extends Factory
         return [
             'tenant_id' => null,
             'name' => fake()->company(),
-            'code' => 'ST-'.strtoupper(fake()->unique()->bothify('???###')),
+            'code' => 'ST-' . strtoupper(fake()->unique()->bothify('???###')),
             'address' => fake()->address(),
             'city' => fake()->city(),
             'state' => fake()->state(),
@@ -30,14 +30,14 @@ class StoreFactory extends Factory
 
     public function forTenant($tenantId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => $tenantId,
         ]);
     }
 
     public function inactive(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'active' => false,
         ]);
     }

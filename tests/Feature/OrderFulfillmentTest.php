@@ -57,7 +57,7 @@ class OrderFulfillmentTest extends TestCase
         $inventory = $this->createInventory($tenant, $product, 50, warehouse: $warehouse);
 
         // Create order with items in one request
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders", [
                 'warehouse_id' => $warehouse->id,
                 'status' => 'confirmed',
@@ -70,7 +70,7 @@ class OrderFulfillmentTest extends TestCase
         $orderId = $response->json('data.order.id');
 
         // Now fulfill the order
-        $fulfillResponse = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $fulfillResponse = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders/{$orderId}/fulfill");
 
         $fulfillResponse->assertStatus(200)
@@ -104,7 +104,7 @@ class OrderFulfillmentTest extends TestCase
 
         $order = Order::factory()->forTenant($tenant->id)->create(['status' => 'pending']);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders/{$order->id}/fulfill");
 
         $response->assertStatus(422)
@@ -122,7 +122,7 @@ class OrderFulfillmentTest extends TestCase
         $this->createInventory($tenant, $product, 3, warehouse: $warehouse);
 
         // Create order with more items than available inventory
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders", [
                 'warehouse_id' => $warehouse->id,
                 'status' => 'confirmed',
@@ -135,7 +135,7 @@ class OrderFulfillmentTest extends TestCase
         $orderId = $response->json('data.order.id');
 
         // Try to fulfill - should fail due to insufficient inventory
-        $fulfillResponse = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $fulfillResponse = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders/{$orderId}/fulfill");
 
         $fulfillResponse->assertStatus(422)
@@ -153,7 +153,7 @@ class OrderFulfillmentTest extends TestCase
         $this->createInventory($tenant, $product, 50, warehouse: $warehouse);
 
         // Create order
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders", [
                 'warehouse_id' => $warehouse->id,
                 'status' => 'pending',
@@ -166,7 +166,7 @@ class OrderFulfillmentTest extends TestCase
         $orderId = $response->json('data.order.id');
 
         // Cancel the order
-        $cancelResponse = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $cancelResponse = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders/{$orderId}/cancel");
 
         $cancelResponse->assertStatus(200)
@@ -187,7 +187,7 @@ class OrderFulfillmentTest extends TestCase
 
         $order = Order::factory()->forTenant($tenant->id)->create(['status' => 'fulfilled']);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders/{$order->id}/cancel");
 
         $response->assertStatus(422)
@@ -200,12 +200,12 @@ class OrderFulfillmentTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response1 = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response1 = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders", [
                 'status' => 'pending',
             ]);
 
-        $response2 = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response2 = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders", [
                 'status' => 'pending',
             ]);
@@ -232,7 +232,7 @@ class OrderFulfillmentTest extends TestCase
 
         $customOrderNumber = 'CUSTOM-ORDER-123';
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders", [
                 'order_number' => $customOrderNumber,
                 'status' => 'pending',

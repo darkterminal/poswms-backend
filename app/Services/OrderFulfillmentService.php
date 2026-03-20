@@ -80,7 +80,7 @@ class OrderFulfillmentService
 
         if ($inventory->available < $item->quantity) {
             throw new \Exception(
-                "Insufficient inventory for product {$item->product_id}. ".
+                "Insufficient inventory for product {$item->product_id}. " .
                 "Available: {$inventory->available}, Required: {$item->quantity}"
             );
         }

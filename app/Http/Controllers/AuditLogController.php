@@ -133,7 +133,7 @@ class AuditLogController extends Controller
                     ->groupBy('user_id')
                     ->with('user:id,name,email')
                     ->get()
-                    ->map(fn ($item) => [
+                    ->map(fn($item) => [
                         'user' => $item->user?->name ?? 'Unknown',
                         'count' => $item->count,
                     ]),

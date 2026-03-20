@@ -23,7 +23,7 @@ class WebhookService
     public function trigger(string $eventType, array $payload, ?int $tenantId = null): array
     {
         $webhooks = Webhook::query()
-            ->when($tenantId, fn ($query) => $query->forTenant($tenantId))
+            ->when($tenantId, fn($query) => $query->forTenant($tenantId))
             ->active()
             ->forEvent($eventType)
             ->get();
@@ -108,7 +108,6 @@ class WebhookService
                 'attempt' => $attemptNumber,
                 'next_retry_at' => $nextRetryAt,
             ];
-
         } catch (ConnectionException $e) {
             return $this->handleDeliveryError($webhook, $eventType, $payload, $e->getMessage(), $attemptNumber);
         } catch (RequestException $e) {
@@ -175,7 +174,6 @@ class WebhookService
                 }
 
                 $retried++;
-
             } catch (\Exception $e) {
                 $nextRetryAt = $this->calculateNextRetry($attemptNumber);
                 WebhookDeliveryAttempt::create([

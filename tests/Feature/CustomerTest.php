@@ -35,7 +35,7 @@ class CustomerTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/customers", [
                 'name' => 'John Doe',
                 'email' => 'john@example.com',
@@ -55,7 +55,7 @@ class CustomerTest extends TestCase
         Customer::factory()->forTenant($tenant->id)->count(3)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/customers");
 
         $response->assertStatus(200)
@@ -69,7 +69,7 @@ class CustomerTest extends TestCase
         $customer = Customer::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/customers/{$customer->id}");
 
         $response->assertStatus(200)
@@ -83,7 +83,7 @@ class CustomerTest extends TestCase
         $customer = Customer::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->putJson("/api/v1/tenants/{$tenant->id}/customers/{$customer->id}", [
                 'name' => 'Jane Doe',
             ]);
@@ -99,7 +99,7 @@ class CustomerTest extends TestCase
         $customer = Customer::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->deleteJson("/api/v1/tenants/{$tenant->id}/customers/{$customer->id}");
 
         $response->assertStatus(200);
@@ -113,7 +113,7 @@ class CustomerTest extends TestCase
         $pricingTier = PricingTier::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/customers", [
                 'name' => 'Premium Customer',
                 'email' => 'premium@example.com',
@@ -135,7 +135,7 @@ class CustomerTest extends TestCase
         $customer = Customer::factory()->forTenant($tenant2->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant1->id}/customers/{$customer->id}");
 
         $response->assertStatus(404);

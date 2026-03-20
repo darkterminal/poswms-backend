@@ -34,7 +34,7 @@ class WarehouseTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/warehouses", [
                 'name' => 'Test Warehouse',
                 'code' => 'WH-001',
@@ -54,7 +54,7 @@ class WarehouseTest extends TestCase
         Warehouse::factory()->forTenant($tenant->id)->count(3)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/warehouses");
 
         $response->assertStatus(200)
@@ -68,7 +68,7 @@ class WarehouseTest extends TestCase
         $warehouse = Warehouse::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/warehouses/{$warehouse->id}");
 
         $response->assertStatus(200)
@@ -82,7 +82,7 @@ class WarehouseTest extends TestCase
         $warehouse = Warehouse::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->putJson("/api/v1/tenants/{$tenant->id}/warehouses/{$warehouse->id}", [
                 'name' => 'Updated Warehouse',
             ]);
@@ -98,7 +98,7 @@ class WarehouseTest extends TestCase
         $warehouse = Warehouse::factory()->forTenant($tenant->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->deleteJson("/api/v1/tenants/{$tenant->id}/warehouses/{$warehouse->id}");
 
         $response->assertStatus(200);
@@ -113,7 +113,7 @@ class WarehouseTest extends TestCase
         $warehouse = Warehouse::factory()->forTenant($tenant2->id)->create();
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant1->id}/warehouses/{$warehouse->id}");
 
         $response->assertStatus(404);

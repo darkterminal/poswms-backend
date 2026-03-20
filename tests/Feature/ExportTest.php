@@ -334,7 +334,7 @@ class ExportTest extends TestCase
         $csv = $service->generateCsvString($data, $columns);
 
         // Check for UTF-8 BOM
-        $bom = chr(0xEF).chr(0xBB).chr(0xBF);
+        $bom = chr(0xEF) . chr(0xBB) . chr(0xBF);
         $this->assertStringStartsWith($bom, $csv);
     }
 }

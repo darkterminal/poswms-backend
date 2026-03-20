@@ -18,7 +18,7 @@ class RefreshTest extends TestCase
         $token = $user->createToken('test-token')->plainTextToken;
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->postJson("/api/v1/tenants/{$tenant->id}/auth/refresh");
 
         $response->assertStatus(200)
@@ -51,7 +51,7 @@ class RefreshTest extends TestCase
 
         // Refresh the token
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$token,
+            'Authorization' => 'Bearer ' . $token,
         ])->postJson("/api/v1/tenants/{$tenant->id}/auth/refresh");
 
         $response->assertStatus(200);
@@ -63,7 +63,7 @@ class RefreshTest extends TestCase
 
         // New token should work
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer '.$newToken,
+            'Authorization' => 'Bearer ' . $newToken,
         ])->getJson("/api/v1/tenants/{$tenant->id}/auth/me");
 
         $response->assertStatus(200)

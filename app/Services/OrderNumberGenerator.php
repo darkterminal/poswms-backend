@@ -9,7 +9,7 @@ class OrderNumberGenerator
 {
     /**
      * Generate a sequential order number for a tenant.
-     * Format: ORD-YYYYMM-XXXX (e.g., ORD-202603-0001)
+     * Format: ORD-YYYYMM-XXXX (e.g., ORD-202603-0001).
      */
     public function generate(Order $order): string
     {

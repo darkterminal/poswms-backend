@@ -35,7 +35,7 @@ class OrderTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders", [
                 'customer_id' => null,
                 'status' => 'pending',
@@ -76,7 +76,7 @@ class OrderTest extends TestCase
         $product = Product::factory()->forTenant($tenant->id)->create(['price' => 100]);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/orders", [
                 'items' => [
                     ['product_id' => $product->id, 'quantity' => 2, 'unit_price' => 100],

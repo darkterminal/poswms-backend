@@ -18,7 +18,7 @@ class InventoryReportController extends Controller
     ) {}
 
     /**
-     * Get low stock alerts
+     * Get low stock alerts.
      */
     public function lowStock(Request $request): JsonResponse
     {
@@ -31,7 +31,7 @@ class InventoryReportController extends Controller
     }
 
     /**
-     * Get inventory report
+     * Get inventory report.
      */
     public function report(Request $request): JsonResponse
     {
@@ -51,7 +51,7 @@ class InventoryReportController extends Controller
     }
 
     /**
-     * Get stock levels report
+     * Get stock levels report.
      */
     public function stockLevels(Request $request): JsonResponse
     {
@@ -107,7 +107,7 @@ class InventoryReportController extends Controller
     }
 
     /**
-     * Get inventory movement history
+     * Get inventory movement history.
      */
     public function movements(Request $request): JsonResponse
     {

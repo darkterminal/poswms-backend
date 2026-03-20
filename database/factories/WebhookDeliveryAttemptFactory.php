@@ -37,7 +37,7 @@ class WebhookDeliveryAttemptFactory extends Factory
      */
     public function successful(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'success' => true,
             'response_status' => fake()->randomElement([200, 201]),
             'error_message' => null,
@@ -50,7 +50,7 @@ class WebhookDeliveryAttemptFactory extends Factory
      */
     public function failed(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'success' => false,
             'response_status' => fake()->randomElement([400, 404, 500, 502, 503]),
             'error_message' => fake()->sentence(),
@@ -62,7 +62,7 @@ class WebhookDeliveryAttemptFactory extends Factory
      */
     public function needsRetry(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'success' => false,
             'next_retry_at' => now()->subMinute(),
         ]);

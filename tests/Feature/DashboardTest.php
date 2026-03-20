@@ -77,7 +77,7 @@ class DashboardTest extends TestCase
             'subtotal' => 200,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/dashboard");
 
         $response->assertStatus(200)
@@ -139,7 +139,7 @@ class DashboardTest extends TestCase
             'subtotal' => 200,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/dashboard?period=today");
 
         $response->assertStatus(200);
@@ -197,7 +197,7 @@ class DashboardTest extends TestCase
             'cost' => 75,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/dashboard");
 
         $response->assertStatus(200);
@@ -241,7 +241,7 @@ class DashboardTest extends TestCase
         Order::factory()->forTenant($tenant->id)->count(4)->create(['status' => 'fulfilled']);
         Order::factory()->forTenant($tenant->id)->create(['status' => 'cancelled']);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/dashboard");
 
         $response->assertStatus(200);
@@ -278,14 +278,14 @@ class DashboardTest extends TestCase
         ]);
 
         // Test with period=today
-        $responseToday = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $responseToday = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/dashboard?period=today");
 
         $responseToday->assertStatus(200);
         $this->assertEquals(1000, $responseToday->json('data.sales.revenue.current'));
 
         // Test with period=all (should include all orders)
-        $responseAll = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $responseAll = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/dashboard?period=all");
 
         $responseAll->assertStatus(200);
@@ -298,7 +298,7 @@ class DashboardTest extends TestCase
         $admin = $this->createAdmin($tenant);
         $token = $admin->createToken('test-token')->plainTextToken;
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->getJson("/api/v1/tenants/{$tenant->id}/dashboard");
 
         $response->assertStatus(200);

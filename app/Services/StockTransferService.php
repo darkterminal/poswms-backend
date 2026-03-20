@@ -9,7 +9,7 @@ use Exception;
 class StockTransferService
 {
     /**
-     * Transfer stock from one location to another
+     * Transfer stock from one location to another.
      *
      * @throws Exception
      */
@@ -111,7 +111,7 @@ class StockTransferService
             warehouseId: $fromWarehouseId,
             userId: $userId,
             reason: $reason ?? 'Stock transfer',
-            reference: 'TRF-'.uniqid()
+            reference: 'TRF-' . uniqid()
         );
 
         StockMovement::recordMovement(
@@ -126,7 +126,7 @@ class StockTransferService
             warehouseId: $toWarehouseId,
             userId: $userId,
             reason: $reason ?? 'Stock transfer',
-            reference: 'TRF-'.uniqid()
+            reference: 'TRF-' . uniqid()
         );
 
         return [
@@ -138,7 +138,7 @@ class StockTransferService
     }
 
     /**
-     * Get transferable inventory for a product
+     * Get transferable inventory for a product.
      */
     public function getTransferableInventory(int $tenantId, int $productId, ?int $locationId = null, string $locationType = 'warehouse'): array
     {

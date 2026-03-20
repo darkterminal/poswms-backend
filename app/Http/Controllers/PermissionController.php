@@ -39,7 +39,7 @@ class PermissionController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:permissions,slug,NULL,id,tenant_id,'.$tenant_id,
+            'slug' => 'required|string|max:255|unique:permissions,slug,NULL,id,tenant_id,' . $tenant_id,
             'group' => 'required|string|max:100',
             'description' => 'nullable|string',
         ]);
@@ -86,7 +86,7 @@ class PermissionController extends Controller
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'slug' => 'sometimes|required|string|max:255|unique:permissions,slug,'.$id.',id,tenant_id,'.$tenant_id,
+            'slug' => 'sometimes|required|string|max:255|unique:permissions,slug,' . $id . ',id,tenant_id,' . $tenant_id,
             'group' => 'sometimes|required|string|max:100',
             'description' => 'nullable|string',
         ]);

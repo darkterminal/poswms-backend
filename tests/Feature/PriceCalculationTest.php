@@ -39,7 +39,7 @@ class PriceCalculationTest extends TestCase
 
         $product = Product::factory()->forTenant($tenant->id)->create(['price' => 100]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/prices/calculate", [
                 'product_id' => $product->id,
                 'quantity' => 1,
@@ -71,7 +71,7 @@ class PriceCalculationTest extends TestCase
 
         $customer = Customer::factory()->forTenant($tenant->id)->withPricingTier($tier->id)->create();
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/prices/calculate", [
                 'product_id' => $product->id,
                 'quantity' => 1,
@@ -104,7 +104,7 @@ class PriceCalculationTest extends TestCase
 
         $customer = Customer::factory()->forTenant($tenant->id)->withPricingTier($tier->id)->create();
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/prices/calculate", [
                 'product_id' => $product->id,
                 'quantity' => 1,
@@ -145,7 +145,7 @@ class PriceCalculationTest extends TestCase
         $customer = Customer::factory()->forTenant($tenant->id)->withPricingTier($tier->id)->create();
 
         // Test with quantity that qualifies for discount
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/prices/calculate", [
                 'product_id' => $product->id,
                 'quantity' => 20,
@@ -166,7 +166,7 @@ class PriceCalculationTest extends TestCase
             ]);
 
         // Test with quantity that doesn't qualify
-        $response2 = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response2 = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/prices/calculate", [
                 'product_id' => $product->id,
                 'quantity' => 5,
@@ -201,7 +201,7 @@ class PriceCalculationTest extends TestCase
 
         $customer = Customer::factory()->forTenant($tenant->id)->withPricingTier($tier->id)->create();
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/prices/calculate-cart", [
                 'items' => [
                     ['product_id' => $product1->id, 'quantity' => 2],
@@ -235,7 +235,7 @@ class PriceCalculationTest extends TestCase
         $tier = PricingTier::factory()->forTenant($tenant->id)->gold()->create();
         PricingRule::factory()->forTenant($tenant->id)->forPricingTier($tier->id)->percentageDiscount(50)->create();
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/prices/calculate", [
                 'product_id' => $product->id,
                 'quantity' => 1,
@@ -271,7 +271,7 @@ class PriceCalculationTest extends TestCase
             'value' => 5,
         ]);
 
-        $response = $this->withHeaders(['Authorization' => 'Bearer '.$token])
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
             ->postJson("/api/v1/tenants/{$tenant->id}/prices/calculate", [
                 'product_id' => $product->id,
                 'quantity' => 1,

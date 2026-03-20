@@ -2,7 +2,7 @@
 <?php
 
 /**
- * Development Session Progress Tracker Script
+ * Development Session Progress Tracker Script.
  *
  * This script helps manage development sessions by:
  * 1. Displaying current progress summary
@@ -14,9 +14,9 @@
  *   php scripts/check-progress.php start    // Start new session
  *   php scripts/check-progress.php end      // End current session
  */
-$progressFile = __DIR__.'/../docs/progress.json';
-$trackerFile = __DIR__.'/../docs/PROGRESS_TRACKER.md';
-$sessionLogsDir = __DIR__.'/../docs/session-logs';
+$progressFile = __DIR__ . '/../docs/progress.json';
+$trackerFile = __DIR__ . '/../docs/PROGRESS_TRACKER.md';
+$sessionLogsDir = __DIR__ . '/../docs/session-logs';
 
 if (! file_exists($progressFile)) {
     echo "❌ Progress file not found: $progressFile\n";
@@ -26,7 +26,7 @@ if (! file_exists($progressFile)) {
 $progress = json_decode(file_get_contents($progressFile), true);
 
 if (json_last_error() !== JSON_ERROR_NONE) {
-    echo '❌ Invalid JSON in progress file: '.json_last_error_msg()."\n";
+    echo '❌ Invalid JSON in progress file: ' . json_last_error_msg() . "\n";
     exit(1);
 }
 
@@ -64,8 +64,8 @@ $phaseNames = [
 foreach ($phaseNames as $phaseKey => $phaseName) {
     $phase = $progress['phases'][$phaseKey];
     $taskCount = count($phase['tasks']);
-    $completedCount = count(array_filter($phase['tasks'], fn ($t) => $t['status'] === 'completed'));
-    $inProgressCount = count(array_filter($phase['tasks'], fn ($t) => $t['status'] === 'in_progress'));
+    $completedCount = count(array_filter($phase['tasks'], fn($t) => $t['status'] === 'completed'));
+    $inProgressCount = count(array_filter($phase['tasks'], fn($t) => $t['status'] === 'in_progress'));
     $percentage = $taskCount > 0 ? ($completedCount / $taskCount * 100) : 0;
 
     $statusIcon = '⬜';
@@ -76,10 +76,11 @@ foreach ($phaseNames as $phaseKey => $phaseName) {
         $statusIcon = '✅';
     }
 
-    $progressBar = str_repeat('█', (int) ($percentage / 10)).str_repeat('░', 10 - (int) ($percentage / 10));
+    $progressBar = str_repeat('█', (int) ($percentage / 10)) . str_repeat('░', 10 - (int) ($percentage / 10));
 
     echo sprintf("  %s %s\n", $statusIcon, $phaseName);
-    echo sprintf("     [%s] %d%% (%d/%d tasks) - %.1fh/%.1fh\n",
+    echo sprintf(
+        "     [%s] %d%% (%d/%d tasks) - %.1fh/%.1fh\n",
         $progressBar,
         round($percentage),
         $completedCount,
@@ -102,7 +103,8 @@ foreach ($progress['phases'] as $phaseKey => $phase) {
     foreach ($phase['tasks'] as $task) {
         if ($task['status'] === 'in_progress') {
             $hasInProgress = true;
-            echo sprintf("  • [%s] %s - %s\n",
+            echo sprintf(
+                "  • [%s] %s - %s\n",
                 $task['id'],
                 $task['name'],
                 $phase['name']
@@ -130,14 +132,15 @@ foreach ($progress['phases'] as $phaseKey => $phase) {
 if ($currentPhase) {
     echo "📋 Next Upcoming Tasks\n";
     echo "────────────────────────────────────────────────────────────────\n";
-    $pendingTasks = array_filter($currentPhase['tasks'], fn ($t) => $t['status'] === 'pending');
+    $pendingTasks = array_filter($currentPhase['tasks'], fn($t) => $t['status'] === 'pending');
     $showCount = min(5, count($pendingTasks));
     $counter = 0;
     foreach ($pendingTasks as $task) {
         if ($counter >= $showCount) {
             break;
         }
-        echo sprintf("  %d. [%s] %s (%.1fh)\n",
+        echo sprintf(
+            "  %d. [%s] %s (%.1fh)\n",
             $counter + 1,
             $task['id'],
             $task['name'],
@@ -156,7 +159,7 @@ if ($action === 'start') {
     echo "────────────────────────────────────────────────────────────────\n";
 
     // Find next session number
-    $sessionFiles = glob($sessionLogsDir.'/session-*.md');
+    $sessionFiles = glob($sessionLogsDir . '/session-*.md');
     $nextSessionNum = count($sessionFiles) + 1;
     $sessionFile = sprintf('%s/session-%03d.md', $sessionLogsDir, $nextSessionNum);
 

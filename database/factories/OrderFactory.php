@@ -14,7 +14,7 @@ class OrderFactory extends Factory
     {
         return [
             'tenant_id' => null,
-            'order_number' => 'ORD-'.strtoupper(fake()->unique()->bothify('???###')),
+            'order_number' => 'ORD-' . strtoupper(fake()->unique()->bothify('???###')),
             'customer_id' => null,
             'store_id' => null,
             'warehouse_id' => null,
@@ -41,14 +41,14 @@ class OrderFactory extends Factory
 
     public function forTenant($tenantId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => $tenantId,
         ]);
     }
 
     public function confirmed(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'status' => 'confirmed',
             'confirmed_at' => now(),
         ]);
@@ -56,7 +56,7 @@ class OrderFactory extends Factory
 
     public function fulfilled(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'status' => 'fulfilled',
             'fulfilled_at' => now(),
         ]);
@@ -64,7 +64,7 @@ class OrderFactory extends Factory
 
     public function cancelled(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'status' => 'cancelled',
             'cancelled_at' => now(),
         ]);

@@ -20,7 +20,7 @@ class SalesReportController extends Controller
     public function __construct(protected ExportService $exportService) {}
 
     /**
-     * Get sales report with revenue analytics
+     * Get sales report with revenue analytics.
      */
     public function revenue(Request $request): JsonResponse
     {
@@ -91,7 +91,7 @@ class SalesReportController extends Controller
     }
 
     /**
-     * Get orders by period
+     * Get orders by period.
      */
     public function ordersByPeriod(Request $request): JsonResponse
     {
@@ -151,7 +151,7 @@ class SalesReportController extends Controller
     }
 
     /**
-     * Get top products report
+     * Get top products report.
      */
     public function topProducts(Request $request): JsonResponse
     {
@@ -216,7 +216,7 @@ class SalesReportController extends Controller
     }
 
     /**
-     * Get dashboard metrics (KPIs for tenant admin)
+     * Get dashboard metrics (KPIs for tenant admin).
      */
     public function dashboardMetrics(Request $request): JsonResponse
     {
@@ -244,14 +244,14 @@ class SalesReportController extends Controller
         $previousDateRange = $this->getPreviousDateRange($period, $dateRange);
         $previousRevenue = Order::where('tenant_id', $tenantId)
             ->whereIn('status', ['confirmed', 'fulfilled'])
-            ->when($previousDateRange['start'], fn ($q) => $q->whereDate('created_at', '>=', $previousDateRange['start']))
-            ->when($previousDateRange['end'], fn ($q) => $q->whereDate('created_at', '<=', $previousDateRange['end']))
+            ->when($previousDateRange['start'], fn($q) => $q->whereDate('created_at', '>=', $previousDateRange['start']))
+            ->when($previousDateRange['end'], fn($q) => $q->whereDate('created_at', '<=', $previousDateRange['end']))
             ->sum('subtotal');
 
         $previousOrders = Order::where('tenant_id', $tenantId)
             ->whereIn('status', ['confirmed', 'fulfilled'])
-            ->when($previousDateRange['start'], fn ($q) => $q->whereDate('created_at', '>=', $previousDateRange['start']))
-            ->when($previousDateRange['end'], fn ($q) => $q->whereDate('created_at', '<=', $previousDateRange['end']))
+            ->when($previousDateRange['start'], fn($q) => $q->whereDate('created_at', '>=', $previousDateRange['start']))
+            ->when($previousDateRange['end'], fn($q) => $q->whereDate('created_at', '<=', $previousDateRange['end']))
             ->count();
 
         $revenueGrowth = $previousRevenue > 0 ? (($currentRevenue - $previousRevenue) / $previousRevenue) * 100 : 0;
@@ -291,7 +291,7 @@ class SalesReportController extends Controller
     }
 
     /**
-     * Format a date based on period
+     * Format a date based on period.
      */
     private function formatPeriod($date, string $period): string
     {
@@ -307,7 +307,7 @@ class SalesReportController extends Controller
     }
 
     /**
-     * Get date range for dashboard metrics
+     * Get date range for dashboard metrics.
      */
     private function getDateRange(string $period): array
     {
@@ -322,7 +322,7 @@ class SalesReportController extends Controller
     }
 
     /**
-     * Get previous date range for comparison
+     * Get previous date range for comparison.
      */
     private function getPreviousDateRange(string $period, array $currentRange): array
     {
@@ -352,7 +352,7 @@ class SalesReportController extends Controller
     }
 
     /**
-     * Get product details
+     * Get product details.
      */
     private function getProductDetails(int $productId): array
     {

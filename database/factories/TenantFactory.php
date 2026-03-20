@@ -42,7 +42,7 @@ class TenantFactory extends Factory
      */
     public function active(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'status' => 'active',
         ]);
     }
@@ -52,7 +52,7 @@ class TenantFactory extends Factory
      */
     public function suspended(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'status' => 'suspended',
         ]);
     }
@@ -62,7 +62,7 @@ class TenantFactory extends Factory
      */
     public function inactive(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'status' => 'inactive',
         ]);
     }
@@ -72,7 +72,7 @@ class TenantFactory extends Factory
      */
     public function onTrial(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'trial_ends_at' => now()->addWeeks(2),
             'subscription_ends_at' => null,
         ]);
@@ -83,7 +83,7 @@ class TenantFactory extends Factory
      */
     public function withSubscription(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'subscription_ends_at' => now()->addMonths(6),
         ]);
     }
