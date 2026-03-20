@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryReportController;
 use App\Http\Controllers\InventoryTransferController;
@@ -73,6 +74,9 @@ Route::middleware(['auth:sanctum', 'tenant.scoped'])->prefix('tenants/{tenant_id
     Route::get('/reports/sales/orders-by-period', [SalesReportController::class, 'ordersByPeriod']);
     Route::get('/reports/sales/top-products', [SalesReportController::class, 'topProducts']);
     Route::get('/reports/sales/dashboard', [SalesReportController::class, 'dashboardMetrics']);
+
+    // Dashboard (unified metrics)
+    Route::get('/dashboard', [DashboardController::class, 'index']);
 
     // Order actions
     Route::post('/orders/{order}/confirm', [OrderController::class, 'confirm']);
