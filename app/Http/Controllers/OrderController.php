@@ -4,11 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Services\OrderFulfillmentService;
+use App\Services\OrderNumberGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
 {
+    public function __construct(
+        protected OrderFulfillmentService $fulfillmentService,
+        protected OrderNumberGenerator $numberGenerator
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
@@ -59,7 +66,11 @@ class OrderController extends Controller
         $validated['type'] = $validated['type'] ?? 'sale';
         $validated['payment_status'] = $validated['payment_status'] ?? 'pending';
         $validated['user_id'] = auth()->id();
-        $validated['order_number'] = $validated['order_number'] ?? 'ORD-'.strtoupper(uniqid());
+
+        // Generate sequential order number if not provided
+        if (empty($validated['order_number'])) {
+            $validated['order_number'] = $this->numberGenerator->generateWithLock($validated['tenant_id']);
+        }
 
         // Calculate totals if not provided
         if (isset($validated['items']) && count($validated['items']) > 0) {
@@ -188,13 +199,20 @@ class OrderController extends Controller
         $order = Order::where('tenant_id', $request->route('tenant_id'))
             ->findOrFail($order);
 
-        $order->fulfill();
+        try {
+            $this->fulfillmentService->fulfill($order);
 
-        return response()->json([
-            'success' => true,
-            'data' => ['order' => $order],
-            'message' => 'Order fulfilled successfully',
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => ['order' => $order->fresh()],
+                'message' => 'Order fulfilled successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 
     /**
@@ -205,12 +223,19 @@ class OrderController extends Controller
         $order = Order::where('tenant_id', $request->route('tenant_id'))
             ->findOrFail($order);
 
-        $order->cancel();
+        try {
+            $this->fulfillmentService->cancel($order);
 
-        return response()->json([
-            'success' => true,
-            'data' => ['order' => $order],
-            'message' => 'Order cancelled successfully',
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => ['order' => $order->fresh()],
+                'message' => 'Order cancelled successfully',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 }
