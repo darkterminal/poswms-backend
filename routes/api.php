@@ -13,6 +13,7 @@ use App\Http\Controllers\PricingRuleController;
 use App\Http\Controllers\PricingTierController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\WarehouseController;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +67,12 @@ Route::middleware(['auth:sanctum', 'tenant.scoped'])->prefix('tenants/{tenant_id
     Route::get('/reports/inventory', [InventoryReportController::class, 'report']);
     Route::get('/reports/inventory/stock-levels', [InventoryReportController::class, 'stockLevels']);
     Route::get('/reports/inventory/movements', [InventoryReportController::class, 'movements']);
+
+    // Sales reports
+    Route::get('/reports/sales/revenue', [SalesReportController::class, 'revenue']);
+    Route::get('/reports/sales/orders-by-period', [SalesReportController::class, 'ordersByPeriod']);
+    Route::get('/reports/sales/top-products', [SalesReportController::class, 'topProducts']);
+    Route::get('/reports/sales/dashboard', [SalesReportController::class, 'dashboardMetrics']);
 
     // Order actions
     Route::post('/orders/{order}/confirm', [OrderController::class, 'confirm']);

@@ -465,20 +465,20 @@
       "id": 6,
       "name": "Reporting & Analytics",
       "priority": "MEDIUM",
-      "status": "pending",
+      "status": "in_progress",
       "estimatedHours": 12,
-      "timeSpent": 0,
+      "timeSpent": 2.5,
       "tasks": {
         "6.1": {
           "id": "6.1",
           "name": "Sales Reports",
           "description": "Revenue, orders by period, top products",
-          "status": "pending",
+          "status": "completed",
           "estimatedHours": 4,
-          "timeSpent": 0,
-          "startedAt": null,
-          "completedAt": null,
-          "notes": ""
+          "timeSpent": 2.5,
+          "startedAt": "2026-03-20T06:00:00Z",
+          "completedAt": "2026-03-20T08:30:00Z",
+          "notes": "Session #13: Implemented SalesReportController with 4 endpoints (revenue, orders-by-period, top-products, dashboard-metrics). 15 tests passing."
         },
         "6.2": {
           "id": "6.2",
