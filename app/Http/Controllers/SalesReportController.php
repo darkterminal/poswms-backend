@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\ExportService;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -9,9 +10,15 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SalesReportController extends Controller
 {
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(protected ExportService $exportService) {}
+
     /**
      * Get sales report with revenue analytics
      */
@@ -360,5 +367,106 @@ class SalesReportController extends Controller
             'name' => 'Deleted Product',
             'sku' => 'N/A',
         ];
+    }
+
+    /**
+     * Export revenue report to CSV.
+     */
+    public function exportRevenue(Request $request): StreamedResponse
+    {
+        $response = $this->revenue($request);
+        $data = $response->getData(true);
+
+        if (! $data['success']) {
+            abort(500, 'Failed to generate revenue report');
+        }
+
+        $revenueData = $data['data']['revenue_by_period'];
+        $period = $data['data']['period'];
+
+        $columns = [
+            'period' => 'Period',
+            'order_count' => 'Orders',
+            'total_revenue' => 'Revenue',
+            'total_tax' => 'Tax',
+            'total_discount' => 'Discount',
+            'total_shipping' => 'Shipping',
+            'avg_order_value' => 'Avg Order Value',
+        ];
+
+        $filename = sprintf('sales_revenue_%s_%s.csv', $period, now()->format('Y-m-d'));
+
+        return $this->exportService->exportCsv($revenueData, $columns, $filename);
+    }
+
+    /**
+     * Export orders by period report to CSV.
+     */
+    public function exportOrdersByPeriod(Request $request): StreamedResponse
+    {
+        $response = $this->ordersByPeriod($request);
+        $data = $response->getData(true);
+
+        if (! $data['success']) {
+            abort(500, 'Failed to generate orders report');
+        }
+
+        $ordersData = $data['data']['orders_by_period'];
+
+        $columns = [
+            'period' => 'Period',
+            'order_count' => 'Total Orders',
+            'pending_count' => 'Pending',
+            'confirmed_count' => 'Confirmed',
+            'fulfilled_count' => 'Fulfilled',
+            'cancelled_count' => 'Cancelled',
+            'total_revenue' => 'Revenue',
+        ];
+
+        $filename = sprintf('orders_by_period_%s.csv', now()->format('Y-m-d'));
+
+        return $this->exportService->exportCsv($ordersData, $columns, $filename);
+    }
+
+    /**
+     * Export top products report to CSV.
+     */
+    public function exportTopProducts(Request $request): StreamedResponse
+    {
+        $response = $this->topProducts($request);
+        $data = $response->getData(true);
+
+        if (! $data['success']) {
+            abort(500, 'Failed to generate top products report');
+        }
+
+        $productsData = $data['data']['top_products'];
+
+        // Flatten product data for CSV
+        $flatData = array_map(function ($item) {
+            return [
+                'product_id' => $item['product_id'],
+                'product_name' => $item['product']['name'],
+                'product_sku' => $item['product']['sku'],
+                'total_quantity' => $item['total_quantity'],
+                'total_revenue' => $item['total_revenue'],
+                'order_count' => $item['order_count'],
+                'avg_price' => $item['avg_price'],
+            ];
+        }, $productsData);
+
+        $columns = [
+            'product_id' => 'Product ID',
+            'product_name' => 'Product Name',
+            'product_sku' => 'SKU',
+            'total_quantity' => 'Qty Sold',
+            'total_revenue' => 'Revenue',
+            'order_count' => 'Orders',
+            'avg_price' => 'Avg Price',
+        ];
+
+        $filename = sprintf('top_products_%s.csv', now()->format('Y-m-d'));
+
+        return $this->exportService->exportCsv($flatData, $columns, $filename);
     }
 }

@@ -56,6 +56,16 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
         Route::get('/audit-logs/summary', [AuditLogController::class, 'summary']);
         Route::get('/audit-logs/by-user/{userId}', [AuditLogController::class, 'byUser']);
         Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
+
+        // Inventory report exports (admin only)
+        Route::get('/reports/inventory/export/stock-levels', [InventoryReportController::class, 'exportStockLevels']);
+        Route::get('/reports/inventory/export/movements', [InventoryReportController::class, 'exportMovements']);
+        Route::get('/reports/inventory/export/low-stock', [InventoryReportController::class, 'exportLowStock']);
+
+        // Sales report exports (admin only)
+        Route::get('/reports/sales/export/revenue', [SalesReportController::class, 'exportRevenue']);
+        Route::get('/reports/sales/export/orders-by-period', [SalesReportController::class, 'exportOrdersByPeriod']);
+        Route::get('/reports/sales/export/top-products', [SalesReportController::class, 'exportTopProducts']);
     });
 
     // Core entity routes

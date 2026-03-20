@@ -18,6 +18,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(AuditLogService::class, AuditLogService::class);
+        $this->app->singleton(ExportService::class, ExportService::class);
     }
 
     /**
