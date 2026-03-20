@@ -3,7 +3,7 @@
 **Project:** POSWMS Backend
 **Framework:** Laravel 13.x (PHP 8.3)
 **Tracking Started:** March 19, 2026
-**Last Updated:** March 20, 2026 (Session #11 - Phase 4 Complete)
+**Last Updated:** March 20, 2026 (Session #12 - Phase 5 Complete)
 
 ---
 
@@ -15,11 +15,11 @@
 | Phase 2 | Core Entities | ✅ Completed | 100% | 8/8 | 8 | 2h | 25h |
 | Phase 3 | Inventory Management | ✅ Completed | 100% | 6/6 | 6 | 2h | 16h |
 | Phase 4 | Order Management | ✅ Completed | 100% | 7/7 | 7 | 3h | 19h |
-| Phase 5 | Multi-Level Pricing | 🟡 Pending | 0% | 0/5 | 5 | 0h | 16h |
+| Phase 5 | Multi-Level Pricing | ✅ Completed | 100% | 5/5 | 5 | 2h | 16h |
 | Phase 6 | Reporting & Analytics | 🟡 Pending | 0% | 0/4 | 4 | 0h | 12h |
 | Phase 7 | Advanced Features | 🟢 Pending | 0% | 0/5 | 5 | 0h | 17h |
 | Phase 8 | Production Readiness | 🔴 Pending | 0% | 0/6 | 6 | 0h | 50h |
-| **TOTAL** | | | **58%** | **28/48** | **48** | **18h** | **170h** |
+| **TOTAL** | | | **69%** | **33/48** | **48** | **20h** | **170h** |
 
 ### Legend
 - 🔴 Not Started / Critical
@@ -147,29 +147,29 @@
 
 ---
 
-## Phase 5: Multi-Level Pricing 🟡 MEDIUM
+## Phase 5: Multi-Level Pricing ✅ MEDIUM
 
-**Status:** Pending  
-**Progress:** 0/5 tasks (0%)  
-**Time Spent:** 0h / 16h estimated  
+**Status:** ✅ Completed
+**Progress:** 5/5 tasks (100%)
+**Time Spent:** 2h / 16h estimated
 
 ### Tasks
 
 | ID | Task | Status | Started | Completed | Time Spent | Notes |
 |----|------|-------|---------|-----------|------------|-------|
-| 5.1 | Pricing Tiers Module | ⬜ Pending | - | - | 0h | Bronze/Silver/Gold tiers |
-| 5.2 | Pricing Rules Engine | ⬜ Pending | - | - | 0h | Flexible rule-based pricing |
-| 5.3 | Price Calculation Service | ⬜ Pending | - | - | 0h | Apply rules to calculate price |
-| 5.4 | Pricing API Endpoints | ⬜ Pending | - | - | 0h | CRUD for tiers and rules |
-| 5.5 | Price Calculation Endpoint | ⬜ Pending | - | - | 0h | `/calculate-price` |
+| 5.1 | Pricing Tiers Module | ✅ Completed | 2026-03-20 | 2026-03-20 | 0h | Already implemented |
+| 5.2 | Pricing Rules Engine | ✅ Completed | 2026-03-20 | 2026-03-20 | 0h | Already implemented |
+| 5.3 | Price Calculation Service | ✅ Completed | 2026-03-20 | 2026-03-20 | 1h | Session #12: PriceCalculationService created |
+| 5.4 | Pricing API Endpoints | ✅ Completed | 2026-03-20 | 2026-03-20 | 0.5h | Session #12: PriceCalculationController created |
+| 5.5 | Price Calculation Endpoint | ✅ Completed | 2026-03-20 | 2026-03-20 | 0.5h | Session #12: /prices/calculate and /prices/calculate-cart |
 
 ### Deliverables Checklist
-- [ ] `pricing_tiers` and `pricing_rules` tables
-- [ ] `PricingTier` and `PricingRule` models
-- [ ] Price calculation service class
-- [ ] Pricing controllers
-- [ ] Price calculation API endpoint
-- [ ] Feature tests
+- [x] `pricing_tiers` and `pricing_rules` tables
+- [x] `PricingTier` and `PricingRule` models
+- [x] Price calculation service class
+- [x] Pricing controllers
+- [x] Price calculation API endpoint
+- [x] Feature tests
 
 ---
 
@@ -250,6 +250,60 @@
 ---
 
 ## Development Session Logs
+
+### Session #012 - March 20, 2026
+
+**Duration:** 2h
+**Phase:** Phase 5 - Multi-Level Pricing
+**Focus:** Price Calculation Service
+
+#### Objectives
+- [x] Verify existing Pricing Tiers and Rules implementation
+- [x] Create PriceCalculationService for calculating final prices
+- [x] Create PriceCalculationController with /calculate-price endpoint
+- [x] Add routes for price calculation API
+- [x] Write comprehensive price calculation tests
+- [x] Run all tests and apply Pint formatting
+
+#### Work Completed
+| Task ID | Description | Time | Status |
+|---------|-------------|------|--------|
+| 5.1 | Pricing Tiers Module | 0h | ✅ Done |
+| 5.2 | Pricing Rules Engine | 0h | ✅ Done |
+| 5.3 | Price Calculation Service | 1h | ✅ Done |
+| 5.4 | Pricing API Endpoints | 0.5h | ✅ Done |
+| 5.5 | Price Calculation Endpoint | 0.5h | ✅ Done |
+
+**Tests Added:**
+- `Tests\Feature\PriceCalculationTest` - 7 tests (base price calculation, percentage discount, fixed discount, quantity-based rules, cart calculation, no customer pricing, general rules)
+
+**Files Created/Modified:**
+- `app/Services/PriceCalculationService.php` - Price calculation with tier-based rules
+- `app/Http/Controllers/PriceCalculationController.php` - Price calculation API endpoints
+- `database/factories/PricingRuleFactory.php` - Added forPricingTier, forProduct methods
+- `routes/api.php` - Added /prices/calculate and /prices/calculate-cart routes
+- `tests/Feature/PriceCalculationTest.php` - Comprehensive price calculation tests
+
+#### Issues/Blockers
+| Issue | Resolution |
+|-------|------------|
+| PricingRuleFactory missing forPricingTier method | Added forPricingTier and forProduct methods |
+| PriceCalculationService ordering by non-existent priority column | Changed to order by id |
+| Date filtering with null starts_at | Fixed to handle null values properly |
+
+#### Key Decisions
+| Decision | Rationale |
+|----------|-----------|
+| Service class for price calculation | Better separation of concerns, reusable, testable |
+| Support for cart-level calculation | More practical for e-commerce use cases |
+| Rule priority by creation order | Simpler schema, creation order is usually sufficient |
+
+#### Next Session Plan
+- Start Phase 6: Reporting & Analytics
+- Implement Sales Reports
+- Create Dashboard Metrics
+
+---
 
 ### Session #011 - March 20, 2026
 
@@ -511,6 +565,9 @@
 
 | Date | Phase | Decision | Rationale |
 |------|-------|----------|-----------|
+| 2026-03-20 | Phase 5 | Service class for price calculation | Better separation of concerns, reusable, testable |
+| 2026-03-20 | Phase 5 | Support for cart-level calculation | More practical for e-commerce use cases |
+| 2026-03-20 | Phase 5 | Rule priority by creation order | Simpler schema, creation order is usually sufficient |
 | 2026-03-20 | Phase 4 | Service classes for fulfillment logic | Better separation of concerns, testable, reusable |
 | 2026-03-20 | Phase 4 | Sequential order numbering with DB lock | Prevents duplicates, proper sequential numbering per tenant |
 | 2026-03-20 | Phase 4 | Transaction-based inventory deduction | Ensures data consistency, atomic operations |
@@ -529,17 +586,17 @@
 ### Velocity Tracking
 | Week | Tasks Completed | Time Spent | Planned Hours | Actual vs Planned |
 |------|-----------------|------------|---------------|-------------------|
-| Week 1 (Mar 19-25) | 28 | 18h | 56h | 32.1% |
+| Week 1 (Mar 19-25) | 33 | 20h | 56h | 35.7% |
 
 ### Burndown Summary
 - **Total Tasks:** 48
-- **Completed:** 28
-- **Remaining:** 20
-- **Completion Rate:** 58%
+- **Completed:** 33
+- **Remaining:** 15
+- **Completion Rate:** 69%
 
 ### Test Statistics
-- **Total Tests:** 114
-- **Total Assertions:** 351
+- **Total Tests:** 121
+- **Total Assertions:** 367
 - **Test Coverage:** All critical paths covered
 
 ---
