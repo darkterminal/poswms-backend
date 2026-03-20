@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
@@ -50,6 +51,11 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
         Route::apiResource('permissions', PermissionController::class);
         Route::apiResource('pricing-tiers', PricingTierController::class);
         Route::apiResource('pricing-rules', PricingRuleController::class);
+
+        // Audit log routes (admin only)
+        Route::get('/audit-logs/summary', [AuditLogController::class, 'summary']);
+        Route::get('/audit-logs/by-user/{userId}', [AuditLogController::class, 'byUser']);
+        Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
     });
 
     // Core entity routes

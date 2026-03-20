@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\AuditLogService;
+use App\Models\Product;
+use App\Observers\AuditObserver;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -14,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(AuditLogService::class, AuditLogService::class);
     }
 
     /**
@@ -22,6 +25,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register audit observer for Product model
+        Product::observe(AuditObserver::class);
+
         // API rate limiter - default for all API routes
         RateLimiter::for('api', function (Request $request) {
             // Higher limit for authenticated users, lower for guests
