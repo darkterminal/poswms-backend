@@ -30,18 +30,20 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-// Public routes
-Route::post('/auth/login', [LoginController::class, 'login'])->name('auth.login');
+// Public routes with auth rate limiting
+Route::middleware(['throttle:auth'])->group(function () {
+    Route::post('/auth/login', [LoginController::class, 'login'])->name('auth.login');
+});
 
 // Protected routes (require Sanctum authentication and tenant scoping)
-Route::middleware(['auth:sanctum', 'tenant.scoped'])->prefix('tenants/{tenant_id}')->group(function () {
+Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('tenants/{tenant_id}')->group(function () {
     // Auth routes
     Route::post('/auth/logout', [LoginController::class, 'logout'])->name('auth.logout');
     Route::post('/auth/refresh', [LoginController::class, 'refresh'])->name('auth.refresh');
     Route::get('/auth/me', [LoginController::class, 'me'])->name('auth.me');
 
-    // Admin-only routes
-    Route::middleware(['role:admin'])->group(function () {
+    // Admin-only routes with higher rate limits
+    Route::middleware(['role:admin', 'throttle:api-admin'])->group(function () {
         Route::apiResource('roles', RoleController::class);
         Route::post('/users/{userId}/assign-role', [RoleController::class, 'assignToUser']);
         Route::delete('/users/{userId}/remove-role/{roleId}', [RoleController::class, 'removeFromUser']);
