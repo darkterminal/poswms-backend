@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\SystemDashboardController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
@@ -57,6 +58,12 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::post('/tenants/{tenant}/activate', [TenantController::class, 'activate'])->name('admin.tenants.activate');
     Route::post('/tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('admin.tenants.suspend');
     Route::get('/tenants/{tenant}/stats', [TenantController::class, 'stats'])->name('admin.tenants.stats');
+
+    // System Dashboard
+    Route::get('/dashboard', [SystemDashboardController::class, 'overview'])->name('admin.dashboard.overview');
+    Route::get('/dashboard/revenue', [SystemDashboardController::class, 'revenue'])->name('admin.dashboard.revenue');
+    Route::get('/dashboard/usage', [SystemDashboardController::class, 'usage'])->name('admin.dashboard.usage');
+    Route::get('/dashboard/alerts', [SystemDashboardController::class, 'alerts'])->name('admin.dashboard.alerts');
 });
 
 // Protected routes (require Sanctum authentication and tenant scoping)
