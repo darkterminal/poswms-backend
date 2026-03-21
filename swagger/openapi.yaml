@@ -1,0 +1,3307 @@
+openapi: 3.1.0
+info:
+  title: POS WMS Backend API
+  description: Point of Sale & Warehouse Management System API
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.example.com
+    description: Production server
+  - url: http://localhost:8000
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Stores
+    description: Store management endpoints
+  - name: Warehouses
+    description: Warehouse management endpoints
+  - name: Products
+    description: Product management endpoints
+  - name: Categories
+    description: Category management endpoints
+  - name: Inventory
+    description: Inventory management endpoints
+  - name: Orders
+    description: Order management endpoints
+  - name: Customers
+    description: Customer management endpoints
+  - name: Pricing
+    description: Pricing and pricing tiers management
+  - name: Roles & Permissions
+    description: Role and permission management
+  - name: Reports & Dashboard
+    description: Dashboard and reporting endpoints
+  - name: Webhooks
+    description: Webhook management and audit logs
+
+paths:
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      description: Authenticate user and receive access token
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  examples:
+                    - value: user@example.com
+                password:
+                  type: string
+                  format: password
+                  examples:
+                    - value: password123
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Revoke the current authentication token
+      operationId: logoutUser
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/auth/refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh token
+      description: Revoke current token and issue a new one
+      operationId: refreshToken
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                      token_type:
+                        type: string
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user
+      description: Retrieve authenticated user details
+      operationId: getCurrentUser
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      user:
+                        $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/stores:
+    get:
+      tags:
+        - Stores
+      summary: List stores
+      description: Retrieve all stores for a tenant
+      operationId: listStores
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Stores retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      stores:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Store'
+
+    post:
+      tags:
+        - Stores
+      summary: Create store
+      description: Create a new store
+      operationId: createStore
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStoreRequest'
+      responses:
+        '201':
+          description: Store created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      store:
+                        $ref: '#/components/schemas/Store'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/stores/{storeId}:
+    get:
+      tags:
+        - Stores
+      summary: Get store
+      description: Retrieve a specific store
+      operationId: getStore
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: storeId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Store retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      store:
+                        $ref: '#/components/schemas/Store'
+
+    put:
+      tags:
+        - Stores
+      summary: Update store
+      description: Update an existing store
+      operationId: updateStore
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: storeId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateStoreRequest'
+      responses:
+        '200':
+          description: Store updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      store:
+                        $ref: '#/components/schemas/Store'
+                  message:
+                    type: string
+
+    delete:
+      tags:
+        - Stores
+      summary: Delete store
+      description: Delete a store
+      operationId: deleteStore
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: storeId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Store deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /api/v1/tenants/{tenant_id}/warehouses:
+    get:
+      tags:
+        - Warehouses
+      summary: List warehouses
+      description: Retrieve all warehouses for a tenant
+      operationId: listWarehouses
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Warehouses retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      warehouses:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Warehouse'
+
+    post:
+      tags:
+        - Warehouses
+      summary: Create warehouse
+      description: Create a new warehouse
+      operationId: createWarehouse
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWarehouseRequest'
+      responses:
+        '201':
+          description: Warehouse created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      warehouse:
+                        $ref: '#/components/schemas/Warehouse'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/warehouses/{warehouseId}:
+    get:
+      tags:
+        - Warehouses
+      summary: Get warehouse
+      description: Retrieve a specific warehouse
+      operationId: getWarehouse
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: warehouseId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Warehouse retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      warehouse:
+                        $ref: '#/components/schemas/Warehouse'
+
+    put:
+      tags:
+        - Warehouses
+      summary: Update warehouse
+      description: Update an existing warehouse
+      operationId: updateWarehouse
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: warehouseId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWarehouseRequest'
+      responses:
+        '200':
+          description: Warehouse updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      warehouse:
+                        $ref: '#/components/schemas/Warehouse'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/products:
+    get:
+      tags:
+        - Products
+      summary: List products
+      description: Retrieve all products for a tenant
+      operationId: listProducts
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      products:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Product'
+
+    post:
+      tags:
+        - Products
+      summary: Create product
+      description: Create a new product
+      operationId: createProduct
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      product:
+                        $ref: '#/components/schemas/Product'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/products/{productId}:
+    get:
+      tags:
+        - Products
+      summary: Get product
+      description: Retrieve a specific product
+      operationId: getProduct
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Product retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      product:
+                        $ref: '#/components/schemas/Product'
+
+    put:
+      tags:
+        - Products
+      summary: Update product
+      description: Update an existing product
+      operationId: updateProduct
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProductRequest'
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      product:
+                        $ref: '#/components/schemas/Product'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/categories:
+    get:
+      tags:
+        - Categories
+      summary: List categories
+      description: Retrieve all categories for a tenant
+      operationId: listCategories
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      categories:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Category'
+
+    post:
+      tags:
+        - Categories
+      summary: Create category
+      description: Create a new category
+      operationId: createCategory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      category:
+                        $ref: '#/components/schemas/Category'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/categories/{categoryId}:
+    get:
+      tags:
+        - Categories
+      summary: Get category
+      description: Retrieve a specific category with its relationships
+      operationId: getCategory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Category retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      category:
+                        $ref: '#/components/schemas/Category'
+
+    put:
+      tags:
+        - Categories
+      summary: Update category
+      description: Update an existing category
+      operationId: updateCategory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      category:
+                        $ref: '#/components/schemas/Category'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/inventory:
+    get:
+      tags:
+        - Inventory
+      summary: List inventory
+      description: Retrieve all inventory records for a tenant
+      operationId: listInventory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: warehouse_id
+          schema:
+            type: integer
+          description: Filter by warehouse
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+          description: Filter by store
+        - in: query
+          name: product_id
+          schema:
+            type: integer
+          description: Filter by product
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      inventories:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Inventory'
+
+    post:
+      tags:
+        - Inventory
+      summary: Create inventory
+      description: Create a new inventory record
+      operationId: createInventory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInventoryRequest'
+      responses:
+        '201':
+          description: Inventory created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      inventory:
+                        $ref: '#/components/schemas/Inventory'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/inventory/{inventoryId}:
+    get:
+      tags:
+        - Inventory
+      summary: Get inventory
+      description: Retrieve a specific inventory record
+      operationId: getInventory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: inventoryId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      inventory:
+                        $ref: '#/components/schemas/Inventory'
+
+    put:
+      tags:
+        - Inventory
+      summary: Update inventory
+      description: Update an existing inventory record
+      operationId: updateInventory
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: inventoryId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInventoryRequest'
+      responses:
+        '200':
+          description: Inventory updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      inventory:
+                        $ref: '#/components/schemas/Inventory'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/orders:
+    get:
+      tags:
+        - Orders
+      summary: List orders
+      description: Retrieve all orders for a tenant
+      operationId: listOrders
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, confirmed, fulfilled, cancelled]
+          description: Filter by status
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+          description: Filter by store
+        - in: query
+          name: customer_id
+          schema:
+            type: integer
+          description: Filter by customer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      orders:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Order'
+
+    post:
+      tags:
+        - Orders
+      summary: Create order
+      description: Create a new order
+      operationId: createOrder
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      order:
+                        $ref: '#/components/schemas/Order'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/orders/{orderId}:
+    get:
+      tags:
+        - Orders
+      summary: Get order
+      description: Retrieve a specific order
+      operationId: getOrder
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Order retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      order:
+                        $ref: '#/components/schemas/Order'
+
+    put:
+      tags:
+        - Orders
+      summary: Update order
+      description: Update an existing order
+      operationId: updateOrder
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderRequest'
+      responses:
+        '200':
+          description: Order updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      order:
+                        $ref: '#/components/schemas/Order'
+                  message:
+                    type: string
+
+    delete:
+      tags:
+        - Orders
+      summary: Delete order
+      description: Delete an order
+      operationId: deleteOrder
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Order deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /api/v1/tenants/{tenant_id}/orders/{orderId}/confirm:
+    post:
+      tags:
+        - Orders
+      summary: Confirm order
+      description: Confirm an order (change status to confirmed)
+      operationId: confirmOrder
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Order confirmed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      order:
+                        $ref: '#/components/schemas/Order'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/orders/{orderId}/fulfill:
+    post:
+      tags:
+        - Orders
+      summary: Fulfill order
+      description: Fulfill an order (change status to fulfilled and update inventory)
+      operationId: fulfillOrder
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Order fulfilled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      order:
+                        $ref: '#/components/schemas/Order'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/customers:
+    get:
+      tags:
+        - Customers
+      summary: List customers
+      description: Retrieve all customers for a tenant
+      operationId: listCustomers
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Customers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      customers:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Customer'
+
+    post:
+      tags:
+        - Customers
+      summary: Create customer
+      description: Create a new customer
+      operationId: createCustomer
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomerRequest'
+      responses:
+        '201':
+          description: Customer created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      customer:
+                        $ref: '#/components/schemas/Customer'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/customers/{customerId}:
+    get:
+      tags:
+        - Customers
+      summary: Get customer
+      description: Retrieve a specific customer
+      operationId: getCustomer
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: customerId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Customer retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      customer:
+                        $ref: '#/components/schemas/Customer'
+
+    put:
+      tags:
+        - Customers
+      summary: Update customer
+      description: Update an existing customer
+      operationId: updateCustomer
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: customerId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomerRequest'
+      responses:
+        '200':
+          description: Customer updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      customer:
+                        $ref: '#/components/schemas/Customer'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/pricing-tiers:
+    get:
+      tags:
+        - Pricing
+      summary: List pricing tiers
+      description: Retrieve all pricing tiers for a tenant
+      operationId: listPricingTiers
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pricing tiers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      pricing_tiers:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PricingTier'
+
+    post:
+      tags:
+        - Pricing
+      summary: Create pricing tier
+      description: Create a new pricing tier
+      operationId: createPricingTier
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePricingTierRequest'
+      responses:
+        '201':
+          description: Pricing tier created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      pricing_tier:
+                        $ref: '#/components/schemas/PricingTier'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/pricing-tiers/{tierId}:
+    get:
+      tags:
+        - Pricing
+      summary: Get pricing tier
+      description: Retrieve a specific pricing tier
+      operationId: getPricingTier
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: tierId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pricing tier retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      pricing_tier:
+                        $ref: '#/components/schemas/PricingTier'
+
+    put:
+      tags:
+        - Pricing
+      summary: Update pricing tier
+      description: Update an existing pricing tier
+      operationId: updatePricingTier
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: tierId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePricingTierRequest'
+      responses:
+        '200':
+          description: Pricing tier updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      pricing_tier:
+                        $ref: '#/components/schemas/PricingTier'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/roles:
+    get:
+      tags:
+        - Roles & Permissions
+      summary: List roles
+      description: Retrieve all roles for a tenant
+      operationId: listRoles
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Roles retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      roles:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Role'
+                  message:
+                    type: string
+
+    post:
+      tags:
+        - Roles & Permissions
+      summary: Create role
+      description: Create a new role
+      operationId: createRole
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateRoleRequest'
+      responses:
+        '201':
+          description: Role created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      role:
+                        $ref: '#/components/schemas/Role'
+                  message:
+                    type: string
+
+  /api/v1/tenants/{tenant_id}/roles/{roleId}:
+    get:
+      tags:
+        - Roles & Permissions
+      summary: Get role
+      description: Retrieve a specific role
+      operationId: getRole
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: roleId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Role retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      role:
+                        $ref: '#/components/schemas/Role'
+                  message:
+                    type: string
+
+    put:
+      tags:
+        - Roles & Permissions
+      summary: Update role
+      description: Update an existing role
+      operationId: updateRole
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: roleId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateRoleRequest'
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      role:
+                        $ref: '#/components/schemas/Role'
+                  message:
+                    type: string
+
+    delete:
+      tags:
+        - Roles & Permissions
+      summary: Delete role
+      description: Delete a role
+      operationId: deleteRole
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: roleId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Role deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '403':
+          description: Cannot delete system role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/dashboard:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Get dashboard metrics
+      description: Get unified dashboard metrics for tenant admin
+      operationId: getDashboard
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [today, week, month, year, all]
+            default: today
+          description: Dashboard period
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+
+  /api/v1/tenants/{tenant_id}/reports/sales/revenue:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Get revenue report
+      description: Get sales revenue analytics
+      operationId: getRevenueReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, yearly]
+            default: daily
+          description: Report period
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+          description: Filter by store
+        - in: query
+          name: warehouse_id
+          schema:
+            type: integer
+          description: Filter by warehouse
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Revenue report retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevenueReportResponse'
+
+  /api/v1/tenants/{tenant_id}/reports/sales/orders-by-period:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Get orders by period report
+      description: Get orders grouped by period
+      operationId: getOrdersByPeriodReport
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, yearly]
+            default: daily
+          description: Report period
+        - in: query
+          name: status
+          schema:
+            type: string
+          description: Filter by status
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Orders by period report retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrdersByPeriodResponse'
+
+  /api/v1/tenants/{tenant_id}/webhooks:
+    get:
+      tags:
+        - Webhooks
+      summary: List webhooks
+      description: Retrieve all webhooks for a tenant
+      operationId: listWebhooks
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Webhooks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Webhook'
+
+    post:
+      tags:
+        - Webhooks
+      summary: Create webhook
+      description: Create a new webhook
+      operationId: createWebhook
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWebhookRequest'
+      responses:
+        '201':
+          description: Webhook created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Webhook'
+
+  /api/v1/tenants/{tenant_id}/webhooks/{webhook}:
+    get:
+      tags:
+        - Webhooks
+      summary: Get webhook
+      description: Retrieve a specific webhook with delivery attempts
+      operationId: getWebhook
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: webhook
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Webhook retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/WebhookWithDeliveryAttempts'
+
+    put:
+      tags:
+        - Webhooks
+      summary: Update webhook
+      description: Update an existing webhook
+      operationId: updateWebhook
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: webhook
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateWebhookRequest'
+      responses:
+        '200':
+          description: Webhook updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Webhook'
+
+components:
+  parameters:
+    TenantId:
+      in: path
+      name: tenant_id
+      required: true
+      schema:
+        type: integer
+      description: Tenant identifier
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token authentication using Laravel Sanctum
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          examples:
+            - value: true
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          examples:
+            - value: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+        meta:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+        store_id:
+          type: integer
+        warehouse_id:
+          type: integer
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            token:
+              type: string
+            token_type:
+              type: string
+        message:
+          type: string
+
+    Store:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        code:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        city:
+          type: string
+          maxLength: 255
+        state:
+          type: string
+          maxLength: 255
+        country:
+          type: string
+          maxLength: 255
+        postal_code:
+          type: string
+          maxLength: 50
+        phone:
+          type: string
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        settings:
+          type: object
+          additionalProperties: true
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateStoreRequest:
+      type: object
+      required:
+        - name
+        - code
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        code:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        city:
+          type: string
+          maxLength: 255
+        state:
+          type: string
+          maxLength: 255
+        country:
+          type: string
+          maxLength: 255
+        postal_code:
+          type: string
+          maxLength: 50
+        phone:
+          type: string
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        settings:
+          type: object
+          additionalProperties: true
+        active:
+          type: boolean
+          default: true
+
+    UpdateStoreRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        code:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        city:
+          type: string
+          maxLength: 255
+        state:
+          type: string
+          maxLength: 255
+        country:
+          type: string
+          maxLength: 255
+        postal_code:
+          type: string
+          maxLength: 50
+        phone:
+          type: string
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        settings:
+          type: object
+          additionalProperties: true
+        active:
+          type: boolean
+
+    Warehouse:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        code:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        city:
+          type: string
+          maxLength: 255
+        state:
+          type: string
+          maxLength: 255
+        country:
+          type: string
+          maxLength: 255
+        postal_code:
+          type: string
+          maxLength: 50
+        phone:
+          type: string
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        settings:
+          type: object
+          additionalProperties: true
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateWarehouseRequest:
+      type: object
+      required:
+        - name
+        - code
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        code:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        city:
+          type: string
+          maxLength: 255
+        state:
+          type: string
+          maxLength: 255
+        country:
+          type: string
+          maxLength: 255
+        postal_code:
+          type: string
+          maxLength: 50
+        phone:
+          type: string
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        settings:
+          type: object
+          additionalProperties: true
+        active:
+          type: boolean
+          default: true
+
+    UpdateWarehouseRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        code:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        city:
+          type: string
+          maxLength: 255
+        state:
+          type: string
+          maxLength: 255
+        country:
+          type: string
+          maxLength: 255
+        postal_code:
+          type: string
+          maxLength: 50
+        phone:
+          type: string
+          maxLength: 50
+        email:
+          type: string
+          format: email
+        latitude:
+          type: number
+          format: float
+        longitude:
+          type: number
+          format: float
+        settings:
+          type: object
+          additionalProperties: true
+        active:
+          type: boolean
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        category_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        sku:
+          type: string
+          maxLength: 100
+        barcode:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        price:
+          type: number
+          format: decimal
+        cost:
+          type: number
+          format: decimal
+        tax_rate:
+          type: number
+          format: decimal
+        unit:
+          type: string
+          maxLength: 50
+        min_stock:
+          type: integer
+          minimum: 0
+        max_stock:
+          type: integer
+          minimum: 0
+        image:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        attributes:
+          type: object
+          additionalProperties: true
+        track_inventory:
+          type: boolean
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateProductRequest:
+      type: object
+      required:
+        - name
+        - sku
+        - price
+      properties:
+        category_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        sku:
+          type: string
+          maxLength: 100
+        barcode:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        price:
+          type: number
+          format: decimal
+          minimum: 0
+        cost:
+          type: number
+          format: decimal
+          minimum: 0
+        tax_rate:
+          type: number
+          format: decimal
+          minimum: 0
+        unit:
+          type: string
+          maxLength: 50
+        min_stock:
+          type: integer
+          minimum: 0
+        max_stock:
+          type: integer
+          minimum: 0
+        image:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        attributes:
+          type: object
+          additionalProperties: true
+        track_inventory:
+          type: boolean
+          default: true
+        active:
+          type: boolean
+          default: true
+
+    UpdateProductRequest:
+      type: object
+      properties:
+        category_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        sku:
+          type: string
+          maxLength: 100
+        barcode:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        price:
+          type: number
+          format: decimal
+          minimum: 0
+        cost:
+          type: number
+          format: decimal
+          minimum: 0
+        tax_rate:
+          type: number
+          format: decimal
+          minimum: 0
+        unit:
+          type: string
+          maxLength: 50
+        min_stock:
+          type: integer
+          minimum: 0
+        max_stock:
+          type: integer
+          minimum: 0
+        image:
+          type: string
+          format: uri
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+        attributes:
+          type: object
+          additionalProperties: true
+        track_inventory:
+          type: boolean
+        active:
+          type: boolean
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        parent_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+          format: uri
+        sort_order:
+          type: integer
+          minimum: 0
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        parent:
+          type: object
+        children:
+          type: array
+          items:
+            type: object
+        products:
+          type: array
+          items:
+            type: object
+
+    CreateCategoryRequest:
+      type: object
+      required:
+        - name
+      properties:
+        parent_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+          format: uri
+        sort_order:
+          type: integer
+          minimum: 0
+          default: 0
+        active:
+          type: boolean
+          default: true
+
+    UpdateCategoryRequest:
+      type: object
+      properties:
+        parent_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+        description:
+          type: string
+        image:
+          type: string
+          format: uri
+        sort_order:
+          type: integer
+          minimum: 0
+        active:
+          type: boolean
+
+    Inventory:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        product_id:
+          type: integer
+        warehouse_id:
+          type: integer
+        store_id:
+          type: integer
+        quantity:
+          type: integer
+          minimum: 0
+        reserved:
+          type: integer
+          minimum: 0
+        available:
+          type: integer
+          minimum: 0
+        cost:
+          type: number
+          format: decimal
+        location:
+          type: string
+          maxLength: 255
+        notes:
+          type: string
+        created_at:
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        product:
+          type: object
+        warehouse:
+          type: object
+        store:
+          type: object
+
+    CreateInventoryRequest:
+      type: object
+      required:
+        - product_id
+        - quantity
+      properties:
+        product_id:
+          type: integer
+        warehouse_id:
+          type: integer
+        store_id:
+          type: integer
+        quantity:
+          type: integer
+          minimum: 0
+        reserved:
+          type: integer
+          minimum: 0
+          default: 0
+        available:
+          type: integer
+          minimum: 0
+        cost:
+          type: number
+          format: decimal
+          minimum: 0
+        location:
+          type: string
+          maxLength: 255
+        notes:
+          type: string
+
+    UpdateInventoryRequest:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          minimum: 0
+        reserved:
+          type: integer
+          minimum: 0
+        available:
+          type: integer
+          minimum: 0
+        cost:
+          type: number
+          format: decimal
+          minimum: 0
+        location:
+          type: string
+          maxLength: 255
+        notes:
+          type: string
+
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        order_id:
+          type: integer
+        product_id:
+          type: integer
+        quantity:
+          type: integer
+          minimum: 1
+        unit_price:
+          type: number
+          format: decimal
+        total:
+          type: number
+          format: decimal
+        discount:
+          type: number
+          format: decimal
+        product:
+          type: object
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        order_number:
+          type: string
+        customer_id:
+          type: integer
+        store_id:
+          type: integer
+        warehouse_id:
+          type: integer
+        user_id:
+          type: integer
+        status:
+          type: string
+          enum: [pending, confirmed, fulfilled, cancelled]
+        type:
+          type: string
+        subtotal:
+          type: number
+          format: decimal
+        tax:
+          type: number
+          format: decimal
+        discount:
+          type: number
+          format: decimal
+        shipping:
+          type: number
+          format: decimal
+        total:
+          type: number
+          format: decimal
+        payment_status:
+          type: string
+        payment_method:
+          type: string
+          maxLength: 100
+        notes:
+          type: string
+        shipping_address:
+          type: string
+        shipping_city:
+          type: string
+          maxLength: 255
+        shipping_state:
+          type: string
+          maxLength: 255
+        shipping_country:
+          type: string
+          maxLength: 255
+        shipping_postal_code:
+          type: string
+          maxLength: 50
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        customer:
+          type: object
+        store:
+          type: object
+        warehouse:
+          type: object
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+
+    CreateOrderRequest:
+      type: object
+      properties:
+        order_number:
+          type: string
+        customer_id:
+          type: integer
+        store_id:
+          type: integer
+        warehouse_id:
+          type: integer
+        status:
+          type: string
+          enum: [pending, confirmed, fulfilled, cancelled]
+          default: pending
+        type:
+          type: string
+          default: sale
+        subtotal:
+          type: number
+          format: decimal
+          minimum: 0
+        tax:
+          type: number
+          format: decimal
+          minimum: 0
+        discount:
+          type: number
+          format: decimal
+          minimum: 0
+        shipping:
+          type: number
+          format: decimal
+          minimum: 0
+        payment_status:
+          type: string
+          default: pending
+        payment_method:
+          type: string
+          maxLength: 100
+        notes:
+          type: string
+        shipping_address:
+          type: string
+        shipping_city:
+          type: string
+          maxLength: 255
+        shipping_state:
+          type: string
+          maxLength: 255
+        shipping_country:
+          type: string
+          maxLength: 255
+        shipping_postal_code:
+          type: string
+          maxLength: 50
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              product_id:
+                type: integer
+              quantity:
+                type: integer
+                minimum: 1
+              unit_price:
+                type: number
+                format: decimal
+                minimum: 0
+
+    UpdateOrderRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, confirmed, fulfilled, cancelled]
+        payment_status:
+          type: string
+        payment_method:
+          type: string
+          maxLength: 100
+        notes:
+          type: string
+
+    Customer:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          maxLength: 50
+        company:
+          type: string
+          maxLength: 255
+        tax_id:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        city:
+          type: string
+          maxLength: 255
+        state:
+          type: string
+          maxLength: 255
+        country:
+          type: string
+          maxLength: 255
+        postal_code:
+          type: string
+          maxLength: 50
+        pricing_tier_id:
+          type: integer
+        credit_limit:
+          type: number
+          format: decimal
+        balance:
+          type: number
+          format: decimal
+        settings:
+          type: object
+          additionalProperties: true
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateCustomerRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          maxLength: 50
+        company:
+          type: string
+          maxLength: 255
+        tax_id:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        city:
+          type: string
+          maxLength: 255
+        state:
+          type: string
+          maxLength: 255
+        country:
+          type: string
+          maxLength: 255
+        postal_code:
+          type: string
+          maxLength: 50
+        pricing_tier_id:
+          type: integer
+        credit_limit:
+          type: number
+          format: decimal
+          minimum: 0
+          default: 0
+        balance:
+          type: number
+          format: decimal
+          minimum: 0
+          default: 0
+        settings:
+          type: object
+          additionalProperties: true
+        active:
+          type: boolean
+          default: true
+
+    UpdateCustomerRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          maxLength: 50
+        company:
+          type: string
+          maxLength: 255
+        tax_id:
+          type: string
+          maxLength: 100
+        address:
+          type: string
+        city:
+          type: string
+          maxLength: 255
+        state:
+          type: string
+          maxLength: 255
+        country:
+          type: string
+          maxLength: 255
+        postal_code:
+          type: string
+          maxLength: 50
+        pricing_tier_id:
+          type: integer
+        credit_limit:
+          type: number
+          format: decimal
+          minimum: 0
+        balance:
+          type: number
+          format: decimal
+          minimum: 0
+        settings:
+          type: object
+          additionalProperties: true
+        active:
+          type: boolean
+
+    PricingTier:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        priority:
+          type: integer
+          minimum: 0
+        active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreatePricingTierRequest:
+      type: object
+      required:
+        - name
+        - slug
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        priority:
+          type: integer
+          minimum: 0
+        active:
+          type: boolean
+          default: true
+
+    UpdatePricingTierRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+        priority:
+          type: integer
+          minimum: 0
+        active:
+          type: boolean
+
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        is_system:
+          type: boolean
+        users_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateRoleRequest:
+      type: object
+      required:
+        - name
+        - slug
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        is_system:
+          type: boolean
+          default: false
+
+    UpdateRoleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        is_system:
+          type: boolean
+
+    DashboardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            period:
+              type: string
+            sales:
+              type: object
+              properties:
+                revenue:
+                  type: object
+                  properties:
+                    current:
+                      type: number
+                      format: decimal
+                    previous:
+                      type: number
+                      format: decimal
+                    growth_percentage:
+                      type: number
+                      format: decimal
+                orders_count:
+                  type: object
+                  properties:
+                    current:
+                      type: integer
+                    previous:
+                      type: integer
+                    growth_percentage:
+                      type: number
+                      format: decimal
+                average_order_value:
+                  type: number
+                  format: decimal
+            inventory:
+              type: object
+              properties:
+                total_products:
+                  type: integer
+                total_quantity:
+                  type: integer
+                total_available:
+                  type: integer
+                total_reserved:
+                  type: integer
+                total_value:
+                  type: number
+                  format: decimal
+                low_stock_count:
+                  type: integer
+                out_of_stock_count:
+                  type: integer
+                health_percentage:
+                  type: number
+                  format: decimal
+            orders:
+              type: object
+              properties:
+                status_counts:
+                  type: object
+                  properties:
+                    total:
+                      type: integer
+                    pending:
+                      type: integer
+                    confirmed:
+                      type: integer
+                    fulfilled:
+                      type: integer
+                    cancelled:
+                      type: integer
+                todays_orders:
+                  type: integer
+                pending_fulfillment:
+                  type: integer
+
+    RevenueReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            period:
+              type: string
+            revenue_by_period:
+              type: array
+              items:
+                type: object
+                properties:
+                  period:
+                    type: string
+                  order_count:
+                    type: integer
+                  total_revenue:
+                    type: number
+                    format: decimal
+                  total_tax:
+                    type: number
+                    format: decimal
+                  total_discount:
+                    type: number
+                    format: decimal
+                  total_shipping:
+                    type: number
+                    format: decimal
+                  avg_order_value:
+                    type: number
+                    format: decimal
+            summary:
+              type: object
+              properties:
+                total_revenue:
+                  type: number
+                  format: decimal
+                total_orders:
+                  type: integer
+                average_order_value:
+                  type: number
+                  format: decimal
+                total_tax:
+                  type: number
+                  format: decimal
+                total_discount:
+                  type: number
+                  format: decimal
+                total_shipping:
+                  type: number
+                  format: decimal
+
+    OrdersByPeriodResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            period:
+              type: string
+            orders_by_period:
+              type: array
+              items:
+                type: object
+                properties:
+                  period:
+                    type: string
+                  order_count:
+                    type: integer
+                  pending_count:
+                    type: integer
+                  confirmed_count:
+                    type: integer
+                  fulfilled_count:
+                    type: integer
+                  cancelled_count:
+                    type: integer
+                  total_revenue:
+                    type: number
+                    format: decimal
+            summary:
+              type: object
+              properties:
+                total_orders:
+                  type: integer
+                pending:
+                  type: integer
+                confirmed:
+                  type: integer
+                fulfilled:
+                  type: integer
+                cancelled:
+                  type: integer
+
+    Webhook:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        url:
+          type: string
+          format: uri
+        secret:
+          type: string
+          maxLength: 255
+        events:
+          type: array
+          items:
+            type: string
+        active:
+          type: boolean
+        content_type:
+          type: string
+          enum: [json, form-data]
+        headers:
+          type: object
+          additionalProperties: true
+        retry_count:
+          type: integer
+          minimum: 0
+          maximum: 10
+        timeout:
+          type: integer
+          minimum: 1
+          maximum: 300
+        delivery_attempts_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    WebhookDeliveryAttempt:
+      type: object
+      properties:
+        id:
+          type: integer
+        webhook_id:
+          type: integer
+        event_type:
+          type: string
+        attempt_number:
+          type: integer
+        response_status:
+          type: integer
+        success:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    WebhookWithDeliveryAttempts:
+      allOf:
+        - $ref: '#/components/schemas/Webhook'
+        - type: object
+          properties:
+            delivery_attempts:
+              type: array
+              items:
+                $ref: '#/components/schemas/WebhookDeliveryAttempt'
+
+    CreateWebhookRequest:
+      type: object
+      required:
+        - name
+        - url
+        - events
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+        secret:
+          type: string
+          maxLength: 255
+        events:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        active:
+          type: boolean
+          default: true
+        content_type:
+          type: string
+          enum: [json, form-data]
+          default: json
+        headers:
+          type: object
+          additionalProperties: true
+        retry_count:
+          type: integer
+          minimum: 0
+          maximum: 10
+          default: 3
+        timeout:
+          type: integer
+          minimum: 1
+          maximum: 300
+          default: 30
+
+    UpdateWebhookRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+        secret:
+          type: string
+          maxLength: 255
+        events:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        active:
+          type: boolean
+        content_type:
+          type: string
+          enum: [json, form-data]
+        headers:
+          type: object
+          additionalProperties: true
+        retry_count:
+          type: integer
+          minimum: 0
+          maximum: 10
+        timeout:
+          type: integer
+          minimum: 1
+          maximum: 300
