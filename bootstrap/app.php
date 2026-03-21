@@ -3,6 +3,7 @@
 use App\Http\Middleware\EnsureTenantIsScoped;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserHasRole;
+use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\SecurityHeadersMiddleware;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.scoped' => EnsureTenantIsScoped::class,
             'role' => EnsureUserHasRole::class,
             'permission' => EnsureUserHasPermission::class,
+            'superadmin' => EnsureUserIsSuperAdmin::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
