@@ -258,6 +258,49 @@ Authorization: Bearer {token}
 
 ---
 
+### Sales Dashboard Metrics
+
+Get sales dashboard metrics and analytics.
+
+**Endpoint:**
+```
+GET /api/v1/tenants/{tenant_id}/reports/sales/dashboard
+```
+
+**Request Headers:**
+```
+Authorization: Bearer {token}
+```
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `start_date` | date | No | Filter from date |
+| `end_date` | date | No | Filter to date |
+
+**Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "summary": {
+      "total_revenue": 15420.50,
+      "total_orders": 145,
+      "average_order_value": 106.35,
+      "total_tax": 1233.64,
+      "total_discount": 350.00,
+      "total_shipping": 725.00
+    },
+    "trends": {
+      "revenue_growth": 24.86,
+      "orders_growth": 20.83
+    }
+  }
+}
+```
+
+---
+
 ### Export Revenue Report (CSV)
 
 Export revenue report to CSV.

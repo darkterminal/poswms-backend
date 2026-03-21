@@ -171,6 +171,7 @@ All resource endpoints require a tenant ID:
 | GET | `/tenants/{id}/reports/sales/revenue` | Revenue report |
 | GET | `/tenants/{id}/reports/sales/orders-by-period` | Orders by period |
 | GET | `/tenants/{id}/reports/sales/top-products` | Top products |
+| GET | `/tenants/{id}/reports/sales/dashboard` | Sales dashboard metrics |
 | GET | `/tenants/{id}/reports/sales/export/revenue` | Export revenue (CSV) |
 | GET | `/tenants/{id}/reports/sales/export/orders-by-period` | Export orders (CSV) |
 | GET | `/tenants/{id}/reports/sales/export/top-products` | Export products (CSV) |
