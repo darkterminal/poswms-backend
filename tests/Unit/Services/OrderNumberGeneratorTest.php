@@ -27,8 +27,9 @@ class OrderNumberGeneratorTest extends TestCase
 
         $orderNumber = $this->generator->generate($order);
 
-        // Format: APPNAME-YYYYMM-XXXX
-        $this->assertMatchesRegularExpression('/[A-Z][a-z]+-\d{6}-\d{4}/', $orderNumber);
+        // Format: APPNAME-YYYYMM-XXXX (app name may contain spaces, letters and dashes)
+        // The last 3 parts should be: [name]-YYYYMM-XXXX
+        $this->assertMatchesRegularExpression('/^.+-\d{6}-\d{4}$/', $orderNumber);
     }
 
     public function test_generate_order_number_is_sequential_for_same_tenant(): void
@@ -56,10 +57,11 @@ class OrderNumberGeneratorTest extends TestCase
 
         $orderNumber = $this->generator->generate($order);
 
-        // Extract YYYYMM from the order number
+        // Extract YYYYMM from the order number (second to last part)
         $currentMonth = now()->format('Ym');
         $parts = explode('-', $orderNumber);
-        $monthPart = $parts[1] ?? '';
+        // Month is always second-to-last part (YYYYMM), followed by sequence (XXXX)
+        $monthPart = $parts[count($parts) - 2] ?? '';
 
         $this->assertEquals($currentMonth, $monthPart);
     }
@@ -70,8 +72,8 @@ class OrderNumberGeneratorTest extends TestCase
 
         $orderNumber = $this->generator->generateWithLock($tenant->id);
 
-        // Format: APPNAME-YYYYMM-XXXX
-        $this->assertMatchesRegularExpression('/[A-Z][a-z]+-\d{6}-\d{4}/', $orderNumber);
+        // Format: APPNAME-YYYYMM-XXXX (app name may contain spaces, letters and dashes)
+        $this->assertMatchesRegularExpression('/^.+-\d{6}-\d{4}$/', $orderNumber);
     }
 
     public function test_generate_with_lock_is_sequential(): void
@@ -110,7 +112,8 @@ class OrderNumberGeneratorTest extends TestCase
 
         $orderNumber = $this->generator->generate($order);
 
-        // Should start with app name (Laravel by default)
-        $this->assertStringStartsWith('Laravel-', $orderNumber);
+        // Should start with app name from config
+        $appName = config('app.name', 'ORD');
+        $this->assertStringStartsWith($appName . '-', $orderNumber);
     }
 }
