@@ -206,7 +206,7 @@ Retrieve a specific order.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/orders/{order_id}
+GET /api/v1/tenants/{tenant_id}/orders/{orderId}
 ```
 
 **Request Headers:**
@@ -278,7 +278,7 @@ Update an existing order.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/orders/{order_id}
+PUT /api/v1/tenants/{tenant_id}/orders/{orderId}
 ```
 
 **Request Headers:**
@@ -335,7 +335,7 @@ Delete an order.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/orders/{order_id}
+DELETE /api/v1/tenants/{tenant_id}/orders/{orderId}
 ```
 
 **Request Headers:**
@@ -359,7 +359,7 @@ Confirm an order (change status to confirmed).
 
 **Endpoint:**
 ```
-POST /api/v1/tenants/{tenant_id}/orders/{order_id}/confirm
+POST /api/v1/tenants/{tenant_id}/orders/{orderId}/confirm
 ```
 
 **Request Headers:**
@@ -394,7 +394,7 @@ Fulfill an order (change status to fulfilled and update inventory).
 
 **Endpoint:**
 ```
-POST /api/v1/tenants/{tenant_id}/orders/{order_id}/fulfill
+POST /api/v1/tenants/{tenant_id}/orders/{orderId}/fulfill
 ```
 
 **Request Headers:**
@@ -438,7 +438,7 @@ Cancel an order (change status to cancelled and restore inventory).
 
 **Endpoint:**
 ```
-POST /api/v1/tenants/{tenant_id}/orders/{order_id}/cancel
+POST /api/v1/tenants/{tenant_id}/orders/{orderId}/cancel
 ```
 
 **Request Headers:**

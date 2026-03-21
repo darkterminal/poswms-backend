@@ -161,7 +161,7 @@ Retrieve a specific store.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/stores/{store_id}
+GET /api/v1/tenants/{tenant_id}/stores/{storeId}
 ```
 
 **Request Headers:**
@@ -173,7 +173,7 @@ Authorization: Bearer {token}
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `tenant_id` | integer | Yes | Tenant identifier |
-| `store_id` | integer | Yes | Store identifier |
+| `storeId` | integer | Yes | Store identifier |
 
 **Response (200 OK):**
 ```json
@@ -212,7 +212,7 @@ Update an existing store.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/stores/{store_id}
+PUT /api/v1/tenants/{tenant_id}/stores/{storeId}
 ```
 
 **Request Headers:**
@@ -273,7 +273,7 @@ Delete a store.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/stores/{store_id}
+DELETE /api/v1/tenants/{tenant_id}/stores/{storeId}
 ```
 
 **Request Headers:**

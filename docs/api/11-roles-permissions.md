@@ -156,7 +156,7 @@ Retrieve a specific role.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/roles/{role_id}
+GET /api/v1/tenants/{tenant_id}/roles/{roleId}
 ```
 
 **Request Headers:**
@@ -206,7 +206,7 @@ Update an existing role.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/roles/{role_id}
+PUT /api/v1/tenants/{tenant_id}/roles/{roleId}
 ```
 
 **Request Headers:**
@@ -273,7 +273,7 @@ Delete a role.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/roles/{role_id}
+DELETE /api/v1/tenants/{tenant_id}/roles/{roleId}
 ```
 
 **Request Headers:**
@@ -496,7 +496,7 @@ Retrieve a specific permission.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/permissions/{permission_id}
+GET /api/v1/tenants/{tenant_id}/permissions/{permissionId}
 ```
 
 **Request Headers:**
@@ -532,7 +532,7 @@ Update an existing permission.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/permissions/{permission_id}
+PUT /api/v1/tenants/{tenant_id}/permissions/{permissionId}
 ```
 
 **Request Headers:**
@@ -577,7 +577,7 @@ Delete a permission.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/permissions/{permission_id}
+DELETE /api/v1/tenants/{tenant_id}/permissions/{permissionId}
 ```
 
 **Request Headers:**

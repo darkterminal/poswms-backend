@@ -171,7 +171,7 @@ Retrieve a specific product.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/products/{product_id}
+GET /api/v1/tenants/{tenant_id}/products/{productId}
 ```
 
 **Request Headers:**
@@ -225,7 +225,7 @@ Update an existing product.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/products/{product_id}
+PUT /api/v1/tenants/{tenant_id}/products/{productId}
 ```
 
 **Request Headers:**
@@ -294,7 +294,7 @@ Delete a product.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/products/{product_id}
+DELETE /api/v1/tenants/{tenant_id}/products/{productId}
 ```
 
 **Request Headers:**

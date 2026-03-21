@@ -154,7 +154,7 @@ Retrieve a specific customer.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/customers/{customer_id}
+GET /api/v1/tenants/{tenant_id}/customers/{customerId}
 ```
 
 **Request Headers:**
@@ -203,7 +203,7 @@ Update an existing customer.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/customers/{customer_id}
+PUT /api/v1/tenants/{tenant_id}/customers/{customerId}
 ```
 
 **Request Headers:**
@@ -266,7 +266,7 @@ Delete a customer.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/customers/{customer_id}
+DELETE /api/v1/tenants/{tenant_id}/customers/{customerId}
 ```
 
 **Request Headers:**

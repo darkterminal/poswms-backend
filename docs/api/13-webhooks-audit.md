@@ -146,7 +146,7 @@ Retrieve a specific webhook with delivery attempts.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/webhooks/{webhook_id}
+GET /api/v1/tenants/{tenant_id}/webhooks/{webhook}
 ```
 
 **Request Headers:**
@@ -202,7 +202,7 @@ Update an existing webhook.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/webhooks/{webhook_id}
+PUT /api/v1/tenants/{tenant_id}/webhooks/{webhook}
 ```
 
 **Request Headers:**
@@ -266,7 +266,7 @@ Delete a webhook.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/webhooks/{webhook_id}
+DELETE /api/v1/tenants/{tenant_id}/webhooks/{webhook}
 ```
 
 **Request Headers:**
@@ -290,7 +290,7 @@ Send a test event to the webhook.
 
 **Endpoint:**
 ```
-POST /api/v1/tenants/{tenant_id}/webhooks/{webhook_id}/test
+POST /api/v1/tenants/{tenant_id}/webhooks/{webhook}/test
 ```
 
 **Request Headers:**
@@ -337,7 +337,7 @@ Get delivery attempts for a webhook.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/webhooks/{webhook_id}/attempts
+GET /api/v1/tenants/{tenant_id}/webhooks/{webhook}/attempts
 ```
 
 **Request Headers:**
@@ -390,7 +390,7 @@ Retry failed delivery attempts for all webhooks.
 
 **Endpoint:**
 ```
-POST /api/v1/tenants/{tenant_id}/webhooks/{webhook_id}/retry
+POST /api/v1/tenants/{tenant_id}/webhooks/{webhook}/retry
 ```
 
 **Request Headers:**
@@ -553,7 +553,7 @@ Retrieve a specific audit log entry.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/audit-logs/{audit_log_id}
+GET /api/v1/tenants/{tenant_id}/audit-logs/{auditLog}
 ```
 
 **Request Headers:**
@@ -600,7 +600,7 @@ Get audit logs for a specific user.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/audit-logs/by-user/{user_id}
+GET /api/v1/tenants/{tenant_id}/audit-logs/by-user/{userId}
 ```
 
 **Request Headers:**

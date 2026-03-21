@@ -168,7 +168,7 @@ Retrieve a specific inventory record.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/inventory/{inventory_id}
+GET /api/v1/tenants/{tenant_id}/inventory/{inventoryId}
 ```
 
 **Request Headers:**
@@ -208,7 +208,7 @@ Update an existing inventory record.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/inventory/{inventory_id}
+PUT /api/v1/tenants/{tenant_id}/inventory/{inventoryId}
 ```
 
 **Request Headers:**
@@ -259,7 +259,7 @@ Delete an inventory record.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/inventory/{inventory_id}
+DELETE /api/v1/tenants/{tenant_id}/inventory/{inventoryId}
 ```
 
 **Request Headers:**

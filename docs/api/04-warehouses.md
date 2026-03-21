@@ -152,7 +152,7 @@ Retrieve a specific warehouse.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/warehouses/{warehouse_id}
+GET /api/v1/tenants/{tenant_id}/warehouses/{warehouseId}
 ```
 
 **Request Headers:**
@@ -164,7 +164,7 @@ Authorization: Bearer {token}
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `tenant_id` | integer | Yes | Tenant identifier |
-| `warehouse_id` | integer | Yes | Warehouse identifier |
+| `warehouseId` | integer | Yes | Warehouse identifier |
 
 **Response (200 OK):**
 ```json
@@ -205,7 +205,7 @@ Update an existing warehouse.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/warehouses/{warehouse_id}
+PUT /api/v1/tenants/{tenant_id}/warehouses/{warehouseId}
 ```
 
 **Request Headers:**
@@ -268,7 +268,7 @@ Delete a warehouse.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/warehouses/{warehouse_id}
+DELETE /api/v1/tenants/{tenant_id}/warehouses/{warehouseId}
 ```
 
 **Request Headers:**

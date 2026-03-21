@@ -130,7 +130,7 @@ Retrieve a specific pricing tier.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/pricing-tiers/{tier_id}
+GET /api/v1/tenants/{tenant_id}/pricing-tiers/{tierId}
 ```
 
 **Request Headers:**
@@ -166,7 +166,7 @@ Update an existing pricing tier.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/pricing-tiers/{tier_id}
+PUT /api/v1/tenants/{tenant_id}/pricing-tiers/{tierId}
 ```
 
 **Request Headers:**
@@ -212,7 +212,7 @@ Delete a pricing tier.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/pricing-tiers/{tier_id}
+DELETE /api/v1/tenants/{tenant_id}/pricing-tiers/{tierId}
 ```
 
 **Request Headers:**
@@ -393,7 +393,7 @@ Retrieve a specific pricing rule.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/pricing-rules/{rule_id}
+GET /api/v1/tenants/{tenant_id}/pricing-rules/{ruleId}
 ```
 
 **Request Headers:**
@@ -435,7 +435,7 @@ Update an existing pricing rule.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/pricing-rules/{rule_id}
+PUT /api/v1/tenants/{tenant_id}/pricing-rules/{ruleId}
 ```
 
 **Request Headers:**
@@ -488,7 +488,7 @@ Delete a pricing rule.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/pricing-rules/{rule_id}
+DELETE /api/v1/tenants/{tenant_id}/pricing-rules/{ruleId}
 ```
 
 **Request Headers:**

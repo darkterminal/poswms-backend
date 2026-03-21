@@ -127,7 +127,7 @@ Retrieve a specific category with its relationships.
 
 **Endpoint:**
 ```
-GET /api/v1/tenants/{tenant_id}/categories/{category_id}
+GET /api/v1/tenants/{tenant_id}/categories/{categoryId}
 ```
 
 **Request Headers:**
@@ -180,7 +180,7 @@ Update an existing category.
 
 **Endpoint:**
 ```
-PUT /api/v1/tenants/{tenant_id}/categories/{category_id}
+PUT /api/v1/tenants/{tenant_id}/categories/{categoryId}
 ```
 
 **Request Headers:**
@@ -229,7 +229,7 @@ Delete a category.
 
 **Endpoint:**
 ```
-DELETE /api/v1/tenants/{tenant_id}/categories/{category_id}
+DELETE /api/v1/tenants/{tenant_id}/categories/{categoryId}
 ```
 
 **Request Headers:**
