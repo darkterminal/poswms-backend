@@ -158,3 +158,30 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
     Route::get('/admin-or-manager', fn() => response()->json(['message' => 'Access granted']))->middleware('role:admin,manager');
     Route::post('/products/create-or-edit', fn() => response()->json(['message' => 'Access granted']))->middleware('permission:products.create,products.edit');
 });
+
+/*
+|--------------------------------------------------------------------------
+| API Documentation Routes
+|--------------------------------------------------------------------------
+|
+| These routes serve the Swagger UI and OpenAPI specification.
+| They are placed outside the tenant-scoped group to be publicly accessible.
+|
+*/
+
+Route::get('/docs/openapi.json', function () {
+    $openApiPath = base_path('swagger/openapi.yaml');
+
+    if (! file_exists($openApiPath)) {
+        return response()->json([
+            'error' => 'OpenAPI specification not found',
+        ], 404);
+    }
+
+    $yamlContent = file_get_contents($openApiPath);
+
+    // Parse YAML to array
+    $openApiSpec = Symfony\Component\Yaml\Yaml::parse($yamlContent);
+
+    return response()->json($openApiSpec);
+})->name('api.docs.openapi');

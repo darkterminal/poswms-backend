@@ -82,7 +82,8 @@ Visit `http://localhost:8000` to access the application.
 - **[CI/CD Pipeline](docs/CI_CD_PIPELINE.md)** - Continuous integration and deployment
 - **[Development Roadmap](docs/DEVELOPMENT_ROADMAP.md)** - Feature roadmap and timeline
 - **[Progress Tracker](docs/PROGRESS_TRACKER.md)** - Current development progress
-- **[OpenAPI Spec](docs/openapi.yaml)** - API specification
+- **[OpenAPI Spec](swagger/openapi.yaml)** - API specification
+- **[Swagger UI](http://localhost:8000/docs/api)** - Interactive API documentation
 
 ---
 
@@ -177,7 +178,20 @@ GET    /api/v1/tenants/{tenant_id}/reports/low-stock
 GET    /api/v1/tenants/{tenant_id}/dashboard
 ```
 
-See [API Design](API_DESIGN.md) and [OpenAPI Spec](docs/openapi.yaml) for complete documentation.
+See [API Design](API_DESIGN.md) and [OpenAPI Spec](swagger/openapi.yaml) for complete documentation.
+
+### API Documentation
+
+The project includes interactive API documentation via Swagger UI. After starting the development server, you can access it at:
+
+- **Swagger UI**: `http://localhost:8000/docs/api`
+- **OpenAPI JSON**: `http://localhost:8000/api/v1/docs/openapi.json`
+
+The Swagger UI provides:
+- Interactive exploration of all API endpoints
+- Request/response schema documentation
+- Try-it-out functionality for testing endpoints
+- Authentication support for testing protected routes
 
 ---
 
