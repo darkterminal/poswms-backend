@@ -16,6 +16,13 @@ class DashboardTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Clear cache between tests to prevent pollution
+        \Illuminate\Support\Facades\Cache::flush();
+    }
+
     private function createAdmin(Tenant $tenant): User
     {
         $admin = User::factory()->forTenant($tenant->id)->create();
