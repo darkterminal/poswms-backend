@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\SystemDashboardController;
 use App\Http\Controllers\Admin\TenantController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SuperAdminAuthController;
@@ -64,6 +65,14 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::get('/dashboard/revenue', [SystemDashboardController::class, 'revenue'])->name('admin.dashboard.revenue');
     Route::get('/dashboard/usage', [SystemDashboardController::class, 'usage'])->name('admin.dashboard.usage');
     Route::get('/dashboard/alerts', [SystemDashboardController::class, 'alerts'])->name('admin.dashboard.alerts');
+
+    // User Management
+    Route::get('/users', [UserController::class, 'index'])->name('admin.users.index');
+    Route::get('/users/{user}', [UserController::class, 'show'])->name('admin.users.show');
+    Route::post('/users/{user}/impersonate', [UserController::class, 'impersonate'])->name('admin.users.impersonate');
+    Route::post('/users/stop-impersonating', [UserController::class, 'stopImpersonating'])->name('admin.users.stopImpersonating');
+    Route::get('/users/{user}/impersonation-sessions', [UserController::class, 'impersonationSessions'])->name('admin.users.impersonationSessions');
+    Route::post('/users/{user}/revoke-impersonation', [UserController::class, 'revokeImpersonationTokens'])->name('admin.users.revokeImpersonation');
 });
 
 // Protected routes (require Sanctum authentication and tenant scoping)
