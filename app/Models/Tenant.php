@@ -114,6 +114,14 @@ class Tenant extends Model
     }
 
     /**
+     * Get the orders belonging to this tenant.
+     */
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    /**
      * Check if tenant is active.
      */
     public function isActive(): bool
