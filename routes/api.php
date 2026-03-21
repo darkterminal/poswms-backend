@@ -75,14 +75,55 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
         Route::get('/reports/sales/export/top-products', [SalesReportController::class, 'exportTopProducts']);
     });
 
-    // Core entity routes
-    Route::apiResource('categories', CategoryController::class);
-    Route::apiResource('stores', StoreController::class);
-    Route::apiResource('warehouses', WarehouseController::class);
-    Route::apiResource('products', ProductController::class);
-    Route::apiResource('customers', CustomerController::class);
-    Route::apiResource('inventory', InventoryController::class);
-    Route::apiResource('orders', OrderController::class);
+    // Core entity routes (manually defined to avoid route model binding conflicts)
+    // Stores
+    Route::get('/stores', [StoreController::class, 'index']);
+    Route::post('/stores', [StoreController::class, 'store']);
+    Route::get('/stores/{storeId}', [StoreController::class, 'show']);
+    Route::put('/stores/{storeId}', [StoreController::class, 'update']);
+    Route::delete('/stores/{storeId}', [StoreController::class, 'destroy']);
+
+    // Warehouses
+    Route::get('/warehouses', [WarehouseController::class, 'index']);
+    Route::post('/warehouses', [WarehouseController::class, 'store']);
+    Route::get('/warehouses/{warehouseId}', [WarehouseController::class, 'show']);
+    Route::put('/warehouses/{warehouseId}', [WarehouseController::class, 'update']);
+    Route::delete('/warehouses/{warehouseId}', [WarehouseController::class, 'destroy']);
+
+    // Categories
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::get('/categories/{categoryId}', [CategoryController::class, 'show']);
+    Route::put('/categories/{categoryId}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{categoryId}', [CategoryController::class, 'destroy']);
+
+    // Products
+    Route::get('/products', [ProductController::class, 'index']);
+    Route::post('/products', [ProductController::class, 'store']);
+    Route::get('/products/{productId}', [ProductController::class, 'show']);
+    Route::put('/products/{productId}', [ProductController::class, 'update']);
+    Route::delete('/products/{productId}', [ProductController::class, 'destroy']);
+
+    // Customers
+    Route::get('/customers', [CustomerController::class, 'index']);
+    Route::post('/customers', [CustomerController::class, 'store']);
+    Route::get('/customers/{customerId}', [CustomerController::class, 'show']);
+    Route::put('/customers/{customerId}', [CustomerController::class, 'update']);
+    Route::delete('/customers/{customerId}', [CustomerController::class, 'destroy']);
+
+    // Inventory
+    Route::get('/inventory', [InventoryController::class, 'index']);
+    Route::post('/inventory', [InventoryController::class, 'store']);
+    Route::get('/inventory/{inventoryId}', [InventoryController::class, 'show']);
+    Route::put('/inventory/{inventoryId}', [InventoryController::class, 'update']);
+    Route::delete('/inventory/{inventoryId}', [InventoryController::class, 'destroy']);
+
+    // Orders
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/{orderId}', [OrderController::class, 'show']);
+    Route::put('/orders/{orderId}', [OrderController::class, 'update']);
+    Route::delete('/orders/{orderId}', [OrderController::class, 'destroy']);
 
     // Inventory actions
     Route::post('/inventory/transfer', [InventoryTransferController::class, 'transfer']);
@@ -103,10 +144,10 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
     // Dashboard (unified metrics)
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    // Order actions
-    Route::post('/orders/{order}/confirm', [OrderController::class, 'confirm']);
-    Route::post('/orders/{order}/fulfill', [OrderController::class, 'fulfill']);
-    Route::post('/orders/{order}/cancel', [OrderController::class, 'cancel']);
+    // Order actions (using custom parameter name to avoid route model binding conflicts)
+    Route::post('/orders/{orderId}/confirm', [OrderController::class, 'confirm']);
+    Route::post('/orders/{orderId}/fulfill', [OrderController::class, 'fulfill']);
+    Route::post('/orders/{orderId}/cancel', [OrderController::class, 'cancel']);
 
     // Price calculation routes
     Route::post('/prices/calculate', [PriceCalculationController::class, 'calculate']);

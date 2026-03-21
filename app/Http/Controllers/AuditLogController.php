@@ -14,7 +14,10 @@ class AuditLogController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $tenantId = $request->route('tenant_id');
+
         $query = AuditLog::query()
+            ->where('tenant_id', $tenantId)
             ->with(['user', 'tenant'])
             ->orderBy('created_at', 'desc');
 
@@ -62,9 +65,11 @@ class AuditLogController extends Controller
     /**
      * Display the specified audit log.
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $auditLog = AuditLog::with(['user', 'tenant'])->findOrFail($id);
+        $auditLogId = $request->route('audit_log');
+
+        $auditLog = AuditLog::with(['user', 'tenant'])->findOrFail($auditLogId);
 
         return response()->json([
             'success' => true,
@@ -75,8 +80,10 @@ class AuditLogController extends Controller
     /**
      * Get audit logs for a specific user.
      */
-    public function byUser(int $userId): JsonResponse
+    public function byUser(Request $request): JsonResponse
     {
+        $userId = $request->route('userId');
+
         $user = User::findOrFail($userId);
 
         $auditLogs = AuditLog::query()
@@ -107,7 +114,10 @@ class AuditLogController extends Controller
      */
     public function summary(Request $request): JsonResponse
     {
-        $query = AuditLog::query();
+        $tenantId = $request->route('tenant_id');
+
+        $query = AuditLog::query()
+            ->where('tenant_id', $tenantId);
 
         // Filter by date range
         if ($request->filled('start_date')) {

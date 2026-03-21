@@ -110,10 +110,13 @@ class OrderController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, int $order): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $order = Order::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($order);
+        $tenantId = $request->route('tenant_id');
+        $orderId = $request->route('orderId');
+
+        $order = Order::where('tenant_id', $tenantId)
+            ->findOrFail($orderId);
 
         return response()->json([
             'success' => true,
@@ -124,10 +127,13 @@ class OrderController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $order): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $order = Order::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($order);
+        $tenantId = $request->route('tenant_id');
+        $orderId = $request->route('orderId');
+
+        $order = Order::where('tenant_id', $tenantId)
+            ->findOrFail($orderId);
 
         $validated = $request->validate([
             'customer_id' => 'nullable|exists:customers,id',
@@ -161,10 +167,13 @@ class OrderController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, int $order): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $order = Order::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($order);
+        $tenantId = $request->route('tenant_id');
+        $orderId = $request->route('orderId');
+
+        $order = Order::where('tenant_id', $tenantId)
+            ->findOrFail($orderId);
 
         $order->delete();
 
@@ -177,10 +186,13 @@ class OrderController extends Controller
     /**
      * Confirm the order.
      */
-    public function confirm(Request $request, int $order): JsonResponse
+    public function confirm(Request $request): JsonResponse
     {
-        $order = Order::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($order);
+        $tenantId = $request->route('tenant_id');
+        $orderId = $request->route('orderId');
+
+        $order = Order::where('tenant_id', $tenantId)
+            ->findOrFail($orderId);
 
         $order->confirm();
 
@@ -194,10 +206,13 @@ class OrderController extends Controller
     /**
      * Fulfill the order.
      */
-    public function fulfill(Request $request, int $order): JsonResponse
+    public function fulfill(Request $request): JsonResponse
     {
-        $order = Order::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($order);
+        $tenantId = $request->route('tenant_id');
+        $orderId = $request->route('orderId');
+
+        $order = Order::where('tenant_id', $tenantId)
+            ->findOrFail($orderId);
 
         try {
             $this->fulfillmentService->fulfill($order);
@@ -218,10 +233,13 @@ class OrderController extends Controller
     /**
      * Cancel the order.
      */
-    public function cancel(Request $request, int $order): JsonResponse
+    public function cancel(Request $request): JsonResponse
     {
-        $order = Order::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($order);
+        $tenantId = $request->route('tenant_id');
+        $orderId = $request->route('orderId');
+
+        $order = Order::where('tenant_id', $tenantId)
+            ->findOrFail($orderId);
 
         try {
             $this->fulfillmentService->cancel($order);

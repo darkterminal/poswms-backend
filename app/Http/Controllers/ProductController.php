@@ -62,10 +62,13 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, int $product): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $product = Product::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($product);
+        $tenantId = $request->route('tenant_id');
+        $productId = $request->route('productId');
+
+        $product = Product::where('tenant_id', $tenantId)
+            ->findOrFail($productId);
 
         return response()->json([
             'success' => true,
@@ -76,10 +79,13 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $product): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $product = Product::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($product);
+        $tenantId = $request->route('tenant_id');
+        $productId = $request->route('productId');
+
+        $product = Product::where('tenant_id', $tenantId)
+            ->findOrFail($productId);
 
         $validated = $request->validate([
             'category_id' => 'nullable|exists:categories,id',
@@ -112,10 +118,13 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, int $product): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $product = Product::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($product);
+        $tenantId = $request->route('tenant_id');
+        $productId = $request->route('productId');
+
+        $product = Product::where('tenant_id', $tenantId)
+            ->findOrFail($productId);
 
         $product->delete();
 

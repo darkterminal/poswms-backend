@@ -60,11 +60,14 @@ class CategoryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, int $category): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $category = Category::where('tenant_id', $request->route('tenant_id'))
+        $tenantId = $request->route('tenant_id');
+        $categoryId = $request->route('categoryId');
+
+        $category = Category::where('tenant_id', $tenantId)
             ->with(['parent', 'children', 'products'])
-            ->findOrFail($category);
+            ->findOrFail($categoryId);
 
         return response()->json([
             'success' => true,
@@ -75,10 +78,13 @@ class CategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $category): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $category = Category::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($category);
+        $tenantId = $request->route('tenant_id');
+        $categoryId = $request->route('categoryId');
+
+        $category = Category::where('tenant_id', $tenantId)
+            ->findOrFail($categoryId);
 
         $validated = $request->validate([
             'parent_id' => 'nullable|exists:categories,id',
@@ -90,9 +96,10 @@ class CategoryController extends Controller
             'active' => 'boolean',
         ]);
 
-        // Auto-generate slug if name is provided and slug is not
-        if (isset($validated['name']) && empty($validated['slug'])) {
-            $validated['slug'] = Str::slug($validated['name']);
+        // Only update slug if explicitly provided in the request
+        // Don't auto-generate slug on update to avoid conflicts
+        if (! isset($validated['slug'])) {
+            unset($validated['slug']);
         }
 
         $category->update($validated);
@@ -107,10 +114,13 @@ class CategoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, int $category): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $category = Category::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($category);
+        $tenantId = $request->route('tenant_id');
+        $categoryId = $request->route('categoryId');
+
+        $category = Category::where('tenant_id', $tenantId)
+            ->findOrFail($categoryId);
 
         $category->delete();
 

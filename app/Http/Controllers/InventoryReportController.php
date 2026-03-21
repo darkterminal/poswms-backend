@@ -72,11 +72,11 @@ class InventoryReportController extends Controller
         $inventories = $query->get()->map(function ($inventory) {
             return [
                 'id' => $inventory->id,
-                'product' => [
+                'product' => $inventory->product ? [
                     'id' => $inventory->product->id,
                     'name' => $inventory->product->name,
                     'sku' => $inventory->product->sku,
-                ],
+                ] : null,
                 'location' => [
                     'warehouse' => $inventory->warehouse?->name,
                     'store' => $inventory->store?->name,

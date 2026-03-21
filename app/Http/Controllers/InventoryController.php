@@ -56,10 +56,13 @@ class InventoryController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, int $inventory): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $inventory = Inventory::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($inventory);
+        $tenantId = $request->route('tenant_id');
+        $inventoryId = $request->route('inventoryId');
+
+        $inventory = Inventory::where('tenant_id', $tenantId)
+            ->findOrFail($inventoryId);
 
         return response()->json([
             'success' => true,
@@ -70,10 +73,13 @@ class InventoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $inventory): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $inventory = Inventory::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($inventory);
+        $tenantId = $request->route('tenant_id');
+        $inventoryId = $request->route('inventoryId');
+
+        $inventory = Inventory::where('tenant_id', $tenantId)
+            ->findOrFail($inventoryId);
 
         $validated = $request->validate([
             'product_id' => 'sometimes|exists:products,id',
@@ -99,10 +105,13 @@ class InventoryController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, int $inventory): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $inventory = Inventory::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($inventory);
+        $tenantId = $request->route('tenant_id');
+        $inventoryId = $request->route('inventoryId');
+
+        $inventory = Inventory::where('tenant_id', $tenantId)
+            ->findOrFail($inventoryId);
 
         $inventory->delete();
 

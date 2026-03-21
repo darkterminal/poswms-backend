@@ -58,10 +58,12 @@ class WarehouseController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, int $warehouse): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $warehouse = Warehouse::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($warehouse);
+        $tenantId = $request->route('tenant_id');
+        $warehouseId = $request->route('warehouseId');
+
+        $warehouse = Warehouse::where('tenant_id', $tenantId)->findOrFail($warehouseId);
 
         return response()->json([
             'success' => true,
@@ -72,10 +74,12 @@ class WarehouseController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $warehouse): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $warehouse = Warehouse::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($warehouse);
+        $tenantId = $request->route('tenant_id');
+        $warehouseId = $request->route('warehouseId');
+
+        $warehouse = Warehouse::where('tenant_id', $tenantId)->findOrFail($warehouseId);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -105,10 +109,12 @@ class WarehouseController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, int $warehouse): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $warehouse = Warehouse::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($warehouse);
+        $tenantId = $request->route('tenant_id');
+        $warehouseId = $request->route('warehouseId');
+
+        $warehouse = Warehouse::where('tenant_id', $tenantId)->findOrFail($warehouseId);
 
         $warehouse->delete();
 

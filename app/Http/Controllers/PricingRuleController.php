@@ -58,10 +58,13 @@ class PricingRuleController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, int $pricingRule): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $pricingRule = PricingRule::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($pricingRule);
+        $tenantId = $request->route('tenant_id');
+        $pricingRuleId = $request->route('pricing_rule');
+
+        $pricingRule = PricingRule::where('tenant_id', $tenantId)
+            ->findOrFail($pricingRuleId);
 
         return response()->json([
             'success' => true,
@@ -72,10 +75,13 @@ class PricingRuleController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $pricingRule): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $pricingRule = PricingRule::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($pricingRule);
+        $tenantId = $request->route('tenant_id');
+        $pricingRuleId = $request->route('pricing_rule');
+
+        $pricingRule = PricingRule::where('tenant_id', $tenantId)
+            ->findOrFail($pricingRuleId);
 
         $validated = $request->validate([
             'pricing_tier_id' => 'nullable|exists:pricing_tiers,id',
@@ -103,10 +109,13 @@ class PricingRuleController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, int $pricingRule): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $pricingRule = PricingRule::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($pricingRule);
+        $tenantId = $request->route('tenant_id');
+        $pricingRuleId = $request->route('pricing_rule');
+
+        $pricingRule = PricingRule::where('tenant_id', $tenantId)
+            ->findOrFail($pricingRuleId);
 
         $pricingRule->delete();
 

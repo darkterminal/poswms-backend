@@ -62,10 +62,13 @@ class CustomerController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, int $customer): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $customer = Customer::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($customer);
+        $tenantId = $request->route('tenant_id');
+        $customerId = $request->route('customerId');
+
+        $customer = Customer::where('tenant_id', $tenantId)
+            ->findOrFail($customerId);
 
         return response()->json([
             'success' => true,
@@ -76,10 +79,13 @@ class CustomerController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $customer): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $customer = Customer::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($customer);
+        $tenantId = $request->route('tenant_id');
+        $customerId = $request->route('customerId');
+
+        $customer = Customer::where('tenant_id', $tenantId)
+            ->findOrFail($customerId);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -111,10 +117,13 @@ class CustomerController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, int $customer): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $customer = Customer::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($customer);
+        $tenantId = $request->route('tenant_id');
+        $customerId = $request->route('customerId');
+
+        $customer = Customer::where('tenant_id', $tenantId)
+            ->findOrFail($customerId);
 
         $customer->delete();
 

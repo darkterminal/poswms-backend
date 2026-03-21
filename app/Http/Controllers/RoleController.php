@@ -61,9 +61,12 @@ class RoleController extends Controller
     /**
      * Display the specified role.
      */
-    public function show(Request $request, int $tenant_id, int $id): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $role = Role::where('tenant_id', $tenant_id)->findOrFail($id);
+        $tenantId = $request->route('tenant_id');
+        $roleId = $request->route('role');
+
+        $role = Role::where('tenant_id', $tenantId)->findOrFail($roleId);
 
         return response()->json([
             'success' => true,
@@ -77,13 +80,16 @@ class RoleController extends Controller
     /**
      * Update the specified role.
      */
-    public function update(Request $request, int $tenant_id, int $id): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $role = Role::where('tenant_id', $tenant_id)->findOrFail($id);
+        $tenantId = $request->route('tenant_id');
+        $roleId = $request->route('role');
+
+        $role = Role::where('tenant_id', $tenantId)->findOrFail($roleId);
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'slug' => 'sometimes|required|string|max:255|unique:roles,slug,' . $id . ',id,tenant_id,' . $tenant_id,
+            'slug' => 'sometimes|required|string|max:255|unique:roles,slug,' . $roleId . ',id,tenant_id,' . $tenantId,
             'description' => 'nullable|string',
             'permissions' => 'nullable|array',
         ]);
@@ -102,9 +108,12 @@ class RoleController extends Controller
     /**
      * Remove the specified role.
      */
-    public function destroy(Request $request, int $tenant_id, int $id): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $role = Role::where('tenant_id', $tenant_id)->findOrFail($id);
+        $tenantId = $request->route('tenant_id');
+        $roleId = $request->route('role');
+
+        $role = Role::where('tenant_id', $tenantId)->findOrFail($roleId);
 
         if ($role->is_system) {
             return response()->json([

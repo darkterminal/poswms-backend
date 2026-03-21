@@ -245,9 +245,33 @@ All resource endpoints require a tenant ID:
 
 ---
 
+## Testing
+
+### REST Client
+
+A mini REST client is available for testing all API endpoints:
+
+```bash
+# Run all tests
+php tests/api/RestClient.php
+
+# Run with custom configuration
+php tests/api/RestClient.php --base-url=http://localhost:8000 --tenant=1 --email=admin@example.com
+
+# Test specific endpoint
+php tests/api/RestClient.php --endpoint=products
+
+# Enable verbose output
+php tests/api/RestClient.php --verbose
+```
+
+For complete documentation, see [REST Client Documentation](../../tests/api/README.md).
+
+---
+
 ## Support
 
 For API support, contact your system administrator or refer to the internal documentation.
 
-**API Version:** v1  
+**API Version:** v1
 **Last Updated:** March 20, 2026

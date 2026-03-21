@@ -56,10 +56,12 @@ class StoreController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, int $store): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $store = Store::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($store);
+        $tenantId = $request->route('tenant_id');
+        $storeId = $request->route('storeId');
+
+        $store = Store::where('tenant_id', $tenantId)->findOrFail($storeId);
 
         return response()->json([
             'success' => true,
@@ -70,10 +72,12 @@ class StoreController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $store): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $store = Store::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($store);
+        $tenantId = $request->route('tenant_id');
+        $storeId = $request->route('storeId');
+
+        $store = Store::where('tenant_id', $tenantId)->findOrFail($storeId);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -101,10 +105,12 @@ class StoreController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, int $store): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $store = Store::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($store);
+        $tenantId = $request->route('tenant_id');
+        $storeId = $request->route('storeId');
+
+        $store = Store::where('tenant_id', $tenantId)->findOrFail($storeId);
 
         $store->delete();
 

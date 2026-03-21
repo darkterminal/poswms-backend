@@ -64,9 +64,12 @@ class PermissionController extends Controller
     /**
      * Display the specified permission.
      */
-    public function show(Request $request, int $tenant_id, int $id): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $permission = Permission::where('tenant_id', $tenant_id)->findOrFail($id);
+        $tenantId = $request->route('tenant_id');
+        $permissionId = $request->route('permission');
+
+        $permission = Permission::where('tenant_id', $tenantId)->findOrFail($permissionId);
 
         return response()->json([
             'success' => true,
@@ -80,13 +83,16 @@ class PermissionController extends Controller
     /**
      * Update the specified permission.
      */
-    public function update(Request $request, int $tenant_id, int $id): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $permission = Permission::where('tenant_id', $tenant_id)->findOrFail($id);
+        $tenantId = $request->route('tenant_id');
+        $permissionId = $request->route('permission');
+
+        $permission = Permission::where('tenant_id', $tenantId)->findOrFail($permissionId);
 
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'slug' => 'sometimes|required|string|max:255|unique:permissions,slug,' . $id . ',id,tenant_id,' . $tenant_id,
+            'slug' => 'sometimes|required|string|max:255|unique:permissions,slug,' . $permissionId . ',id,tenant_id,' . $tenantId,
             'group' => 'sometimes|required|string|max:100',
             'description' => 'nullable|string',
         ]);
@@ -105,9 +111,12 @@ class PermissionController extends Controller
     /**
      * Remove the specified permission.
      */
-    public function destroy(Request $request, int $tenant_id, int $id): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $permission = Permission::where('tenant_id', $tenant_id)->findOrFail($id);
+        $tenantId = $request->route('tenant_id');
+        $permissionId = $request->route('permission');
+
+        $permission = Permission::where('tenant_id', $tenantId)->findOrFail($permissionId);
 
         $permission->delete();
 

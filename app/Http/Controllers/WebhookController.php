@@ -70,14 +70,15 @@ class WebhookController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, int $id): JsonResponse
+    public function show(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
+        $webhookId = $request->route('webhook');
 
         $webhook = Webhook::query()
             ->forTenant($tenantId)
             ->with('deliveryAttempts:id,webhook_id,event_type,attempt_number,response_status,success,created_at')
-            ->findOrFail($id);
+            ->findOrFail($webhookId);
 
         return response()->json([
             'success' => true,
@@ -88,10 +89,12 @@ class WebhookController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-        $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($id);
+        $webhookId = $request->route('webhook');
+
+        $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($webhookId);
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
@@ -118,10 +121,12 @@ class WebhookController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, int $id): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-        $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($id);
+        $webhookId = $request->route('webhook');
+
+        $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($webhookId);
 
         $webhook->delete();
 
@@ -134,10 +139,11 @@ class WebhookController extends Controller
     /**
      * Test a webhook by sending a test event.
      */
-    public function test(Request $request, int $id): JsonResponse
+    public function test(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-        $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($id);
+        $webhookId = $request->route('webhook');
+        $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($webhookId);
 
         $webhookService = app(WebhookService::class);
 
@@ -159,15 +165,16 @@ class WebhookController extends Controller
     /**
      * Get delivery attempts for a webhook.
      */
-    public function deliveryAttempts(Request $request, int $id): JsonResponse
+    public function deliveryAttempts(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
+        $webhookId = $request->route('webhook');
 
         // Verify webhook belongs to tenant
-        Webhook::query()->forTenant($tenantId)->findOrFail($id);
+        Webhook::query()->forTenant($tenantId)->findOrFail($webhookId);
 
         $attempts = WebhookDeliveryAttempt::query()
-            ->where('webhook_id', $id)
+            ->where('webhook_id', $webhookId)
             ->orderBy('created_at', 'desc')
             ->limit(50)
             ->get();
@@ -181,10 +188,11 @@ class WebhookController extends Controller
     /**
      * Retry failed delivery attempts for a webhook.
      */
-    public function retry(Request $request, int $id): JsonResponse
+    public function retry(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-        $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($id);
+        $webhookId = $request->route('webhook');
+        $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($webhookId);
 
         if (! $webhook->active) {
             return response()->json([

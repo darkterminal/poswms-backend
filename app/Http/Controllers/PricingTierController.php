@@ -50,10 +50,13 @@ class PricingTierController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Request $request, int $pricingTier): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $pricingTier = PricingTier::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($pricingTier);
+        $tenantId = $request->route('tenant_id');
+        $pricingTierId = $request->route('pricing_tier');
+
+        $pricingTier = PricingTier::where('tenant_id', $tenantId)
+            ->findOrFail($pricingTierId);
 
         return response()->json([
             'success' => true,
@@ -64,10 +67,13 @@ class PricingTierController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, int $pricingTier): JsonResponse
+    public function update(Request $request): JsonResponse
     {
-        $pricingTier = PricingTier::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($pricingTier);
+        $tenantId = $request->route('tenant_id');
+        $pricingTierId = $request->route('pricing_tier');
+
+        $pricingTier = PricingTier::where('tenant_id', $tenantId)
+            ->findOrFail($pricingTierId);
 
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -89,10 +95,13 @@ class PricingTierController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Request $request, int $pricingTier): JsonResponse
+    public function destroy(Request $request): JsonResponse
     {
-        $pricingTier = PricingTier::where('tenant_id', $request->route('tenant_id'))
-            ->findOrFail($pricingTier);
+        $tenantId = $request->route('tenant_id');
+        $pricingTierId = $request->route('pricing_tier');
+
+        $pricingTier = PricingTier::where('tenant_id', $tenantId)
+            ->findOrFail($pricingTierId);
 
         $pricingTier->delete();
 
