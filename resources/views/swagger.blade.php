@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="{{ asset('favicon.ico') }}">
     
     <!-- Swagger UI CSS -->
-    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css">
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css">
     
     <style>
         html {
@@ -86,9 +86,9 @@
     <div id="swagger-ui"></div>
     
     <!-- Swagger UI JS -->
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js" charset="UTF-8"></script>
-    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js" charset="UTF-8"></script>
-    
+    <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-standalone-preset.js"></script>
+
     <script>
         window.onload = function() {
             // Build a system
@@ -104,7 +104,7 @@
                     SwaggerUIBundle.plugins.DownloadUrl
                 ],
                 layout: "StandaloneLayout",
-                validatorUrl: "https://validator.swagger.io/validator",
+                validatorUrl: null,
                 supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch', 'options'],
                 displayOperationId: false,
                 filter: true,
@@ -115,7 +115,7 @@
                 docExpansion: 'list',
                 tryItOutEnabled: true
             });
-            
+
             window.ui = ui;
         };
     </script>

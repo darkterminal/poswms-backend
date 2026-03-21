@@ -9,12 +9,13 @@
 6. [API Design Principles](#api-design-principles)
 7. [Authentication and Authorization](#authentication-and-authorization)
 8. [API Endpoints](#api-endpoints)
-9. [Multi-Level Pricing Feature](#multi-level-pricing-feature)
-10. [Error Handling](#error-handling)
-11. [Security Considerations](#security-considerations)
-12. [Testing Strategy](#testing-strategy)
-13. [Deployment and Scaling](#deployment-and-scaling)
-14. [Conclusion](#conclusion)
+9. [Super Admin Module](#super-admin-module)
+10. [Multi-Level Pricing Feature](#multi-level-pricing-feature)
+11. [Error Handling](#error-handling)
+12. [Security Considerations](#security-considerations)
+13. [Testing Strategy](#testing-strategy)
+14. [Deployment and Scaling](#deployment-and-scaling)
+15. [Conclusion](#conclusion)
 
 ## Introduction
 
@@ -48,8 +49,18 @@ This document outlines the comprehensive API design for a Software-as-a-Service 
 The system serves retail businesses that operate multiple stores and maintain centralized warehouses. Each tenant (business) can have multiple stores and warehouses, with inventory flowing between them.
 
 ### User Roles
-1. **Super Admin**: System-wide administration
-2. **Tenant Admin**: Business owner/manager
+1. **Super Admin**: System-wide administration (SaaS platform owner)
+   - Manages all tenants from platform level
+   - Access to system-wide analytics and metrics
+   - Can impersonate tenant users for support
+   - Controls subscriptions and trials
+   - **Separate authentication** from tenant users
+
+2. **Tenant Admin**: Business owner/manager (tenant-level)
+   - Full access within their tenant scope
+   - Manages stores, warehouses, and staff
+   - Views tenant-specific reports
+
 3. **Store Manager**: Individual store management
 4. **Warehouse Manager**: Inventory and warehouse operations
 5. **Sales Associate**: Basic sales operations
@@ -282,11 +293,20 @@ Individual items within an order.
 - **Token Storage**: Client-side (localStorage, secure cookies)
 - **Expiration**: 24 hours (configurable)
 
+### Super Admin Authentication
+- **Separate Guard**: `auth:sanctum.super_admin`
+- **Dedicated Login Endpoint**: `/api/v1/admin/auth/login`
+- **Stricter Rate Limiting**: 200 requests/minute (vs 100 for tenant API)
+- **No Tenant Scoping**: Operates at system level
+- **Role-Based**: User model `role = 'super_admin'`
+
 ### Authorization
 - **Role-Based Access Control (RBAC)**
 - **Permissions**: CRUD operations per resource
 - **Context-Aware**: Store managers can only access their store's data
-- **Middleware**: Automatic tenant scoping and permission checks
+- **Middleware**: 
+  - `EnsureSuperAdmin` - Super admin authorization
+  - `TenantScoped` - Automatic tenant scoping for tenant routes
 
 ### API Key Authentication (Optional)
 - For third-party integrations
@@ -355,6 +375,142 @@ GET    /api/v1/tenants/{tenant_id}/reports/sales
 GET    /api/v1/tenants/{tenant_id}/reports/inventory
 GET    /api/v1/tenants/{tenant_id}/reports/low-stock
 ```
+
+## Super Admin Module
+
+### Overview
+The Super Admin Module provides SaaS platform owners with system-wide management capabilities, including tenant management, platform analytics, and cross-tenant operations. This module operates **outside tenant scope** and uses a **separate authentication guard**.
+
+### Architecture
+- **Separate Authentication Guard**: `auth:sanctum.super_admin`
+- **Route Prefix**: `/api/v1/admin/`
+- **No Tenant Scoping**: All operations at system level
+- **Stricter Rate Limiting**: 200 requests/minute
+- **Audit Logging**: All actions logged to `audit_logs` table
+
+### Key Features
+1. **Tenant Management**: CRUD operations for tenant businesses
+2. **System Dashboard**: Platform-wide metrics and analytics
+3. **User Management**: Search, view, and impersonate users across tenants
+4. **Subscription Management**: Control trials and subscription plans
+5. **System Configuration**: Global settings and audit logs
+
+### Authentication Endpoints
+```
+POST   /api/v1/admin/auth/login              # Super admin login
+POST   /api/v1/admin/auth/logout             # Logout
+GET    /api/v1/admin/auth/me                 # Get current admin info
+```
+
+### Tenant Management Endpoints
+```
+GET    /api/v1/admin/tenants                 # List all tenants (paginated, filtered)
+POST   /api/v1/admin/tenants                 # Create new tenant
+GET    /api/v1/admin/tenants/{id}            # View tenant details
+PUT    /api/v1/admin/tenants/{id}            # Update tenant
+DELETE /api/v1/admin/tenants/{id}            # Soft delete tenant
+POST   /api/v1/admin/tenants/{id}/activate   # Activate suspended tenant
+POST   /api/v1/admin/tenants/{id}/suspend    # Suspend active tenant
+GET    /api/v1/admin/tenants/{id}/stats      # Tenant statistics
+```
+
+**Query Parameters for List:**
+- `status` - Filter by status (active, suspended, trial)
+- `search` - Search by name, email, or company name
+- `per_page` - Items per page (default: 15)
+- `page` - Page number
+
+### System Dashboard Endpoints
+```
+GET    /api/v1/admin/dashboard               # System overview metrics
+GET    /api/v1/admin/dashboard/revenue       # Revenue-specific metrics
+GET    /api/v1/admin/dashboard/usage         # Usage statistics
+GET    /api/v1/admin/dashboard/alerts        # System alerts
+```
+
+**Dashboard Metrics Include:**
+- Total tenants (active, on trial, expiring)
+- MRR/ARR (Monthly/Annual Recurring Revenue)
+- Total users, stores, warehouses, products
+- Orders today
+- Expiring subscriptions (next 7 days)
+- Suspended tenants
+
+### User Management Endpoints
+```
+GET    /api/v1/admin/users                   # Search all users across tenants
+GET    /api/v1/admin/users/{id}              # View user details
+POST   /api/v1/admin/users/{id}/impersonate  # Generate impersonation token
+POST   /api/v1/admin/users/{id}/reset-password  # Force password reset
+```
+
+**Query Parameters for List:**
+- `tenant_id` - Filter by tenant
+- `role` - Filter by role
+- `search` - Search by name or email
+- `is_active` - Filter by active status
+
+### System Configuration Endpoints
+```
+GET    /api/v1/admin/settings                # Get system settings
+PUT    /api/v1/admin/settings                # Update system settings
+GET    /api/v1/admin/audit-logs              # Global audit logs
+```
+
+### Audit Logging
+All Super Admin actions are logged with:
+- IP address
+- User agent
+- Request URL
+- Changes made
+- Timestamp
+
+### Response Format
+
+**Tenant Resource:**
+```json
+{
+  "id": "uuid",
+  "name": "Business Name",
+  "slug": "business-name",
+  "company_name": "Business Corp",
+  "email": "contact@business.com",
+  "status": "active",
+  "subscription_plan": "premium",
+  "trial_ends_at": "2024-02-01T00:00:00Z",
+  "subscription_ends_at": "2025-01-01T00:00:00Z",
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}
+```
+
+**Dashboard Overview:**
+```json
+{
+  "success": true,
+  "data": {
+    "total_tenants": 150,
+    "active_tenants": 142,
+    "tenants_on_trial": 8,
+    "expiring_subscriptions": 3,
+    "total_users": 1250,
+    "total_stores": 320,
+    "total_warehouses": 85,
+    "total_products": 5600,
+    "total_orders_today": 423,
+    "mrr": 14058.00,
+    "arr": 168696.00,
+    "currency": "USD"
+  }
+}
+```
+
+### Security Considerations
+- **Role Validation**: User model must have `isSuperAdmin()` method
+- **Soft Deletes**: Tenants are soft-deleted for data retention
+- **Impersonation Tokens**: Short-lived (15 minutes)
+- **No Cascade Deletes**: Preserves referential integrity
+- **Audit Trail**: All actions logged and retrievable
 
 ## Multi-Level Pricing Feature
 
@@ -448,9 +604,19 @@ POST   /api/v1/tenants/{tenant_id}/products/{product_id}/calculate-price
 
 ### API Security
 - Rate limiting (100 requests/minute per user)
+- **Super Admin Rate Limiting**: 200 requests/minute
 - Request size limits
 - CORS configuration
 - API versioning for backward compatibility
+
+### Super Admin Security
+- **Separate Authentication Guard**: `auth:sanctum.super_admin`
+- **Role Validation**: `isSuperAdmin()` method on User model
+- **Audit Logging**: All actions logged with IP, user agent, and changes
+- **Impersonation Tokens**: Short-lived (15 minutes max)
+- **Soft Deletes**: Tenants soft-deleted for data retention
+- **No Cascade Deletes**: Preserves referential integrity
+- **Stricter Rate Limiting**: 200 requests/minute on admin routes
 
 ## Testing Strategy
 
@@ -465,21 +631,29 @@ POST   /api/v1/tenants/{tenant_id}/products/{product_id}/calculate-price
 - Authentication flows
 - Authorization checks
 - Business workflows
+- **Super Admin authentication**
+- **Tenant management CRUD**
+- **Dashboard metrics accuracy**
+- **User impersonation**
 
 ### Integration Tests
 - Database operations
 - External service integrations
 - Queue job processing
+- **Super Admin workflows**
+- **Cross-tenant operations**
 
 ### Test Data
 - Factory classes for test data generation
 - Seeded test tenants and users
+- **Super Admin user seeder**
 - Mock external services
 
 ### Test Coverage
 - Target: 80%+ code coverage
 - Critical path testing
 - Edge case coverage
+- **Super Admin module tests**
 
 ## Deployment and Scaling
 
@@ -510,12 +684,39 @@ POST   /api/v1/tenants/{tenant_id}/products/{product_id}/calculate-price
 
 This API design document provides a comprehensive blueprint for building a scalable, multi-tenant SaaS platform for retail businesses. The single database architecture ensures cost efficiency while maintaining data isolation through tenant scoping.
 
-Key implementation priorities:
+### Key Features
+- **Multi-Tenant SaaS**: Single database with tenant-scoped data
+- **Super Admin Module**: System-wide tenant management and analytics
+- **Store & Warehouse Management**: Multi-location retail support
+- **Inventory Tracking**: Real-time stock management with alerts
+- **Order Processing**: Complete order lifecycle management
+- **Multi-Level Pricing**: Optional tiered pricing system
+- **Role-Based Access**: Granular permissions and authorization
+
+### Implementation Phases
+
+**Phase 1-8: Core Tenant Features**
 1. Core authentication and tenant isolation
 2. Basic CRUD operations for stores, warehouses, and products
 3. Inventory management system
 4. Order processing workflow
 5. Multi-level pricing (optional feature)
+
+**Phase 9: Super Admin Module (SaaS Management)**
+1. Super Admin authentication (separate guard)
+2. Tenant CRUD operations
+3. System dashboard with platform-wide metrics
+4. User management and impersonation
+5. Subscription and trial management
+6. Global audit logs
+
+### Architecture Highlights
+- **RESTful API Design**: Standard HTTP methods and status codes
+- **Laravel Sanctum**: Token-based authentication
+- **Tenant Scoping**: Automatic data isolation via middleware
+- **Super Admin Guard**: Separate authentication for platform owners
+- **Audit Logging**: Comprehensive action tracking
+- **Error Handling**: Consistent response formats
 
 The design follows RESTful principles, includes proper error handling, and incorporates security best practices. Regular reviews and updates to this document should be conducted as the system evolves.
 
@@ -530,7 +731,8 @@ The design follows RESTful principles, includes proper error handling, and incor
 
 ---
 
-**Document Version**: 1.0  
-**Date**: March 19, 2026  
-**Author**: AI Assistant  
+**Document Version**: 1.1
+**Date**: March 22, 2026
+**Last Updated**: Aligned with Super Admin Development Plan (Phase 9)
+**Author**: AI Assistant
 **Review Status**: Draft
