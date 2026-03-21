@@ -10,6 +10,13 @@ class SuperAdminAuthTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Clear cache to prevent rate limit pollution from other tests
+        \Illuminate\Support\Facades\Cache::flush();
+    }
+
     private function createSuperAdmin(): User
     {
         return User::factory()->superAdmin()->create();

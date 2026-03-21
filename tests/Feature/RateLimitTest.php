@@ -23,6 +23,9 @@ class RateLimitTest extends TestCase
     {
         parent::setUp();
 
+        // Clear cache and rate limit state between tests
+        \Illuminate\Support\Facades\Cache::flush();
+
         $this->tenant = Tenant::factory()->create();
         $this->adminUser = User::factory()->create([
             'tenant_id' => $this->tenant->id,

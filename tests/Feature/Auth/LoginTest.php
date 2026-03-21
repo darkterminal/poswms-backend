@@ -10,6 +10,13 @@ class LoginTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Clear cache to prevent rate limit pollution from other tests
+        \Illuminate\Support\Facades\Cache::flush();
+    }
+
     public function test_user_can_login_with_valid_credentials(): void
     {
         $user = User::factory()->create([
