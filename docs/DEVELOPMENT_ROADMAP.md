@@ -227,6 +227,8 @@ Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 8 (tests) → Phase 5 → 
 
 **Goal:** Enable SaaS owners to manage all tenants and system-wide operations
 
+> 📖 **Detailed Implementation Guide:** See [`SUPER_ADMIN_WORKFLOW.md`](SUPER_ADMIN_WORKFLOW.md) for comprehensive implementation details, code examples, and testing strategies.
+
 | # | Task | Description | Estimated Effort |
 |---|------|-------------|------------------|
 | 9.1 | Super Admin Authentication | Separate auth guard and middleware | 5h |
