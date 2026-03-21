@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\SuperAdminAuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
@@ -35,6 +37,26 @@ use Illuminate\Support\Facades\Route;
 // Public routes with auth rate limiting
 Route::middleware(['throttle:auth'])->group(function () {
     Route::post('/auth/login', [LoginController::class, 'login'])->name('auth.login');
+
+    // Super Admin login (separate endpoint)
+    Route::post('/admin/auth/login', [SuperAdminAuthController::class, 'login'])->name('admin.auth.login');
+});
+
+// Super Admin routes (require Sanctum authentication and super admin role)
+Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix('admin')->group(function () {
+    // Super Admin Auth routes
+    Route::post('/auth/logout', [SuperAdminAuthController::class, 'logout'])->name('admin.auth.logout');
+    Route::get('/auth/me', [SuperAdminAuthController::class, 'me'])->name('admin.auth.me');
+
+    // Tenant Management
+    Route::get('/tenants', [TenantController::class, 'index'])->name('admin.tenants.index');
+    Route::post('/tenants', [TenantController::class, 'store'])->name('admin.tenants.store');
+    Route::get('/tenants/{tenant}', [TenantController::class, 'show'])->name('admin.tenants.show');
+    Route::put('/tenants/{tenant}', [TenantController::class, 'update'])->name('admin.tenants.update');
+    Route::delete('/tenants/{tenant}', [TenantController::class, 'destroy'])->name('admin.tenants.destroy');
+    Route::post('/tenants/{tenant}/activate', [TenantController::class, 'activate'])->name('admin.tenants.activate');
+    Route::post('/tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('admin.tenants.suspend');
+    Route::get('/tenants/{tenant}/stats', [TenantController::class, 'stats'])->name('admin.tenants.stats');
 });
 
 // Protected routes (require Sanctum authentication and tenant scoping)
