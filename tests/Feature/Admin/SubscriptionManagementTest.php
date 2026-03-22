@@ -292,8 +292,8 @@ class SubscriptionManagementTest extends TestCase
                 'trial_ends_at' => 'invalid-date',
             ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('trial_ends_at');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'trial_ends_at');
     }
 
     public function test_subscription_update_validates_date_format(): void
@@ -303,8 +303,8 @@ class SubscriptionManagementTest extends TestCase
                 'subscription_ends_at' => 'invalid-date',
             ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('subscription_ends_at');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'subscription_ends_at');
     }
 
     public function test_extend_trial_validates_days_field(): void
@@ -314,8 +314,8 @@ class SubscriptionManagementTest extends TestCase
                 'days' => 'not-a-number',
             ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('days');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'days');
     }
 
     public function test_extend_trial_requires_positive_days(): void
@@ -325,8 +325,8 @@ class SubscriptionManagementTest extends TestCase
                 'days' => -5,
             ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('days');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'days');
     }
 
     public function test_extend_subscription_validates_days_field(): void
@@ -336,8 +336,8 @@ class SubscriptionManagementTest extends TestCase
                 'days' => 'not-a-number',
             ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('days');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'days');
     }
 
     public function test_extend_subscription_requires_positive_days(): void
@@ -347,7 +347,7 @@ class SubscriptionManagementTest extends TestCase
                 'days' => 0,
             ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('days');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'days');
     }
 }

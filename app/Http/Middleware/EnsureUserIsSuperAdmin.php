@@ -18,7 +18,13 @@ class EnsureUserIsSuperAdmin
         if (! $request->user() || ! $request->user()->isSuperAdmin()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Super admin access required.',
+                'error' => [
+                    'code' => 'access_denied',
+                    'message' => 'Unauthorized. Super admin access required.',
+                ],
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                ],
             ], 403);
         }
 

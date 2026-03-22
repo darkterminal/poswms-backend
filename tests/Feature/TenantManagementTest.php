@@ -300,7 +300,8 @@ class TenantManagementTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'Unauthorized. Super admin access required.');
+            ->assertJsonPath('error.code', 'access_denied')
+            ->assertJsonPath('error.message', 'Unauthorized. Super admin access required.');
     }
 
     /**
@@ -322,8 +323,8 @@ class TenantManagementTest extends TestCase
             'Authorization' => 'Bearer ' . $this->superAdminToken(),
         ])->postJson('/api/v1/admin/tenants', []);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['name', 'slug', 'email']);
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'name', 'slug', 'email');
     }
 
     /**
@@ -341,8 +342,8 @@ class TenantManagementTest extends TestCase
             'email' => 'test@tenant.com',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('slug');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'slug');
     }
 
     /**
@@ -360,7 +361,7 @@ class TenantManagementTest extends TestCase
             'email' => 'existing@tenant.com',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('email');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'email');
     }
 }

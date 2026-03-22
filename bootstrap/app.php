@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\ApiExceptionHandler;
 use App\Http\Middleware\EnsureTenantIsScoped;
 use App\Http\Middleware\EnsureUserHasPermission;
 use App\Http\Middleware\EnsureUserHasRole;
@@ -32,5 +33,16 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->reportable(function (Throwable $e) {
+            //
+        });
+
+        $exceptions->renderable(function (Throwable $e, $request) {
+            // Use custom API exception handler for API requests
+            if ($request->is('api/*')) {
+                $handler = new ApiExceptionHandler(app());
+
+                return $handler->render($request, $e);
+            }
+        });
     })->create();

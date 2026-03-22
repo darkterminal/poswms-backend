@@ -31,6 +31,12 @@ class LoginController extends Controller
             ]);
         }
 
+        if (! $user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => ['Your account has been deactivated. Please contact support.'],
+            ]);
+        }
+
         // Create a new token for the user
         $token = $user->createToken('auth-token')->plainTextToken;
 

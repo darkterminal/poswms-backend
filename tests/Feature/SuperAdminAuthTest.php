@@ -47,7 +47,7 @@ class SuperAdminAuthTest extends TestCase
             ])
             ->assertJsonStructure([
                 'data' => [
-                    'user' => ['id', 'name', 'email', 'is_super_admin'],
+                    'user' => ['id', 'name', 'email', 'is_super_admin', 'is_active'],
                     'token',
                     'token_type',
                 ],
@@ -68,7 +68,9 @@ class SuperAdminAuthTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors('email');
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error.code', 'validation_error')
+            ->assertJsonFragment(['email' => 'Access denied. Super admin privileges required.']);
     }
 
     /**
@@ -84,7 +86,9 @@ class SuperAdminAuthTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors('email');
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error.code', 'validation_error')
+            ->assertJsonFragment(['email' => 'The provided credentials are incorrect.']);
     }
 
     /**
@@ -98,7 +102,9 @@ class SuperAdminAuthTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors('email');
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error.code', 'validation_error')
+            ->assertJsonFragment(['email' => 'The provided credentials are incorrect.']);
     }
 
     /**
@@ -115,7 +121,7 @@ class SuperAdminAuthTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('success', true)
-            ->assertJsonPath('message', 'Super admin logout successful');
+            ->assertJsonPath('message', 'Logout successful');
     }
 
     /**
@@ -136,7 +142,7 @@ class SuperAdminAuthTest extends TestCase
             ])
             ->assertJsonStructure([
                 'data' => [
-                    'user' => ['id', 'name', 'email', 'is_super_admin'],
+                    'user' => ['id', 'name', 'email', 'is_super_admin', 'is_active'],
                 ],
                 'message',
             ])
@@ -167,6 +173,7 @@ class SuperAdminAuthTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'Unauthorized. Super admin access required.');
+            ->assertJsonPath('error.code', 'access_denied')
+            ->assertJsonPath('error.message', 'Unauthorized. Super admin access required.');
     }
 }

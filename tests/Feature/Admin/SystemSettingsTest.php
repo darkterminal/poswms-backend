@@ -272,8 +272,8 @@ class SystemSettingsTest extends TestCase
         $response = $this->actingAs($this->superAdmin)
             ->postJson('/api/v1/admin/settings/run-command', []);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('command');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'command');
     }
 
     public function test_non_super_admin_cannot_access_settings(): void
@@ -313,8 +313,8 @@ class SystemSettingsTest extends TestCase
                 ],
             ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('application.url');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'application.url');
     }
 
     public function test_update_settings_with_timezone(): void
@@ -341,8 +341,8 @@ class SystemSettingsTest extends TestCase
                 ],
             ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('application.timezone');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'application.timezone');
     }
 
     public function test_update_settings_with_locale(): void
@@ -369,8 +369,8 @@ class SystemSettingsTest extends TestCase
                 ],
             ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('application.locale');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'application.locale');
     }
 
     public function test_health_check_overall_status_is_healthy(): void

@@ -179,7 +179,10 @@ class RateLimitTest extends TestCase
 
         $response->assertStatus(429);
         $response->assertJsonStructure([
-            'message',
+            'error' => [
+                'code',
+                'message',
+            ],
         ]);
     }
 }

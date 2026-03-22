@@ -40,6 +40,7 @@ class LoginTest extends TestCase
                         'id',
                         'name',
                         'email',
+                        'is_active',
                     ],
                     'token',
                     'token_type',
@@ -59,8 +60,8 @@ class LoginTest extends TestCase
             'password' => 'wrong-password',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('email');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'email');
     }
 
     public function test_user_cannot_login_with_nonexistent_email(): void
@@ -70,15 +71,15 @@ class LoginTest extends TestCase
             'password' => 'password123',
         ]);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('email');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'email');
     }
 
     public function test_login_requires_email_and_password(): void
     {
         $response = $this->postJson('/api/v1/auth/login', []);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['email', 'password']);
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'email', 'password');
     }
 }

@@ -287,7 +287,8 @@ class SystemDashboardTest extends TestCase
                 'Authorization' => 'Bearer ' . $token,
             ])
                 ->assertStatus(403)
-                ->assertJsonPath('message', 'Unauthorized. Super admin access required.');
+                ->assertJsonPath('error.code', 'access_denied')
+                ->assertJsonPath('error.message', 'Unauthorized. Super admin access required.');
         }
     }
 

@@ -37,9 +37,15 @@ class SuperAdminAuthController extends Controller
             ]);
         }
 
-        if (! $user->isSuperAdmin()) {
+        if (! $user->is_super_admin) {
             throw ValidationException::withMessages([
                 'email' => ['Access denied. Super admin privileges required.'],
+            ]);
+        }
+
+        if (! $user->is_active) {
+            throw ValidationException::withMessages([
+                'email' => ['Your account has been deactivated. Please contact support.'],
             ]);
         }
 
@@ -53,7 +59,7 @@ class SuperAdminAuthController extends Controller
                 'token' => $token,
                 'token_type' => 'Bearer',
             ],
-            'message' => 'Super admin login successful',
+            'message' => 'Login successful',
         ], 200);
     }
 
@@ -67,7 +73,7 @@ class SuperAdminAuthController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Super admin logout successful',
+            'message' => 'Logout successful',
         ], 200);
     }
 
@@ -81,7 +87,7 @@ class SuperAdminAuthController extends Controller
             'data' => [
                 'user' => $request->user(),
             ],
-            'message' => 'Super admin details retrieved successfully',
+            'message' => 'User retrieved successfully',
         ], 200);
     }
 }

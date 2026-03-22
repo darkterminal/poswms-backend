@@ -214,8 +214,8 @@ class WebhookTest extends TestCase
         $response = $this->actingAs($this->adminUser)
             ->postJson("/api/v1/tenants/{$this->tenant->id}/webhooks", $payload);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('url');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'url');
     }
 
     public function test_webhook_requires_events(): void
@@ -228,8 +228,8 @@ class WebhookTest extends TestCase
         $response = $this->actingAs($this->adminUser)
             ->postJson("/api/v1/tenants/{$this->tenant->id}/webhooks", $payload);
 
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors('events');
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'events');
     }
 
     public function test_webhook_service_triggers_webhooks(): void
