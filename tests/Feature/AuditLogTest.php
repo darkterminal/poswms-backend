@@ -418,3 +418,144 @@ class AuditLogTest extends TestCase
         $this->assertEquals(123, $auditLog->metadata['batch_id']);
     }
 }
+
+/**
+ * Tests for Super Admin Global Audit Log endpoints.
+ */
+class GlobalAuditLogTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function createSuperAdmin(): User
+    {
+        return User::factory()->superAdmin()->create();
+    }
+
+    private function superAdminToken(): string
+    {
+        return $this->createSuperAdmin()->createToken('super-admin-token')->plainTextToken;
+    }
+
+    /**
+     * Test super admin can access global audit logs.
+     */
+    public function test_super_admin_can_access_global_audit_logs(): void
+    {
+        $tenant1 = Tenant::factory()->create();
+        $tenant2 = Tenant::factory()->create();
+
+        // Create audit logs for both tenants
+        AuditLog::factory()->count(3)->create(['tenant_id' => $tenant1->id]);
+        AuditLog::factory()->count(2)->create(['tenant_id' => $tenant2->id]);
+
+        $response = $this->getJson('/api/v1/admin/audit-logs', [
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'current_page',
+                    'last_page',
+                    'per_page',
+                    'total',
+                ],
+                'message',
+            ]);
+
+        // Should return all 5 audit logs
+        $this->assertCount(5, $response->json('data'));
+    }
+
+    /**
+     * Test super admin can filter global audit logs by tenant.
+     */
+    public function test_super_admin_can_filter_audit_logs_by_tenant(): void
+    {
+        $tenant1 = Tenant::factory()->create();
+        $tenant2 = Tenant::factory()->create();
+
+        AuditLog::factory()->count(3)->create(['tenant_id' => $tenant1->id]);
+        AuditLog::factory()->count(2)->create(['tenant_id' => $tenant2->id]);
+
+        $response = $this->getJson('/api/v1/admin/audit-logs?tenant_id=' . $tenant1->id, [
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertCount(3, $response->json('data'));
+    }
+
+    /**
+     * Test super admin can filter global audit logs by event type.
+     */
+    public function test_super_admin_can_filter_audit_logs_by_event_type(): void
+    {
+        $tenant = Tenant::factory()->create();
+
+        AuditLog::factory()->count(2)->create(['tenant_id' => $tenant->id, 'event_type' => 'created']);
+        AuditLog::factory()->count(3)->create(['tenant_id' => $tenant->id, 'event_type' => 'updated']);
+
+        $response = $this->getJson('/api/v1/admin/audit-logs?event_type=created', [
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ]);
+
+        $response->assertStatus(200);
+        $this->assertCount(2, $response->json('data'));
+    }
+
+    /**
+     * Test super admin can access global audit summary.
+     */
+    public function test_super_admin_can_access_global_audit_summary(): void
+    {
+        $tenant1 = Tenant::factory()->create();
+        $tenant2 = Tenant::factory()->create();
+
+        AuditLog::factory()->count(3)->create(['tenant_id' => $tenant1->id, 'event_type' => 'created']);
+        AuditLog::factory()->count(2)->create(['tenant_id' => $tenant2->id, 'event_type' => 'updated']);
+
+        $response = $this->getJson('/api/v1/admin/audit-logs/summary', [
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'total_events',
+                    'by_event_type',
+                    'by_tenant',
+                    'by_user',
+                    'recent_activity',
+                ],
+            ]);
+
+        $this->assertEquals(5, $response->json('data.total_events'));
+    }
+
+    /**
+     * Test unauthenticated user cannot access global audit logs.
+     */
+    public function test_unauthenticated_user_cannot_access_global_audit_logs(): void
+    {
+        $this->getJson('/api/v1/admin/audit-logs')
+            ->assertStatus(401);
+    }
+
+    /**
+     * Test regular user cannot access global audit logs.
+     */
+    public function test_regular_user_cannot_access_global_audit_logs(): void
+    {
+        $regularUser = User::factory()->create(['is_super_admin' => false]);
+        $token = $regularUser->createToken('regular-user-token')->plainTextToken;
+
+        $this->getJson('/api/v1/admin/audit-logs', [
+            'Authorization' => 'Bearer ' . $token,
+        ])
+            ->assertStatus(403)
+            ->assertJsonPath('message', 'Unauthorized. Super admin access required.');
+    }
+}

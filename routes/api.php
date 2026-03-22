@@ -73,6 +73,11 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::post('/users/stop-impersonating', [UserController::class, 'stopImpersonating'])->name('admin.users.stopImpersonating');
     Route::get('/users/{user}/impersonation-sessions', [UserController::class, 'impersonationSessions'])->name('admin.users.impersonationSessions');
     Route::post('/users/{user}/revoke-impersonation', [UserController::class, 'revokeImpersonationTokens'])->name('admin.users.revokeImpersonation');
+
+    // Global Audit Logs (Super Admin only)
+    Route::get('/audit-logs', [AuditLogController::class, 'globalIndex'])->name('admin.audit-logs.index');
+    Route::get('/audit-logs/summary', [AuditLogController::class, 'globalSummary'])->name('admin.audit-logs.summary');
+    Route::get('/audit-logs/by-user/{userId}', [AuditLogController::class, 'byUser'])->name('admin.audit-logs.byUser');
 });
 
 // Protected routes (require Sanctum authentication and tenant scoping)
