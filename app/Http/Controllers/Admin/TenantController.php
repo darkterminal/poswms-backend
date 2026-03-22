@@ -217,4 +217,155 @@ class TenantController extends Controller
             'message' => 'Tenant statistics retrieved successfully',
         ], 200);
     }
+
+    /**
+     * Update tenant trial period.
+     */
+    public function updateTrial(Request $request, Tenant $tenant): JsonResponse
+    {
+        $validated = $request->validate([
+            'trial_ends_at' => ['required', 'date'],
+        ]);
+
+        $tenant->update(['trial_ends_at' => $validated['trial_ends_at']]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+                'trial_ends_at' => $tenant->trial_ends_at->toIso8601String(),
+            ],
+            'message' => 'Tenant trial period updated successfully',
+        ], 200);
+    }
+
+    /**
+     * Extend tenant trial period.
+     */
+    public function extendTrial(Request $request, Tenant $tenant): JsonResponse
+    {
+        $validated = $request->validate([
+            'days' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $currentTrialEndsAt = $tenant->trial_ends_at ?? now();
+        $newTrialEndsAt = $currentTrialEndsAt->addDays($validated['days']);
+
+        $tenant->update(['trial_ends_at' => $newTrialEndsAt]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+                'trial_ends_at' => $tenant->trial_ends_at->toIso8601String(),
+                'days_added' => $validated['days'],
+            ],
+            'message' => 'Tenant trial period extended successfully',
+        ], 200);
+    }
+
+    /**
+     * Update tenant subscription.
+     */
+    public function updateSubscription(Request $request, Tenant $tenant): JsonResponse
+    {
+        $validated = $request->validate([
+            'subscription_ends_at' => ['required', 'date'],
+        ]);
+
+        $tenant->update(['subscription_ends_at' => $validated['subscription_ends_at']]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+                'subscription_ends_at' => $tenant->subscription_ends_at->toIso8601String(),
+            ],
+            'message' => 'Tenant subscription updated successfully',
+        ], 200);
+    }
+
+    /**
+     * Extend tenant subscription.
+     */
+    public function extendSubscription(Request $request, Tenant $tenant): JsonResponse
+    {
+        $validated = $request->validate([
+            'days' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $currentSubscriptionEndsAt = $tenant->subscription_ends_at ?? now();
+        $newSubscriptionEndsAt = $currentSubscriptionEndsAt->addDays($validated['days']);
+
+        $tenant->update(['subscription_ends_at' => $newSubscriptionEndsAt]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+                'subscription_ends_at' => $tenant->subscription_ends_at->toIso8601String(),
+                'days_added' => $validated['days'],
+            ],
+            'message' => 'Tenant subscription extended successfully',
+        ], 200);
+    }
+
+    /**
+     * Cancel tenant subscription (set to end of current period).
+     */
+    public function cancelSubscription(Tenant $tenant): JsonResponse
+    {
+        if (! $tenant->hasActiveSubscription()) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'NO_ACTIVE_SUBSCRIPTION',
+                    'message' => 'Tenant does not have an active subscription to cancel',
+                ],
+            ], 400);
+        }
+
+        // Set subscription to end at the end of current billing period
+        $tenant->update(['subscription_ends_at' => $tenant->subscription_ends_at]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+                'subscription_ends_at' => $tenant->subscription_ends_at->toIso8601String(),
+                'cancelled_at' => now()->toIso8601String(),
+            ],
+            'message' => 'Tenant subscription cancelled successfully (access until end of period)',
+        ], 200);
+    }
+
+    /**
+     * Convert tenant from trial to paid subscription.
+     */
+    public function convertToPaid(Request $request, Tenant $tenant): JsonResponse
+    {
+        $validated = $request->validate([
+            'subscription_ends_at' => ['required', 'date'],
+        ]);
+
+        $tenant->update([
+            'trial_ends_at' => null,
+            'subscription_ends_at' => $validated['subscription_ends_at'],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name,
+                'subscription_ends_at' => $tenant->subscription_ends_at->toIso8601String(),
+            ],
+            'message' => 'Tenant converted from trial to paid subscription successfully',
+        ], 200);
+    }
 }

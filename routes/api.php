@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\SystemDashboardController;
+use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuditLogController;
@@ -60,6 +61,14 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::post('/tenants/{tenant}/suspend', [TenantController::class, 'suspend'])->name('admin.tenants.suspend');
     Route::get('/tenants/{tenant}/stats', [TenantController::class, 'stats'])->name('admin.tenants.stats');
 
+    // Tenant Subscription Management
+    Route::post('/tenants/{tenant}/trial', [TenantController::class, 'updateTrial'])->name('admin.tenants.trial.update');
+    Route::post('/tenants/{tenant}/trial/extend', [TenantController::class, 'extendTrial'])->name('admin.tenants.trial.extend');
+    Route::post('/tenants/{tenant}/subscription', [TenantController::class, 'updateSubscription'])->name('admin.tenants.subscription.update');
+    Route::post('/tenants/{tenant}/subscription/extend', [TenantController::class, 'extendSubscription'])->name('admin.tenants.subscription.extend');
+    Route::post('/tenants/{tenant}/subscription/cancel', [TenantController::class, 'cancelSubscription'])->name('admin.tenants.subscription.cancel');
+    Route::post('/tenants/{tenant}/convert-to-paid', [TenantController::class, 'convertToPaid'])->name('admin.tenants.convertToPaid');
+
     // System Dashboard
     Route::get('/dashboard', [SystemDashboardController::class, 'overview'])->name('admin.dashboard.overview');
     Route::get('/dashboard/revenue', [SystemDashboardController::class, 'revenue'])->name('admin.dashboard.revenue');
@@ -78,6 +87,13 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::get('/audit-logs', [AuditLogController::class, 'globalIndex'])->name('admin.audit-logs.index');
     Route::get('/audit-logs/summary', [AuditLogController::class, 'globalSummary'])->name('admin.audit-logs.summary');
     Route::get('/audit-logs/by-user/{userId}', [AuditLogController::class, 'byUser'])->name('admin.audit-logs.byUser');
+
+    // System Configuration
+    Route::get('/settings', [SystemSettingsController::class, 'show'])->name('admin.settings.show');
+    Route::put('/settings', [SystemSettingsController::class, 'update'])->name('admin.settings.update');
+    Route::post('/settings/clear-cache', [SystemSettingsController::class, 'clearCache'])->name('admin.settings.clearCache');
+    Route::get('/settings/health', [SystemSettingsController::class, 'health'])->name('admin.settings.health');
+    Route::post('/settings/run-command', [SystemSettingsController::class, 'runCommand'])->name('admin.settings.runCommand');
 });
 
 // Protected routes (require Sanctum authentication and tenant scoping)
