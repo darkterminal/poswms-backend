@@ -1,0 +1,754 @@
+{
+  "info": {
+    "_postman_id": "super-admin-mswms-collection",
+    "name": "MSWMS - Super Admin API",
+    "description": "Complete API collection for Super Admin tenant management, system dashboard, and cross-tenant operations",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{super_admin_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "super_admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tenant_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Super Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "auth", "login"]
+            },
+            "description": "Authenticate as super admin and receive access token"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('super_admin_token', jsonData.data.token);",
+                  "    console.log('Super Admin token saved');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Super Admin Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "auth", "logout"]
+            },
+            "description": "Logout and revoke super admin token"
+          }
+        },
+        {
+          "name": "Get Current Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "auth", "me"]
+            },
+            "description": "Get authenticated super admin details"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tenant Management",
+      "item": [
+        {
+          "name": "List All Tenants",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/tenants?page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "sort_by",
+                  "value": "created_at",
+                  "disabled": true
+                },
+                {
+                  "key": "sort_direction",
+                  "value": "desc",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get paginated list of all tenants with optional filtering"
+          }
+        },
+        {
+          "name": "Create New Tenant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Business Inc.\",\n  \"domain\": \"newbusiness.example.com\",\n  \"email\": \"contact@newbusiness.com\",\n  \"subscription_plan\": \"starter\",\n  \"trial_ends_at\": \"2026-04-22T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/tenants",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants"]
+            },
+            "description": "Create a new tenant business"
+          }
+        },
+        {
+          "name": "View Tenant Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}"]
+            },
+            "description": "Get detailed information about a specific tenant"
+          }
+        },
+        {
+          "name": "Update Tenant",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Business Name\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}"]
+            },
+            "description": "Update tenant information"
+          }
+        },
+        {
+          "name": "Delete Tenant",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}"]
+            },
+            "description": "Soft delete a tenant"
+          }
+        },
+        {
+          "name": "Activate Tenant",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}/activate",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}", "activate"]
+            },
+            "description": "Activate a suspended tenant"
+          }
+        },
+        {
+          "name": "Suspend Tenant",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}/suspend",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}", "suspend"]
+            },
+            "description": "Suspend an active tenant"
+          }
+        },
+        {
+          "name": "Get Tenant Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}/stats",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}", "stats"]
+            },
+            "description": "Get statistics for a specific tenant"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Subscription Management",
+      "item": [
+        {
+          "name": "Update Tenant Trial",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"trial_ends_at\": \"2026-05-22T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}/trial",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}", "trial"]
+            },
+            "description": "Update trial end date for a tenant"
+          }
+        },
+        {
+          "name": "Extend Tenant Trial",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"days\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}/trial/extend",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}", "trial", "extend"]
+            },
+            "description": "Extend trial period by specified days"
+          }
+        },
+        {
+          "name": "Update Tenant Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscription_plan\": \"professional\",\n  \"billing_cycle\": \"monthly\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}/subscription",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}", "subscription"]
+            },
+            "description": "Update subscription plan for a tenant"
+          }
+        },
+        {
+          "name": "Extend Tenant Subscription",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"months\": 6\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}/subscription/extend",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}", "subscription", "extend"]
+            },
+            "description": "Extend subscription by specified months"
+          }
+        },
+        {
+          "name": "Cancel Tenant Subscription",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}/subscription/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}", "subscription", "cancel"]
+            },
+            "description": "Cancel subscription at end of billing period"
+          }
+        },
+        {
+          "name": "Convert Tenant to Paid",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"subscription_plan\": \"professional\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/tenants/{{tenant_id}}/convert-to-paid",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "tenants", "{{tenant_id}}", "convert-to-paid"]
+            },
+            "description": "Convert tenant from trial to paid subscription"
+          }
+        }
+      ]
+    },
+    {
+      "name": "System Dashboard",
+      "item": [
+        {
+          "name": "System Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard"]
+            },
+            "description": "Get system-wide overview metrics"
+          }
+        },
+        {
+          "name": "Revenue Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/revenue",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "revenue"]
+            },
+            "description": "Get revenue-related metrics (MRR, ARR, etc.)"
+          }
+        },
+        {
+          "name": "Usage Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/usage",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "usage"]
+            },
+            "description": "Get platform usage statistics"
+          }
+        },
+        {
+          "name": "System Alerts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/dashboard/alerts",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "dashboard", "alerts"]
+            },
+            "description": "Get system alerts and notifications"
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users?page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "tenant_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "role",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Search and filter users across all tenants"
+          }
+        },
+        {
+          "name": "View User Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "{{user_id}}"]
+            },
+            "description": "Get detailed information about a specific user"
+          }
+        },
+        {
+          "name": "Impersonate User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"duration_minutes\": 15\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}/impersonate",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "{{user_id}}", "impersonate"]
+            },
+            "description": "Generate impersonation token for a user"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    console.log('Impersonation token generated. Save it to use for impersonation.');",
+                  "    console.log('Token expires at: ' + jsonData.data.expires_at);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stop Impersonating",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users/stop-impersonating",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "stop-impersonating"]
+            },
+            "description": "End current impersonation session"
+          }
+        },
+        {
+          "name": "Get Impersonation Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}/impersonation-sessions",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "{{user_id}}", "impersonation-sessions"]
+            },
+            "description": "Get active impersonation sessions for a user"
+          }
+        },
+        {
+          "name": "Revoke Impersonation Tokens",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/users/{{user_id}}/revoke-impersonation",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "users", "{{user_id}}", "revoke-impersonation"]
+            },
+            "description": "Revoke all impersonation tokens for a user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit Logs",
+      "item": [
+        {
+          "name": "Global Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/audit-logs?page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "audit-logs"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                },
+                {
+                  "key": "tenant_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "user_id",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "action",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "date_from",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "date_to",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get system-wide audit logs"
+          }
+        },
+        {
+          "name": "Audit Logs Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/audit-logs/summary",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "audit-logs", "summary"]
+            },
+            "description": "Get summary statistics of audit logs"
+          }
+        },
+        {
+          "name": "Audit Logs by User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/audit-logs/by-user/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "audit-logs", "by-user", "{{user_id}}"]
+            },
+            "description": "Get audit logs for a specific user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "System Configuration",
+      "item": [
+        {
+          "name": "Get System Settings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/settings",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "settings"]
+            },
+            "description": "Get global system configuration"
+          }
+        },
+        {
+          "name": "Update System Settings",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"app_name\": \"MSWMS Platform\",\n  \"timezone\": \"UTC\",\n  \"date_format\": \"Y-m-d\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/settings",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "settings"]
+            },
+            "description": "Update global system configuration"
+          }
+        },
+        {
+          "name": "Clear System Cache",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/settings/clear-cache",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "settings", "clear-cache"]
+            },
+            "description": "Clear application cache"
+          }
+        },
+        {
+          "name": "System Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/settings/health",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "settings", "health"]
+            },
+            "description": "Get system health status"
+          }
+        },
+        {
+          "name": "Run System Command",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"command\": \"cache:clear\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/settings/run-command",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "settings", "run-command"]
+            },
+            "description": "Execute artisan command (restricted)"
+          }
+        }
+      ]
+    }
+  ]
+}

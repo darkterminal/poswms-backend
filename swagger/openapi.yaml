@@ -41,6 +41,8 @@ tags:
     description: Dashboard and reporting endpoints
   - name: Webhooks
     description: Webhook management and audit logs
+  - name: Super Admin
+    description: Super admin tenant management, system dashboard, and cross-tenant operations
 
 paths:
   /api/v1/auth/login:
@@ -1792,6 +1794,1321 @@ paths:
                   data:
                     $ref: '#/components/schemas/Webhook'
 
+    # =========================================
+    # SUPER ADMIN ENDPOINTS
+    # =========================================
+
+    # Super Admin Authentication
+  /api/v1/admin/auth/login:
+    post:
+      tags:
+        - Super Admin
+      summary: Super admin login
+      description: Authenticate super admin and receive access token
+      operationId: superAdminLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+              required:
+                - email
+                - password
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/auth/logout:
+    post:
+      tags:
+        - Super Admin
+      summary: Super admin logout
+      description: Revoke super admin access token
+      operationId: superAdminLogout
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/auth/me:
+    get:
+      tags:
+        - Super Admin
+      summary: Get current super admin
+      description: Retrieve authenticated super admin details
+      operationId: getCurrentSuperAdmin
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Super admin details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+                  message:
+                    type: string
+
+    # Tenant Management
+  /api/v1/admin/tenants:
+    get:
+      tags:
+        - Super Admin
+      summary: List all tenants
+      description: Get paginated list of all tenants with optional filtering
+      operationId: listTenants
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 15
+          description: Items per page
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name or domain
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, suspended, archived]
+          description: Filter by status
+        - in: query
+          name: sort_by
+          schema:
+            type: string
+            default: created_at
+          description: Sort field
+        - in: query
+          name: sort_direction
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+      responses:
+        '200':
+          description: List of tenants
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Tenant'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+    post:
+      tags:
+        - Super Admin
+      summary: Create new tenant
+      description: Create a new tenant business
+      operationId: createTenant
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - domain
+                - email
+              properties:
+                name:
+                  type: string
+                  maxLength: 255
+                domain:
+                  type: string
+                  maxLength: 255
+                email:
+                  type: string
+                  format: email
+                subscription_plan:
+                  type: string
+                  enum: [starter, professional, enterprise]
+                  default: starter
+                trial_ends_at:
+                  type: string
+                  format: date-time
+                settings:
+                  type: object
+      responses:
+        '201':
+          description: Tenant created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/admin/tenants/{tenantId}:
+    get:
+      tags:
+        - Super Admin
+      summary: View tenant details
+      description: Get detailed information about a specific tenant
+      operationId: viewTenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tenant details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+        '404':
+          description: Tenant not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Super Admin
+      summary: Update tenant
+      description: Update tenant information
+      operationId: updateTenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  maxLength: 255
+                domain:
+                  type: string
+                  maxLength: 255
+                email:
+                  type: string
+                  format: email
+                status:
+                  type: string
+                  enum: [active, suspended, archived]
+                settings:
+                  type: object
+      responses:
+        '200':
+          description: Tenant updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+    delete:
+      tags:
+        - Super Admin
+      summary: Delete tenant
+      description: Soft delete a tenant
+      operationId: deleteTenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tenant deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+        '404':
+          description: Tenant not found
+
+  /api/v1/admin/tenants/{tenantId}/activate:
+    post:
+      tags:
+        - Super Admin
+      summary: Activate tenant
+      description: Activate a suspended tenant
+      operationId: activateTenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tenant activated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+
+  /api/v1/admin/tenants/{tenantId}/suspend:
+    post:
+      tags:
+        - Super Admin
+      summary: Suspend tenant
+      description: Suspend an active tenant
+      operationId: suspendTenant
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tenant suspended
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+
+  /api/v1/admin/tenants/{tenantId}/stats:
+    get:
+      tags:
+        - Super Admin
+      summary: Get tenant statistics
+      description: Get statistics for a specific tenant
+      operationId: getTenantStats
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tenant statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      users_count:
+                        type: integer
+                      stores_count:
+                        type: integer
+                      warehouses_count:
+                        type: integer
+                      products_count:
+                        type: integer
+                      customers_count:
+                        type: integer
+                      inventory_count:
+                        type: integer
+                      orders_count:
+                        type: integer
+
+    # Tenant Subscription Management
+  /api/v1/admin/tenants/{tenantId}/trial:
+    post:
+      tags:
+        - Super Admin
+      summary: Update tenant trial
+      description: Update trial end date for a tenant
+      operationId: updateTenantTrial
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - trial_ends_at
+              properties:
+                trial_ends_at:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Trial updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+
+  /api/v1/admin/tenants/{tenantId}/trial/extend:
+    post:
+      tags:
+        - Super Admin
+      summary: Extend tenant trial
+      description: Extend trial period by specified days
+      operationId: extendTenantTrial
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - days
+              properties:
+                days:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Trial extended
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+
+  /api/v1/admin/tenants/{tenantId}/subscription:
+    post:
+      tags:
+        - Super Admin
+      summary: Update tenant subscription
+      description: Update subscription plan for a tenant
+      operationId: updateTenantSubscription
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subscription_plan
+              properties:
+                subscription_plan:
+                  type: string
+                  enum: [starter, professional, enterprise]
+                billing_cycle:
+                  type: string
+                  enum: [monthly, yearly]
+      responses:
+        '200':
+          description: Subscription updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+
+  /api/v1/admin/tenants/{tenantId}/subscription/extend:
+    post:
+      tags:
+        - Super Admin
+      summary: Extend tenant subscription
+      description: Extend subscription by specified months
+      operationId: extendTenantSubscription
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - months
+              properties:
+                months:
+                  type: integer
+                  minimum: 1
+      responses:
+        '200':
+          description: Subscription extended
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+
+  /api/v1/admin/tenants/{tenantId}/subscription/cancel:
+    post:
+      tags:
+        - Super Admin
+      summary: Cancel tenant subscription
+      description: Cancel subscription at end of billing period
+      operationId: cancelTenantSubscription
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Subscription cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+
+  /api/v1/admin/tenants/{tenantId}/convert-to-paid:
+    post:
+      tags:
+        - Super Admin
+      summary: Convert tenant to paid
+      description: Convert tenant from trial to paid subscription
+      operationId: convertTenantToPaid
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: tenantId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subscription_plan
+              properties:
+                subscription_plan:
+                  type: string
+                  enum: [starter, professional, enterprise]
+      responses:
+        '200':
+          description: Converted to paid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Tenant'
+
+    # System Dashboard
+  /api/v1/admin/dashboard:
+    get:
+      tags:
+        - Super Admin
+      summary: System overview
+      description: Get system-wide overview metrics
+      operationId: systemOverview
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: System overview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      total_tenants:
+                        type: integer
+                      active_tenants:
+                        type: integer
+                      total_users:
+                        type: integer
+                      total_stores:
+                        type: integer
+                      total_warehouses:
+                        type: integer
+                      system_health:
+                        type: string
+
+  /api/v1/admin/dashboard/revenue:
+    get:
+      tags:
+        - Super Admin
+      summary: Revenue metrics
+      description: Get revenue-related metrics
+      operationId: revenueMetrics
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Revenue metrics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      mrr:
+                        type: number
+                        format: float
+                      arr:
+                        type: number
+                        format: float
+                      revenue_by_tenant:
+                        type: array
+                        items:
+                          type: object
+                      revenue_trends:
+                        type: array
+                        items:
+                          type: object
+
+  /api/v1/admin/dashboard/usage:
+    get:
+      tags:
+        - Super Admin
+      summary: Usage analytics
+      description: Get platform usage statistics
+      operationId: usageAnalytics
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Usage analytics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      tenant_activity:
+                        type: object
+                      user_activity:
+                        type: object
+                      resource_usage:
+                        type: object
+
+  /api/v1/admin/dashboard/alerts:
+    get:
+      tags:
+        - Super Admin
+      summary: System alerts
+      description: Get system alerts and notifications
+      operationId: systemAlerts
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: System alerts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      tenant_alerts:
+                        type: array
+                        items:
+                          type: object
+                      system_alerts:
+                        type: array
+                        items:
+                          type: object
+
+    # User Management
+  /api/v1/admin/users:
+    get:
+      tags:
+        - Super Admin
+      summary: Search users
+      description: Search and filter users across all tenants
+      operationId: searchUsers
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 15
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name or email
+        - in: query
+          name: tenant_id
+          schema:
+            type: integer
+          description: Filter by tenant
+        - in: query
+          name: role
+          schema:
+            type: string
+          description: Filter by role
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [active, inactive]
+      responses:
+        '200':
+          description: Users list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /api/v1/admin/users/{userId}:
+    get:
+      tags:
+        - Super Admin
+      summary: View user details
+      description: Get detailed information about a specific user
+      operationId: viewUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/User'
+
+  /api/v1/admin/users/{userId}/impersonate:
+    post:
+      tags:
+        - Super Admin
+      summary: Impersonate user
+      description: Generate impersonation token for a user
+      operationId: impersonateUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                duration_minutes:
+                  type: integer
+                  default: 15
+                  minimum: 5
+                  maximum: 60
+      responses:
+        '200':
+          description: Impersonation token generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                      expires_at:
+                        type: string
+                        format: date-time
+                      user_id:
+                        type: integer
+
+  /api/v1/admin/users/stop-impersonating:
+    post:
+      tags:
+        - Super Admin
+      summary: Stop impersonating
+      description: End current impersonation session
+      operationId: stopImpersonating
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Impersonation ended
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/v1/admin/users/{userId}/impersonation-sessions:
+    get:
+      tags:
+        - Super Admin
+      summary: Get impersonation sessions
+      description: Get active impersonation sessions for a user
+      operationId: getUserImpersonationSessions
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Impersonation sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        admin_id:
+                          type: integer
+                        user_id:
+                          type: integer
+                        expires_at:
+                          type: string
+                          format: date-time
+
+  /api/v1/admin/users/{userId}/revoke-impersonation:
+    post:
+      tags:
+        - Super Admin
+      summary: Revoke impersonation tokens
+      description: Revoke all impersonation tokens for a user
+      operationId: revokeUserImpersonation
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Tokens revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+    # Global Audit Logs
+  /api/v1/admin/audit-logs:
+    get:
+      tags:
+        - Super Admin
+      summary: Global audit logs
+      description: Get system-wide audit logs
+      operationId: globalAuditLogs
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            default: 15
+        - in: query
+          name: tenant_id
+          schema:
+            type: integer
+          description: Filter by tenant
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          description: Filter by user
+        - in: query
+          name: action
+          schema:
+            type: string
+          description: Filter by action
+        - in: query
+          name: date_from
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: date_to
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+
+  /api/v1/admin/audit-logs/summary:
+    get:
+      tags:
+        - Super Admin
+      summary: Audit logs summary
+      description: Get summary statistics of audit logs
+      operationId: auditLogsSummary
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Audit summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      total_logs:
+                        type: integer
+                      by_action:
+                        type: object
+                      by_tenant:
+                        type: array
+                        items:
+                          type: object
+
+  /api/v1/admin/audit-logs/by-user/{userId}:
+    get:
+      tags:
+        - Super Admin
+      summary: Audit logs by user
+      description: Get audit logs for a specific user
+      operationId: auditLogsByUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+
+    # System Configuration
+  /api/v1/admin/settings:
+    get:
+      tags:
+        - Super Admin
+      summary: Get system settings
+      description: Get global system configuration
+      operationId: getSystemSettings
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: System settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      app_name:
+                        type: string
+                      app_url:
+                        type: string
+                      timezone:
+                        type: string
+                      date_format:
+                        type: string
+    put:
+      tags:
+        - Super Admin
+      summary: Update system settings
+      description: Update global system configuration
+      operationId: updateSystemSettings
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                app_name:
+                  type: string
+                app_url:
+                  type: string
+                timezone:
+                  type: string
+                date_format:
+                  type: string
+      responses:
+        '200':
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+
+  /api/v1/admin/settings/clear-cache:
+    post:
+      tags:
+        - Super Admin
+      summary: Clear system cache
+      description: Clear application cache
+      operationId: clearSystemCache
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Cache cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+
+  /api/v1/admin/settings/health:
+    get:
+      tags:
+        - Super Admin
+      summary: System health check
+      description: Get system health status
+      operationId: systemHealthCheck
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                      database:
+                        type: string
+                      cache:
+                        type: string
+                      queue:
+                        type: string
+                      uptime:
+                        type: string
+
+  /api/v1/admin/settings/run-command:
+    post:
+      tags:
+        - Super Admin
+      summary: Run system command
+      description: Execute artisan command (restricted)
+      operationId: runSystemCommand
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - command
+              properties:
+                command:
+                  type: string
+      responses:
+        '200':
+          description: Command output
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      output:
+                        type: string
+                      exit_code:
+                        type: integer
+
 components:
   parameters:
     TenantId:
@@ -3305,3 +4622,76 @@ components:
           type: integer
           minimum: 1
           maximum: 300
+
+    # Super Admin Schemas
+    Tenant:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        domain:
+          type: string
+        email:
+          type: string
+          format: email
+        status:
+          type: string
+          enum: [active, suspended, archived]
+        subscription_plan:
+          type: string
+          enum: [starter, professional, enterprise]
+        trial_ends_at:
+          type: string
+          format: date-time
+        subscription_ends_at:
+          type: string
+          format: date-time
+        settings:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        user_id:
+          type: integer
+        action:
+          type: string
+        description:
+          type: string
+        metadata:
+          type: object
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page:
+          type: integer
+        from:
+          type: integer
+        last_page:
+          type: integer
+        per_page:
+          type: integer
+        to:
+          type: integer
+        total:
+          type: integer
