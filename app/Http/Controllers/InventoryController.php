@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreInventoryRequest;
+use App\Http\Requests\UpdateInventoryRequest;
 use App\Models\Inventory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,33 +15,51 @@ class InventoryController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $inventories = Inventory::where('tenant_id', $request->route('tenant_id'))
-            ->with(['product', 'warehouse', 'store'])
-            ->get();
+        $tenantId = $request->route('tenant_id');
+
+        $query = Inventory::where('tenant_id', $tenantId)
+            ->with(['product', 'warehouse', 'store']);
+
+        // Filter by warehouse
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', $request->warehouse_id);
+        }
+
+        // Filter by store
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        // Filter by product
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->product_id);
+        }
+
+        // Paginate results
+        $perPage = $request->get('per_page', 15);
+        $inventories = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => ['inventories' => $inventories],
+            'data' => [
+                'inventories' => $inventories->items(),
+                'pagination' => [
+                    'current_page' => $inventories->currentPage(),
+                    'per_page' => $inventories->perPage(),
+                    'total' => $inventories->total(),
+                    'last_page' => $inventories->lastPage(),
+                    'has_more' => $inventories->hasMorePages(),
+                ],
+            ],
         ]);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreInventoryRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'warehouse_id' => 'nullable|exists:warehouses,id',
-            'store_id' => 'nullable|exists:stores,id',
-            'quantity' => 'required|integer|min:0',
-            'reserved' => 'integer|min:0',
-            'available' => 'integer|min:0',
-            'cost' => 'numeric|min:0',
-            'location' => 'string|max:255',
-            'notes' => 'string|nullable',
-        ]);
-
+        $validated = $request->validated();
         $validated['tenant_id'] = $request->route('tenant_id');
         $validated['reserved'] = $validated['reserved'] ?? 0;
         $validated['available'] = $validated['available'] ?? $validated['quantity'];
@@ -73,7 +93,7 @@ class InventoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request): JsonResponse
+    public function update(UpdateInventoryRequest $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
         $inventoryId = $request->route('inventoryId');
@@ -81,17 +101,7 @@ class InventoryController extends Controller
         $inventory = Inventory::where('tenant_id', $tenantId)
             ->findOrFail($inventoryId);
 
-        $validated = $request->validate([
-            'product_id' => 'sometimes|exists:products,id',
-            'warehouse_id' => 'sometimes|exists:warehouses,id',
-            'store_id' => 'sometimes|exists:stores,id',
-            'quantity' => 'sometimes|integer|min:0',
-            'reserved' => 'sometimes|integer|min:0',
-            'available' => 'sometimes|integer|min:0',
-            'cost' => 'sometimes|numeric|min:0',
-            'location' => 'sometimes|string|max:255',
-            'notes' => 'string|nullable',
-        ]);
+        $validated = $request->validated();
 
         $inventory->update($validated);
 
