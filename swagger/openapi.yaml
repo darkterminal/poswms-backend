@@ -3016,8 +3016,9 @@ paths:
       tags:
         - Reports & Dashboard
       summary: Get dashboard metrics
-      description: Get unified dashboard metrics for tenant admin
+      description: Get unified dashboard metrics for tenant admin including sales, inventory, and order analytics
       operationId: getDashboard
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: query
@@ -3036,14 +3037,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DashboardResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/tenants/{tenant_id}/reports/sales/revenue:
     get:
       tags:
         - Reports & Dashboard
       summary: Get revenue report
-      description: Get sales revenue analytics
+      description: Get sales revenue analytics grouped by period
       operationId: getRevenueReport
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: query
@@ -3084,14 +3098,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RevenueReportResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
 
   /api/v1/tenants/{tenant_id}/reports/sales/orders-by-period:
     get:
       tags:
         - Reports & Dashboard
       summary: Get orders by period report
-      description: Get orders grouped by period
+      description: Get orders grouped by period with status breakdown
       operationId: getOrdersByPeriodReport
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: query
@@ -3117,6 +3150,7 @@ paths:
           name: status
           schema:
             type: string
+            enum: [pending, confirmed, fulfilled, cancelled]
           description: Filter by status
       security:
         - bearerAuth: []
@@ -3127,6 +3161,649 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrdersByPeriodResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/reports/sales/top-products:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Get top products report
+      description: Get best-selling products ranked by quantity or revenue
+      operationId: getTopProductsReport
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Number of products to return
+        - in: query
+          name: sort_by
+          schema:
+            type: string
+            enum: [quantity, revenue]
+            default: quantity
+          description: Sort by quantity sold or revenue generated
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Top products report retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopProductsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/reports/sales/dashboard:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Get sales dashboard metrics
+      description: Get sales-specific dashboard metrics with revenue and order analytics
+      operationId: getSalesDashboardMetrics
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [today, week, month, year, all]
+            default: today
+          description: Dashboard period
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Sales dashboard metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesDashboardResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/reports/inventory/low-stock:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Get low stock alerts
+      description: Get inventory items that are below minimum stock levels
+      operationId: getLowStockAlerts
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Low stock alerts retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LowStockAlertResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/reports/inventory:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Get inventory report
+      description: Get comprehensive inventory report with low stock and out of stock items
+      operationId: getInventoryReport
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: warehouse_id
+          schema:
+            type: integer
+          description: Filter by warehouse
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+          description: Filter by store
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Inventory report retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryReportResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/reports/inventory/stock-levels:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Get stock levels report
+      description: Get current stock levels across all locations
+      operationId: getStockLevelsReport
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: warehouse_id
+          schema:
+            type: integer
+          description: Filter by warehouse
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+          description: Filter by store
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Stock levels report retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockLevelsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/reports/inventory/movements:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Get inventory movements
+      description: Get stock movement history with type, quantity changes, and user information
+      operationId: getInventoryMovements
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: product_id
+          schema:
+            type: integer
+          description: Filter by product
+        - in: query
+          name: warehouse_id
+          schema:
+            type: integer
+          description: Filter by warehouse
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
+          description: Number of movements to return
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Inventory movements retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockMovementsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/reports/sales/export/revenue:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Export revenue report to CSV
+      description: Download revenue report as CSV file
+      operationId: exportRevenueReport
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, yearly]
+            default: daily
+          description: Report period
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+          description: Filter by store
+        - in: query
+          name: warehouse_id
+          schema:
+            type: integer
+          description: Filter by warehouse
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file generated successfully
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Export failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/reports/sales/export/orders-by-period:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Export orders by period report to CSV
+      description: Download orders by period report as CSV file
+      operationId: exportOrdersByPeriodReport
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [daily, weekly, monthly, yearly]
+            default: daily
+          description: Report period
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file generated successfully
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Export failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/reports/sales/export/top-products:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Export top products report to CSV
+      description: Download top products report as CSV file
+      operationId: exportTopProductsReport
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Number of products to return
+        - in: query
+          name: sort_by
+          schema:
+            type: string
+            enum: [quantity, revenue]
+            default: quantity
+          description: Sort by quantity sold or revenue generated
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file generated successfully
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Export failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/reports/inventory/export/stock-levels:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Export stock levels report to CSV
+      description: Download stock levels report as CSV file
+      operationId: exportStockLevelsReport
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: warehouse_id
+          schema:
+            type: integer
+          description: Filter by warehouse
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+          description: Filter by store
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file generated successfully
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Export failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/reports/inventory/export/movements:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Export inventory movements to CSV
+      description: Download inventory movements as CSV file
+      operationId: exportInventoryMovementsReport
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: product_id
+          schema:
+            type: integer
+          description: Filter by product
+        - in: query
+          name: warehouse_id
+          schema:
+            type: integer
+          description: Filter by warehouse
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
+          description: Number of movements to return
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file generated successfully
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Export failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/reports/inventory/export/low-stock:
+    get:
+      tags:
+        - Reports & Dashboard
+      summary: Export low stock alerts to CSV
+      description: Download low stock alerts as CSV file
+      operationId: exportLowStockAlertsReport
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: CSV file generated successfully
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Export failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/tenants/{tenant_id}/webhooks:
     get:
@@ -3135,11 +3812,36 @@ paths:
       summary: List webhooks
       description: Retrieve all webhooks for a tenant
       operationId: listWebhooks
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: active
+          schema:
+            type: boolean
+          description: Filter by active status
+        - in: query
+          name: event
+          schema:
+            type: string
+          description: Filter by event type
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
       security:
         - bearerAuth: []
-      x-role: [admin]
       responses:
         '200':
           description: Webhooks retrieved successfully
@@ -3154,6 +3856,18 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Webhook'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
     post:
       tags:
@@ -3161,11 +3875,11 @@ paths:
       summary: Create webhook
       description: Create a new webhook
       operationId: createWebhook
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
       security:
         - bearerAuth: []
-      x-role: [admin]
       requestBody:
         required: true
         content:
@@ -3186,6 +3900,24 @@ paths:
                     type: string
                   data:
                     $ref: '#/components/schemas/Webhook'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
 
   /api/v1/tenants/{tenant_id}/webhooks/{webhook}:
     get:
@@ -3194,6 +3926,7 @@ paths:
       summary: Get webhook
       description: Retrieve a specific webhook with delivery attempts
       operationId: getWebhook
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: path
@@ -3201,9 +3934,9 @@ paths:
           required: true
           schema:
             type: integer
+          description: The webhook ID
       security:
         - bearerAuth: []
-      x-role: [admin]
       responses:
         '200':
           description: Webhook retrieved successfully
@@ -3216,6 +3949,24 @@ paths:
                     type: boolean
                   data:
                     $ref: '#/components/schemas/WebhookWithDeliveryAttempts'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Webhook not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
     put:
       tags:
@@ -3223,6 +3974,7 @@ paths:
       summary: Update webhook
       description: Update an existing webhook
       operationId: updateWebhook
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: path
@@ -3230,9 +3982,9 @@ paths:
           required: true
           schema:
             type: integer
+          description: The webhook ID
       security:
         - bearerAuth: []
-      x-role: [admin]
       requestBody:
         required: true
         content:
@@ -3253,12 +4005,766 @@ paths:
                     type: string
                   data:
                     $ref: '#/components/schemas/Webhook'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Webhook not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
 
-    # =========================================
-    # SUPER ADMIN ENDPOINTS
-    # =========================================
+    delete:
+      tags:
+        - Webhooks
+      summary: Delete webhook
+      description: Delete a webhook
+      operationId: deleteWebhook
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: webhook
+          required: true
+          schema:
+            type: integer
+          description: The webhook ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Webhook deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Webhook deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Webhook not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-    # Super Admin Authentication
+  /api/v1/tenants/{tenant_id}/webhooks/{webhook}/test:
+    post:
+      tags:
+        - Webhooks
+      summary: Test webhook
+      description: Send a test event to the webhook to verify it's working
+      operationId: testWebhook
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: webhook
+          required: true
+          schema:
+            type: integer
+          description: The webhook ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Test webhook sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      success:
+                        type: boolean
+                      response_status:
+                        type: integer
+                      response_body:
+                        type: string
+                      delivered_at:
+                        type: string
+                        format: date-time
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Webhook not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/webhooks/{webhook}/attempts:
+    get:
+      tags:
+        - Webhooks
+      summary: Get webhook delivery attempts
+      description: Get delivery attempts for a specific webhook
+      operationId: getWebhookDeliveryAttempts
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: webhook
+          required: true
+          schema:
+            type: integer
+          description: The webhook ID
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          description: Number of attempts to return
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Delivery attempts retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookDeliveryAttempt'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Webhook not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/webhooks/{webhook}/retry:
+    post:
+      tags:
+        - Webhooks
+      summary: Retry failed webhook deliveries
+      description: Retry all failed delivery attempts for a webhook
+      operationId: retryWebhookDeliveries
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: webhook
+          required: true
+          schema:
+            type: integer
+          description: The webhook ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Retry initiated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Retried 3 failed delivery attempt(s)
+        '400':
+          description: Cannot retry inactive webhook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Webhook not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/audit-logs:
+    get:
+      tags:
+        - Webhooks
+      summary: List audit logs
+      description: Get audit logs for tenant with filtering and pagination
+      operationId: listAuditLogs
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: event_type
+          schema:
+            type: string
+            enum: [created, updated, deleted, logged_in, logged_out]
+          description: Filter by event type
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          description: Filter by user ID
+        - in: query
+          name: auditable_type
+          schema:
+            type: string
+          description: Filter by model type (e.g., 'App\\Models\\Product')
+        - in: query
+          name: auditable_id
+          schema:
+            type: integer
+          description: Filter by model ID
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Audit logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/audit-logs/{auditLog}:
+    get:
+      tags:
+        - Webhooks
+      summary: Get audit log
+      description: Get a specific audit log entry
+      operationId: getAuditLog
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: auditLog
+          required: true
+          schema:
+            type: integer
+          description: The audit log ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Audit log retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AuditLog'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Audit log not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/audit-logs/summary:
+    get:
+      tags:
+        - Webhooks
+      summary: Get audit log summary
+      description: Get summary statistics for audit logs
+      operationId: getAuditLogSummary
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Audit log summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AuditLogSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/audit-logs/by-user/{userId}:
+    get:
+      tags:
+        - Webhooks
+      summary: Get audit logs by user
+      description: Get audit logs for a specific user
+      operationId: getAuditLogsByUser
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          description: The user ID
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Audit logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                      last_page:
+                        type: integer
+                      per_page:
+                        type: integer
+                      total:
+                        type: integer
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                          email:
+                            type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/audit-logs:
+    get:
+      tags:
+        - Super Admin
+      summary: List global audit logs
+      description: Get audit logs across all tenants (super admin only)
+      operationId: listGlobalAuditLogs
+      x-role: [super_admin]
+      parameters:
+        - in: query
+          name: tenant_id
+          schema:
+            type: integer
+          description: Filter by tenant ID
+        - in: query
+          name: event_type
+          schema:
+            type: string
+            enum: [created, updated, deleted, logged_in, logged_out]
+          description: Filter by event type
+        - in: query
+          name: user_id
+          schema:
+            type: integer
+          description: Filter by user ID
+        - in: query
+          name: auditable_type
+          schema:
+            type: string
+          description: Filter by model type
+        - in: query
+          name: auditable_id
+          schema:
+            type: integer
+          description: Filter by model ID
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+        - in: query
+          name: ip_address
+          schema:
+            type: string
+          description: Filter by IP address
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Audit logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/audit-logs/summary:
+    get:
+      tags:
+        - Super Admin
+      summary: Get global audit log summary
+      description: Get comprehensive summary statistics for audit logs across all tenants
+      operationId: getGlobalAuditLogSummary
+      x-role: [super_admin]
+      parameters:
+        - in: query
+          name: start_date
+          schema:
+            type: string
+            format: date
+          description: Filter from date
+        - in: query
+          name: end_date
+          schema:
+            type: string
+            format: date
+          description: Filter to date
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Audit log summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    $ref: '#/components/schemas/AuditLogGlobalSummary'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/audit-logs/by-user/{userId}:
+    get:
+      tags:
+        - Super Admin
+      summary: Get audit logs by user (global)
+      description: Get audit logs for a specific user across all tenants
+      operationId: getGlobalAuditLogsByUser
+      x-role: [super_admin]
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          description: The user ID
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Audit logs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+                  meta:
+                    type: object
+                    properties:
+                      current_page:
+                        type: integer
+                      last_page:
+                        type: integer
+                      per_page:
+                        type: integer
+                      total:
+                        type: integer
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                          email:
+                            type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/admin/auth/login:
     post:
       tags:
@@ -3363,7 +4869,7 @@ paths:
           name: search
           schema:
             type: string
-          description: Search by name or domain
+          description: Search by name or slug
         - in: query
           name: status
           schema:
@@ -3394,11 +4900,27 @@ paths:
                   success:
                     type: boolean
                   data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Tenant'
-                  meta:
-                    $ref: '#/components/schemas/PaginationMeta'
+                    type: object
+                    properties:
+                      tenants:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Tenant'
+                      pagination:
+                        type: object
+                        properties:
+                          current_page:
+                            type: integer
+                          per_page:
+                            type: integer
+                          total:
+                            type: integer
+                          last_page:
+                            type: integer
+                          has_more:
+                            type: boolean
+                  message:
+                    type: string
     post:
       tags:
         - Super Admin
@@ -3415,23 +4937,57 @@ paths:
               type: object
               required:
                 - name
-                - domain
+                - slug
                 - email
               properties:
                 name:
                   type: string
                   maxLength: 255
-                domain:
+                slug:
                   type: string
                   maxLength: 255
+                  description: Unique slug identifier for the tenant
                 email:
                   type: string
                   format: email
+                company_name:
+                  type: string
+                  maxLength: 255
+                phone:
+                  type: string
+                  maxLength: 50
+                address:
+                  type: string
+                  maxLength: 500
+                city:
+                  type: string
+                  maxLength: 255
+                state:
+                  type: string
+                  maxLength: 255
+                country:
+                  type: string
+                  maxLength: 255
+                postal_code:
+                  type: string
+                  maxLength: 20
+                timezone:
+                  type: string
+                  maxLength: 50
+                currency:
+                  type: string
+                  maxLength: 3
+                status:
+                  type: string
+                  enum: [active, suspended, inactive]
                 subscription_plan:
                   type: string
                   enum: [starter, professional, enterprise]
                   default: starter
                 trial_ends_at:
+                  type: string
+                  format: date-time
+                subscription_ends_at:
                   type: string
                   format: date-time
                 settings:
@@ -3514,17 +5070,50 @@ paths:
                 name:
                   type: string
                   maxLength: 255
-                domain:
+                slug:
+                  type: string
+                  maxLength: 255
+                company_name:
                   type: string
                   maxLength: 255
                 email:
                   type: string
                   format: email
+                phone:
+                  type: string
+                  maxLength: 50
+                address:
+                  type: string
+                  maxLength: 500
+                city:
+                  type: string
+                  maxLength: 255
+                state:
+                  type: string
+                  maxLength: 255
+                country:
+                  type: string
+                  maxLength: 255
+                postal_code:
+                  type: string
+                  maxLength: 20
+                timezone:
+                  type: string
+                  maxLength: 50
+                currency:
+                  type: string
+                  maxLength: 3
                 status:
                   type: string
-                  enum: [active, suspended, archived]
+                  enum: [active, suspended, inactive]
                 settings:
                   type: object
+                trial_ends_at:
+                  type: string
+                  format: date-time
+                subscription_ends_at:
+                  type: string
+                  format: date-time
       responses:
         '200':
           description: Tenant updated
@@ -3656,20 +5245,39 @@ paths:
                   data:
                     type: object
                     properties:
-                      users_count:
+                      tenant_id:
                         type: integer
-                      stores_count:
-                        type: integer
-                      warehouses_count:
-                        type: integer
-                      products_count:
-                        type: integer
-                      customers_count:
-                        type: integer
-                      inventory_count:
-                        type: integer
-                      orders_count:
-                        type: integer
+                      tenant_name:
+                        type: string
+                      stats:
+                        type: object
+                        properties:
+                          users:
+                            type: integer
+                          stores:
+                            type: integer
+                          warehouses:
+                            type: integer
+                          products:
+                            type: integer
+                          customers:
+                            type: integer
+                          inventory_items:
+                            type: integer
+                          orders:
+                            type: integer
+                          is_on_trial:
+                            type: boolean
+                          has_active_subscription:
+                            type: boolean
+                          trial_ends_at:
+                            type: string
+                            format: date-time
+                          subscription_ends_at:
+                            type: string
+                            format: date-time
+                  message:
+                    type: string
 
     # Tenant Subscription Management
   /api/v1/admin/tenants/{tenantId}/trial:
@@ -4064,31 +5672,53 @@ paths:
           schema:
             type: integer
             default: 1
+          description: Page number
         - in: query
           name: per_page
           schema:
             type: integer
             default: 15
+          description: Items per page
         - in: query
           name: search
           schema:
             type: string
           description: Search by name or email
         - in: query
+          name: email
+          schema:
+            type: string
+            format: email
+          description: Filter by exact email
+        - in: query
           name: tenant_id
           schema:
             type: integer
           description: Filter by tenant
         - in: query
-          name: role
+          name: is_super_admin
           schema:
-            type: string
-          description: Filter by role
+            type: boolean
+          description: Filter by super admin status
         - in: query
           name: status
           schema:
             type: string
             enum: [active, inactive]
+          description: Filter by active status
+        - in: query
+          name: sort_by
+          schema:
+            type: string
+            default: created_at
+          description: Sort field
+        - in: query
+          name: sort_order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
       responses:
         '200':
           description: Users list
@@ -4100,11 +5730,39 @@ paths:
                   success:
                     type: boolean
                   data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/User'
+                    type: object
+                    properties:
+                      users:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/User'
+                      pagination:
+                        type: object
+                        properties:
+                          current_page:
+                            type: integer
+                          last_page:
+                            type: integer
+                          per_page:
+                            type: integer
+                          total:
+                            type: integer
+                          from:
+                            type: integer
+                          to:
+                            type: integer
                   meta:
-                    $ref: '#/components/schemas/PaginationMeta'
+                    type: object
+                    properties:
+                      filters_applied:
+                        type: object
+                      sorting:
+                        type: object
+                        properties:
+                          by:
+                            type: string
+                          order:
+                            type: string
 
   /api/v1/admin/users/{userId}:
     get:
@@ -4132,7 +5790,64 @@ paths:
                   success:
                     type: boolean
                   data:
-                    $ref: '#/components/schemas/User'
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      email:
+                        type: string
+                        format: email
+                      is_super_admin:
+                        type: boolean
+                      is_active:
+                        type: boolean
+                      tenant:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                          slug:
+                            type: string
+                          status:
+                            type: string
+                      store:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                      warehouse:
+                        type: object
+                        nullable: true
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                      roles:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            name:
+                              type: string
+                            slug:
+                              type: string
+                      created_at:
+                        type: string
+                        format: date-time
+                      updated_at:
+                        type: string
+                        format: date-time
 
   /api/v1/admin/users/{userId}/impersonate:
     post:
@@ -4173,6 +5888,8 @@ paths:
                     type: boolean
                   message:
                     type: string
+                  warning:
+                    type: string
                   data:
                     type: object
                     properties:
@@ -4181,8 +5898,26 @@ paths:
                       expires_at:
                         type: string
                         format: date-time
-                      user_id:
-                        type: integer
+                      impersonated_user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                          email:
+                            type: string
+                            format: email
+                      impersonated_by:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+                          email:
+                            type: string
+                            format: email
 
   /api/v1/admin/users/stop-impersonating:
     post:
@@ -4232,19 +5967,35 @@ paths:
                   success:
                     type: boolean
                   data:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                        admin_id:
-                          type: integer
-                        user_id:
-                          type: integer
-                        expires_at:
-                          type: string
-                          format: date-time
+                    type: object
+                    properties:
+                      user_id:
+                        type: integer
+                      user_name:
+                        type: string
+                      user_email:
+                        type: string
+                      active_sessions:
+                        type: integer
+                      sessions:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            token_id:
+                              type: integer
+                            token_name:
+                              type: string
+                            created_at:
+                              type: string
+                              format: date-time
+                            expires_at:
+                              type: string
+                              format: date-time
+                            impersonator_id:
+                              type: integer
+                            impersonator_name:
+                              type: string
 
   /api/v1/admin/users/{userId}/revoke-impersonation:
     post:
@@ -4271,6 +6022,11 @@ paths:
                 properties:
                   success:
                     type: boolean
+                  data:
+                    type: object
+                    properties:
+                      tokens_revoked:
+                        type: integer
                   message:
                     type: string
 
@@ -6210,6 +7966,282 @@ components:
                 cancelled:
                   type: integer
 
+    TopProductsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            sort_by:
+              type: string
+              enum: [quantity, revenue]
+            limit:
+              type: integer
+            top_products:
+              type: array
+              items:
+                type: object
+                properties:
+                  product_id:
+                    type: integer
+                  product:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      sku:
+                        type: string
+                  total_quantity:
+                    type: integer
+                  total_revenue:
+                    type: number
+                    format: decimal
+                  order_count:
+                    type: integer
+                  avg_price:
+                    type: number
+                    format: decimal
+
+    SalesDashboardResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            period:
+              type: string
+            revenue:
+              type: object
+              properties:
+                current:
+                  type: number
+                  format: decimal
+                previous:
+                  type: number
+                  format: decimal
+                growth_percentage:
+                  type: number
+                  format: decimal
+            orders:
+              type: object
+              properties:
+                current:
+                  type: integer
+                previous:
+                  type: integer
+                growth_percentage:
+                  type: number
+                  format: decimal
+            average_order_value:
+              type: number
+              format: decimal
+            order_statuses:
+              type: object
+              properties:
+                total:
+                  type: integer
+                pending:
+                  type: integer
+                confirmed:
+                  type: integer
+                fulfilled:
+                  type: integer
+                cancelled:
+                  type: integer
+
+    LowStockAlertResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            total_alerts:
+              type: integer
+            critical:
+              type: integer
+            warning:
+              type: integer
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  product_id:
+                    type: integer
+                  product_name:
+                    type: string
+                  product_sku:
+                    type: string
+                  warehouse_name:
+                    type: string
+                  store_name:
+                    type: string
+                  current_quantity:
+                    type: integer
+                  minimum_quantity:
+                    type: integer
+                  shortage:
+                    type: integer
+                  severity:
+                    type: string
+                    enum: [critical, warning]
+
+    InventoryReportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            summary:
+              type: object
+              properties:
+                total_products:
+                  type: integer
+                low_stock_count:
+                  type: integer
+                out_of_stock_count:
+                  type: integer
+                health_percentage:
+                  type: number
+                  format: decimal
+            low_stock_items:
+              type: array
+              items:
+                type: object
+            out_of_stock_items:
+              type: array
+              items:
+                type: object
+
+    StockLevelsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            inventories:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  product:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      sku:
+                        type: string
+                  location:
+                    type: object
+                    properties:
+                      warehouse:
+                        type: string
+                      store:
+                        type: string
+                  quantity:
+                    type: integer
+                  reserved:
+                    type: integer
+                  available:
+                    type: integer
+                  cost:
+                    type: number
+                    format: decimal
+                  total_value:
+                    type: number
+                    format: decimal
+            summary:
+              type: object
+              properties:
+                total_items:
+                  type: integer
+                total_quantity:
+                  type: integer
+                total_available:
+                  type: integer
+                total_reserved:
+                  type: integer
+                total_value:
+                  type: number
+                  format: decimal
+
+    StockMovementsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            movements:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  product:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      sku:
+                        type: string
+                  warehouse:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                  store:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                  user:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                  movement_type:
+                    type: string
+                  quantity:
+                    type: integer
+                  quantity_before:
+                    type: integer
+                  quantity_after:
+                    type: integer
+                  reference:
+                    type: string
+                  notes:
+                    type: string
+                  created_at:
+                    type: string
+                    format: date-time
+
     Webhook:
       type: object
       properties:
@@ -6405,19 +8437,108 @@ components:
           type: integer
         user_id:
           type: integer
-        action:
+        event_type:
           type: string
-        description:
+          enum: [created, updated, deleted, logged_in, logged_out]
+        auditable_type:
           type: string
+        auditable_id:
+          type: integer
+        old_values:
+          type: object
+          nullable: true
+        new_values:
+          type: object
+          nullable: true
         metadata:
           type: object
+          nullable: true
         ip_address:
           type: string
+          format: ipv4
         user_agent:
           type: string
         created_at:
           type: string
           format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            email:
+              type: string
+        tenant:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            slug:
+              type: string
+
+    AuditLogSummary:
+      type: object
+      properties:
+        total_events:
+          type: integer
+        by_event_type:
+          type: object
+          additionalProperties: true
+        by_user:
+          type: array
+          items:
+            type: object
+            properties:
+              user:
+                type: string
+              count:
+                type: integer
+
+    AuditLogGlobalSummary:
+      type: object
+      properties:
+        total_events:
+          type: integer
+        by_event_type:
+          type: object
+          additionalProperties: true
+        by_tenant:
+          type: array
+          items:
+            type: object
+            properties:
+              tenant_id:
+                type: integer
+              tenant_name:
+                type: string
+              tenant_slug:
+                type: string
+              count:
+                type: integer
+        by_user:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: integer
+              user_name:
+                type: string
+              user_email:
+                type: string
+              count:
+                type: integer
+        recent_activity:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditLog'
 
     PaginationMeta:
       type: object
