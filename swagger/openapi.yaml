@@ -1881,11 +1881,36 @@ paths:
       summary: List pricing tiers
       description: Retrieve all pricing tiers for a tenant
       operationId: listPricingTiers
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name or slug
+        - in: query
+          name: active
+          schema:
+            type: boolean
+          description: Filter by active status
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
       security:
         - bearerAuth: []
-      x-role: [admin]
       responses:
         '200':
           description: Pricing tiers retrieved successfully
@@ -1903,6 +1928,12 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/PricingTier'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
     post:
       tags:
@@ -1910,11 +1941,11 @@ paths:
       summary: Create pricing tier
       description: Create a new pricing tier
       operationId: createPricingTier
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
       security:
         - bearerAuth: []
-      x-role: [admin]
       requestBody:
         required: true
         content:
@@ -1938,24 +1969,37 @@ paths:
                         $ref: '#/components/schemas/PricingTier'
                   message:
                     type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
 
-  /api/v1/tenants/{tenant_id}/pricing-tiers/{tierId}:
+  /api/v1/tenants/{tenant_id}/pricing-tiers/{pricingTier}:
     get:
       tags:
         - Pricing
       summary: Get pricing tier
       description: Retrieve a specific pricing tier
       operationId: getPricingTier
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: path
-          name: tierId
+          name: pricingTier
           required: true
           schema:
             type: integer
+          description: The pricing tier ID
       security:
         - bearerAuth: []
-      x-role: [admin]
       responses:
         '200':
           description: Pricing tier retrieved successfully
@@ -1971,6 +2015,18 @@ paths:
                     properties:
                       pricing_tier:
                         $ref: '#/components/schemas/PricingTier'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Pricing tier not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
     put:
       tags:
@@ -1978,16 +2034,17 @@ paths:
       summary: Update pricing tier
       description: Update an existing pricing tier
       operationId: updatePricingTier
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: path
-          name: tierId
+          name: pricingTier
           required: true
           schema:
             type: integer
+          description: The pricing tier ID
       security:
         - bearerAuth: []
-      x-role: [admin]
       requestBody:
         required: true
         content:
@@ -2011,6 +2068,327 @@ paths:
                         $ref: '#/components/schemas/PricingTier'
                   message:
                     type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Pricing tier not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+    delete:
+      tags:
+        - Pricing
+      summary: Delete pricing tier
+      description: Delete a pricing tier
+      operationId: deletePricingTier
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: pricingTier
+          required: true
+          schema:
+            type: integer
+          description: The pricing tier ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pricing tier deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Pricing tier not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/pricing-rules:
+    get:
+      tags:
+        - Pricing
+      summary: List pricing rules
+      description: Retrieve all pricing rules for a tenant
+      operationId: listPricingRules
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: pricing_tier_id
+          schema:
+            type: integer
+          description: Filter by pricing tier
+        - in: query
+          name: product_id
+          schema:
+            type: integer
+          description: Filter by product
+        - in: query
+          name: category_id
+          schema:
+            type: integer
+          description: Filter by category
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [percentage, fixed]
+          description: Filter by rule type
+        - in: query
+          name: active
+          schema:
+            type: boolean
+          description: Filter by active status
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pricing rules retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      pricing_rules:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PricingRule'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Pricing
+      summary: Create pricing rule
+      description: Create a new pricing rule. Rules can apply to pricing tiers, products, or categories.
+      operationId: createPricingRule
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePricingRuleRequest'
+      responses:
+        '201':
+          description: Pricing rule created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      pricing_rule:
+                        $ref: '#/components/schemas/PricingRule'
+                  message:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/pricing-rules/{pricingRule}:
+    get:
+      tags:
+        - Pricing
+      summary: Get pricing rule
+      description: Retrieve a specific pricing rule with its relationships
+      operationId: getPricingRule
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: pricingRule
+          required: true
+          schema:
+            type: integer
+          description: The pricing rule ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pricing rule retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      pricing_rule:
+                        $ref: '#/components/schemas/PricingRule'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Pricing rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Pricing
+      summary: Update pricing rule
+      description: Update an existing pricing rule
+      operationId: updatePricingRule
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: pricingRule
+          required: true
+          schema:
+            type: integer
+          description: The pricing rule ID
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePricingRuleRequest'
+      responses:
+        '200':
+          description: Pricing rule updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      pricing_rule:
+                        $ref: '#/components/schemas/PricingRule'
+                  message:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Pricing rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+    delete:
+      tags:
+        - Pricing
+      summary: Delete pricing rule
+      description: Delete a pricing rule
+      operationId: deletePricingRule
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: pricingRule
+          required: true
+          schema:
+            type: integer
+          description: The pricing rule ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Pricing rule deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Pricing rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/tenants/{tenant_id}/roles:
     get:
@@ -2019,11 +2397,31 @@ paths:
       summary: List roles
       description: Retrieve all roles for a tenant
       operationId: listRoles
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name or slug
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
       security:
         - bearerAuth: []
-      x-role: [admin]
       responses:
         '200':
           description: Roles retrieved successfully
@@ -2043,6 +2441,12 @@ paths:
                           $ref: '#/components/schemas/Role'
                   message:
                     type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
     post:
       tags:
@@ -2050,11 +2454,11 @@ paths:
       summary: Create role
       description: Create a new role
       operationId: createRole
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
       security:
         - bearerAuth: []
-      x-role: [admin]
       requestBody:
         required: true
         content:
@@ -2078,24 +2482,37 @@ paths:
                         $ref: '#/components/schemas/Role'
                   message:
                     type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
 
-  /api/v1/tenants/{tenant_id}/roles/{roleId}:
+  /api/v1/tenants/{tenant_id}/roles/{role}:
     get:
       tags:
         - Roles & Permissions
       summary: Get role
-      description: Retrieve a specific role
+      description: Retrieve a specific role with its details and user count
       operationId: getRole
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: path
-          name: roleId
+          name: role
           required: true
           schema:
             type: integer
+          description: The role ID
       security:
         - bearerAuth: []
-      x-role: [admin]
       responses:
         '200':
           description: Role retrieved successfully
@@ -2113,6 +2530,18 @@ paths:
                         $ref: '#/components/schemas/Role'
                   message:
                     type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
     put:
       tags:
@@ -2120,16 +2549,17 @@ paths:
       summary: Update role
       description: Update an existing role
       operationId: updateRole
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: path
-          name: roleId
+          name: role
           required: true
           schema:
             type: integer
+          description: The role ID
       security:
         - bearerAuth: []
-      x-role: [admin]
       requestBody:
         required: true
         content:
@@ -2153,23 +2583,42 @@ paths:
                         $ref: '#/components/schemas/Role'
                   message:
                     type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
 
     delete:
       tags:
         - Roles & Permissions
       summary: Delete role
-      description: Delete a role
+      description: Delete a role. System roles cannot be deleted.
       operationId: deleteRole
+      x-role: [admin]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: path
-          name: roleId
+          name: role
           required: true
           schema:
             type: integer
+          description: The role ID
       security:
         - bearerAuth: []
-      x-role: [admin]
       responses:
         '200':
           description: Role deleted successfully
@@ -2177,8 +2626,386 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '403':
           description: Cannot delete system role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Role not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/permissions:
+    get:
+      tags:
+        - Roles & Permissions
+      summary: List permissions
+      description: Retrieve all permissions for a tenant, optionally filtered by group
+      operationId: listPermissions
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: group
+          schema:
+            type: string
+          description: Filter by permission group (e.g., 'products', 'orders', 'customers')
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name or slug
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Permissions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      permissions:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Permission'
+                  message:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Roles & Permissions
+      summary: Create permission
+      description: Create a new permission. Permissions are grouped by feature area (e.g., products, orders).
+      operationId: createPermission
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePermissionRequest'
+      responses:
+        '201':
+          description: Permission created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      permission:
+                        $ref: '#/components/schemas/Permission'
+                  message:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/permissions/{permission}:
+    get:
+      tags:
+        - Roles & Permissions
+      summary: Get permission
+      description: Retrieve a specific permission
+      operationId: getPermission
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: permission
+          required: true
+          schema:
+            type: integer
+          description: The permission ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Permission retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      permission:
+                        $ref: '#/components/schemas/Permission'
+                  message:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Permission not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Roles & Permissions
+      summary: Update permission
+      description: Update an existing permission
+      operationId: updatePermission
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: permission
+          required: true
+          schema:
+            type: integer
+          description: The permission ID
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePermissionRequest'
+      responses:
+        '200':
+          description: Permission updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      permission:
+                        $ref: '#/components/schemas/Permission'
+                  message:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Permission not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+    delete:
+      tags:
+        - Roles & Permissions
+      summary: Delete permission
+      description: Delete a permission
+      operationId: deletePermission
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: permission
+          required: true
+          schema:
+            type: integer
+          description: The permission ID
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Permission deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Permission not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/users/{userId}/assign-role:
+    post:
+      tags:
+        - Roles & Permissions
+      summary: Assign role to user
+      description: Assign a role to a user. The user will inherit all permissions from the role.
+      operationId: assignRoleToUser
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          description: The user ID
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role_id
+              properties:
+                role_id:
+                  type: integer
+                  description: ID of the role to assign
+      responses:
+        '200':
+          description: Role assigned successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Role assigned successfully.
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User or role not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/users/{userId}/remove-role/{roleId}:
+    delete:
+      tags:
+        - Roles & Permissions
+      summary: Remove role from user
+      description: Remove a role from a user. The user will lose all permissions from the role.
+      operationId: removeRoleFromUser
+      x-role: [admin]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          description: The user ID
+        - in: path
+          name: roleId
+          required: true
+          schema:
+            type: integer
+          description: The role ID to remove
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Role removed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                    example: Role removed successfully.
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User or role not found
           content:
             application/json:
               schema:
@@ -4849,6 +5676,7 @@ components:
           maxLength: 100
         description:
           type: string
+          nullable: true
         priority:
           type: integer
           minimum: 0
@@ -4875,6 +5703,7 @@ components:
           maxLength: 100
         description:
           type: string
+          nullable: true
         priority:
           type: integer
           minimum: 0
@@ -4893,9 +5722,175 @@ components:
           maxLength: 100
         description:
           type: string
+          nullable: true
         priority:
           type: integer
           minimum: 0
+        active:
+          type: boolean
+
+    PricingRule:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        pricing_tier_id:
+          type: integer
+          nullable: true
+        product_id:
+          type: integer
+          nullable: true
+        category_id:
+          type: integer
+          nullable: true
+        type:
+          type: string
+          enum: [percentage, fixed]
+          description: The type of pricing adjustment
+        operation:
+          type: string
+          enum: [add, subtract, replace]
+          description: The operation to apply
+        value:
+          type: number
+          format: decimal
+          minimum: 0
+          description: The value for the adjustment
+        min_quantity:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Minimum quantity for rule to apply
+        max_quantity:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Maximum quantity for rule to apply
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start date/time for the rule
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: End date/time for the rule
+        active:
+          type: boolean
+          default: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreatePricingRuleRequest:
+      type: object
+      required:
+        - type
+        - operation
+        - value
+      properties:
+        pricing_tier_id:
+          type: integer
+          nullable: true
+          description: ID of the pricing tier this rule applies to
+        product_id:
+          type: integer
+          nullable: true
+          description: ID of the product this rule applies to
+        category_id:
+          type: integer
+          nullable: true
+          description: ID of the category this rule applies to
+        type:
+          type: string
+          enum: [percentage, fixed]
+          description: The type of pricing adjustment
+        operation:
+          type: string
+          enum: [add, subtract, replace]
+          description: The operation to apply
+        value:
+          type: number
+          format: decimal
+          minimum: 0
+          description: The value for the adjustment
+        min_quantity:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Minimum quantity for rule to apply
+        max_quantity:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Maximum quantity for rule to apply
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start date/time for the rule
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: End date/time for the rule
+        active:
+          type: boolean
+          default: true
+
+    UpdatePricingRuleRequest:
+      type: object
+      properties:
+        pricing_tier_id:
+          type: integer
+          nullable: true
+          description: ID of the pricing tier this rule applies to
+        product_id:
+          type: integer
+          nullable: true
+          description: ID of the product this rule applies to
+        category_id:
+          type: integer
+          nullable: true
+          description: ID of the category this rule applies to
+        type:
+          type: string
+          enum: [percentage, fixed]
+          description: The type of pricing adjustment
+        operation:
+          type: string
+          enum: [add, subtract, replace]
+          description: The operation to apply
+        value:
+          type: number
+          format: decimal
+          minimum: 0
+          description: The value for the adjustment
+        min_quantity:
+          type: integer
+          minimum: 0
+          description: Minimum quantity for rule to apply
+        max_quantity:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Maximum quantity for rule to apply
+        starts_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start date/time for the rule
+        ends_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: End date/time for the rule
         active:
           type: boolean
 
@@ -4914,6 +5909,7 @@ components:
           maxLength: 255
         description:
           type: string
+          nullable: true
         permissions:
           type: array
           items:
@@ -4943,6 +5939,7 @@ components:
           maxLength: 255
         description:
           type: string
+          nullable: true
         permissions:
           type: array
           items:
@@ -4962,12 +5959,77 @@ components:
           maxLength: 255
         description:
           type: string
+          nullable: true
         permissions:
           type: array
           items:
             type: string
         is_system:
           type: boolean
+
+    Permission:
+      type: object
+      properties:
+        id:
+          type: integer
+        tenant_id:
+          type: integer
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+        group:
+          type: string
+          maxLength: 100
+          description: Permission group (e.g., 'products', 'orders', 'customers')
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreatePermissionRequest:
+      type: object
+      required:
+        - name
+        - slug
+        - group
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+        group:
+          type: string
+          maxLength: 100
+          description: Permission group (e.g., 'products', 'orders', 'customers')
+        description:
+          type: string
+          nullable: true
+
+    UpdatePermissionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        slug:
+          type: string
+          maxLength: 255
+        group:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
 
     DashboardResponse:
       type: object
