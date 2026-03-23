@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreOrderRequest;
+use App\Http\Requests\UpdateOrderRequest;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Services\OrderFulfillmentService;
@@ -21,46 +23,51 @@ class OrderController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $orders = Order::where('tenant_id', $request->route('tenant_id'))
-            ->with(['customer', 'store', 'warehouse', 'items'])
-            ->get();
+        $tenantId = $request->route('tenant_id');
+
+        $query = Order::where('tenant_id', $tenantId)
+            ->with(['customer', 'store', 'warehouse', 'items']);
+
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter by store
+        if ($request->filled('store_id')) {
+            $query->where('store_id', $request->store_id);
+        }
+
+        // Filter by customer
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', $request->customer_id);
+        }
+
+        // Paginate results
+        $perPage = $request->get('per_page', 15);
+        $orders = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => ['orders' => $orders],
+            'data' => [
+                'orders' => $orders->items(),
+                'pagination' => [
+                    'current_page' => $orders->currentPage(),
+                    'per_page' => $orders->perPage(),
+                    'total' => $orders->total(),
+                    'last_page' => $orders->lastPage(),
+                    'has_more' => $orders->hasMorePages(),
+                ],
+            ],
         ]);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreOrderRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'order_number' => 'string|max:100',
-            'customer_id' => 'nullable|exists:customers,id',
-            'store_id' => 'nullable|exists:stores,id',
-            'warehouse_id' => 'nullable|exists:warehouses,id',
-            'status' => 'string|in:pending,confirmed,fulfilled,cancelled',
-            'type' => 'string|max:50',
-            'subtotal' => 'numeric|min:0',
-            'tax' => 'numeric|min:0',
-            'discount' => 'numeric|min:0',
-            'shipping' => 'numeric|min:0',
-            'payment_status' => 'string|max:50',
-            'payment_method' => 'string|max:100',
-            'notes' => 'string|nullable',
-            'shipping_address' => 'string|nullable',
-            'shipping_city' => 'string|max:255',
-            'shipping_state' => 'string|max:255',
-            'shipping_country' => 'string|max:255',
-            'shipping_postal_code' => 'string|max:50',
-            'items' => 'array|nullable',
-            'items.*.product_id' => 'required_with:items|exists:products,id',
-            'items.*.quantity' => 'required_with:items|integer|min:1',
-            'items.*.unit_price' => 'required_with:items|numeric|min:0',
-        ]);
-
+        $validated = $request->validated();
         $validated['tenant_id'] = $request->route('tenant_id');
         $validated['status'] = $validated['status'] ?? 'pending';
         $validated['type'] = $validated['type'] ?? 'sale';
@@ -127,7 +134,7 @@ class OrderController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request): JsonResponse
+    public function update(UpdateOrderRequest $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
         $orderId = $request->route('orderId');
@@ -135,25 +142,7 @@ class OrderController extends Controller
         $order = Order::where('tenant_id', $tenantId)
             ->findOrFail($orderId);
 
-        $validated = $request->validate([
-            'customer_id' => 'nullable|exists:customers,id',
-            'store_id' => 'nullable|exists:stores,id',
-            'warehouse_id' => 'nullable|exists:warehouses,id',
-            'status' => 'string|in:pending,confirmed,fulfilled,cancelled',
-            'type' => 'string|max:50',
-            'subtotal' => 'numeric|min:0',
-            'tax' => 'numeric|min:0',
-            'discount' => 'numeric|min:0',
-            'shipping' => 'numeric|min:0',
-            'payment_status' => 'string|max:50',
-            'payment_method' => 'string|max:100',
-            'notes' => 'string|nullable',
-            'shipping_address' => 'string|nullable',
-            'shipping_city' => 'string|max:255',
-            'shipping_state' => 'string|max:255',
-            'shipping_country' => 'string|max:255',
-            'shipping_postal_code' => 'string|max:50',
-        ]);
+        $validated = $request->validated();
 
         $order->update($validated);
 
