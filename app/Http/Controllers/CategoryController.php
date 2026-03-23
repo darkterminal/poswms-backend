@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreCategoryRequest;
+use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,31 +16,55 @@ class CategoryController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $categories = Category::where('tenant_id', $request->route('tenant_id'))
-            ->with('parent')
-            ->get();
+        $tenantId = $request->route('tenant_id');
+
+        $query = Category::where('tenant_id', $tenantId)
+            ->with('parent');
+
+        // Filter by parent category
+        if ($request->filled('parent_id')) {
+            $query->where('parent_id', $request->parent_id);
+        }
+
+        // Search by name or description
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by active status
+        if ($request->has('active')) {
+            $query->where('active', $request->boolean('active'));
+        }
+
+        // Paginate results
+        $perPage = $request->get('per_page', 15);
+        $categories = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => ['categories' => $categories],
+            'data' => [
+                'categories' => $categories->items(),
+                'pagination' => [
+                    'current_page' => $categories->currentPage(),
+                    'per_page' => $categories->perPage(),
+                    'total' => $categories->total(),
+                    'last_page' => $categories->lastPage(),
+                    'has_more' => $categories->hasMorePages(),
+                ],
+            ],
         ]);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreCategoryRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'parent_id' => 'nullable|exists:categories,id',
-            'name' => 'required|string|max:255',
-            'slug' => 'string|max:255',
-            'description' => 'string|nullable',
-            'image' => 'string|nullable',
-            'sort_order' => 'integer|min:0',
-            'active' => 'boolean',
-        ]);
-
+        $validated = $request->validated();
         $validated['tenant_id'] = $request->route('tenant_id');
         $validated['active'] = $validated['active'] ?? true;
         $validated['sort_order'] = $validated['sort_order'] ?? 0;
@@ -78,7 +104,7 @@ class CategoryController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request): JsonResponse
+    public function update(UpdateCategoryRequest $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
         $categoryId = $request->route('categoryId');
@@ -86,15 +112,7 @@ class CategoryController extends Controller
         $category = Category::where('tenant_id', $tenantId)
             ->findOrFail($categoryId);
 
-        $validated = $request->validate([
-            'parent_id' => 'nullable|exists:categories,id',
-            'name' => 'sometimes|string|max:255',
-            'slug' => 'sometimes|string|max:255',
-            'description' => 'string|nullable',
-            'image' => 'string|nullable',
-            'sort_order' => 'integer|min:0',
-            'active' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         // Only update slug if explicitly provided in the request
         // Don't auto-generate slug on update to avoid conflicts

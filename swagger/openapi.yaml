@@ -718,8 +718,39 @@ paths:
       summary: List categories
       description: Retrieve all categories for a tenant
       operationId: listCategories
+      x-permission: [categories.view]
       parameters:
         - $ref: '#/components/parameters/TenantId'
+        - in: query
+          name: parent_id
+          schema:
+            type: integer
+          description: Filter by parent category
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name or description
+        - in: query
+          name: active
+          schema:
+            type: boolean
+          description: Filter by active status
+        - in: query
+          name: per_page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 15
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
       security:
         - bearerAuth: []
       responses:
@@ -739,13 +770,20 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/Category'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
     post:
       tags:
         - Categories
       summary: Create category
-      description: Create a new category
+      description: Create a new category. If slug is not provided, it will be auto-generated from the name.
       operationId: createCategory
+      x-permission: [categories.create]
       parameters:
         - $ref: '#/components/parameters/TenantId'
       security:
@@ -773,14 +811,27 @@ paths:
                         $ref: '#/components/schemas/Category'
                   message:
                     type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
 
   /api/v1/tenants/{tenant_id}/categories/{categoryId}:
     get:
       tags:
         - Categories
       summary: Get category
-      description: Retrieve a specific category with its relationships
+      description: Retrieve a specific category with its relationships (parent, children, products)
       operationId: getCategory
+      x-permission: [categories.view]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: path
@@ -805,13 +856,26 @@ paths:
                     properties:
                       category:
                         $ref: '#/components/schemas/Category'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
     put:
       tags:
         - Categories
       summary: Update category
-      description: Update an existing category
+      description: Update an existing category. Slug is only updated if explicitly provided.
       operationId: updateCategory
+      x-permission: [categories.edit]
       parameters:
         - $ref: '#/components/parameters/TenantId'
         - in: path
@@ -844,6 +908,60 @@ paths:
                         $ref: '#/components/schemas/Category'
                   message:
                     type: string
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+    delete:
+      tags:
+        - Categories
+      summary: Delete category
+      description: Delete a category (soft delete)
+      operationId: deleteCategory
+      x-permission: [categories.delete]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: categoryId
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Category deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/tenants/{tenant_id}/inventory:
     get:
