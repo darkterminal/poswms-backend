@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,39 +15,55 @@ class ProductController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $products = Product::where('tenant_id', $request->route('tenant_id'))
-            ->get();
+        $tenantId = $request->route('tenant_id');
+
+        $query = Product::where('tenant_id', $tenantId);
+
+        // Filter by category
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // Search by name, SKU, or barcode
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('sku', 'like', "%{$search}%")
+                    ->orWhere('barcode', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by active status
+        if ($request->has('active')) {
+            $query->where('active', $request->boolean('active'));
+        }
+
+        // Paginate results
+        $perPage = $request->get('per_page', 15);
+        $products = $query->paginate($perPage);
 
         return response()->json([
             'success' => true,
-            'data' => ['products' => $products],
+            'data' => [
+                'products' => $products->items(),
+                'pagination' => [
+                    'current_page' => $products->currentPage(),
+                    'per_page' => $products->perPage(),
+                    'total' => $products->total(),
+                    'last_page' => $products->lastPage(),
+                    'has_more' => $products->hasMorePages(),
+                ],
+            ],
         ]);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreProductRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'category_id' => 'nullable|exists:categories,id',
-            'name' => 'required|string|max:255',
-            'sku' => 'required|string|max:100',
-            'barcode' => 'string|max:100',
-            'description' => 'string|nullable',
-            'price' => 'required|numeric|min:0',
-            'cost' => 'numeric|min:0',
-            'tax_rate' => 'numeric|min:0',
-            'unit' => 'string|max:50',
-            'min_stock' => 'integer|min:0',
-            'max_stock' => 'integer|min:0',
-            'image' => 'string|nullable',
-            'images' => 'array|nullable',
-            'attributes' => 'array|nullable',
-            'track_inventory' => 'boolean',
-            'active' => 'boolean',
-        ]);
-
+        $validated = $request->validated();
         $validated['tenant_id'] = $request->route('tenant_id');
         $validated['active'] = $validated['active'] ?? true;
         $validated['track_inventory'] = $validated['track_inventory'] ?? true;
@@ -79,7 +97,7 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request): JsonResponse
+    public function update(UpdateProductRequest $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
         $productId = $request->route('productId');
@@ -87,24 +105,7 @@ class ProductController extends Controller
         $product = Product::where('tenant_id', $tenantId)
             ->findOrFail($productId);
 
-        $validated = $request->validate([
-            'category_id' => 'nullable|exists:categories,id',
-            'name' => 'sometimes|string|max:255',
-            'sku' => 'sometimes|string|max:100',
-            'barcode' => 'string|max:100',
-            'description' => 'string|nullable',
-            'price' => 'sometimes|numeric|min:0',
-            'cost' => 'numeric|min:0',
-            'tax_rate' => 'numeric|min:0',
-            'unit' => 'string|max:50',
-            'min_stock' => 'integer|min:0',
-            'max_stock' => 'integer|min:0',
-            'image' => 'string|nullable',
-            'images' => 'array|nullable',
-            'attributes' => 'array|nullable',
-            'track_inventory' => 'boolean',
-            'active' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         $product->update($validated);
 
