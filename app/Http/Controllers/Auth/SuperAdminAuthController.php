@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\LoginAttemptService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -11,6 +12,13 @@ use Illuminate\Validation\ValidationException;
 
 class SuperAdminAuthController extends Controller
 {
+    /**
+     * Create a new controller instance.
+     */
+    public function __construct(
+        private LoginAttemptService $loginAttemptService
+    ) {}
+
     /**
      * Handle super admin login.
      *
@@ -23,21 +31,54 @@ class SuperAdminAuthController extends Controller
             'password' => 'required',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $email = $request->email;
+        $ipAddress = $request->ip();
+
+        // Check for account lockout (super admins get same protection)
+        $lockoutStatus = $this->loginAttemptService->checkLockout($email);
+
+        if ($lockoutStatus['locked']) {
+            throw ValidationException::withMessages([
+                'email' => ['Too many failed attempts. Account locked. Try again in ' . ceil($lockoutStatus['waitTime'] / 60) . ' minutes.'],
+            ]);
+        }
+
+        $user = User::where('email', $email)->first();
 
         if (! $user) {
+            // Record failed attempt for non-existent user (prevents user enumeration)
+            $this->loginAttemptService->recordFailedAttempt($email, null, $request);
+
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
         if (! Hash::check($request->password, $user->password)) {
+            // Record failed attempt
+            $attemptResult = $this->loginAttemptService->recordFailedAttempt($email, $user, $request);
+
+            if ($attemptResult['shouldLock']) {
+                throw ValidationException::withMessages([
+                    'email' => ['Too many failed attempts. Account locked. Try again in ' . ceil($attemptResult['waitTime'] / 60) . ' minutes.'],
+                ]);
+            }
+
+            if ($attemptResult['isWarning']) {
+                throw ValidationException::withMessages([
+                    'email' => ['The provided credentials are incorrect. ' . $attemptResult['remainingAttempts'] . ' attempts remaining.'],
+                ]);
+            }
+
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
         if (! $user->is_super_admin) {
+            // Record failed attempt (access denied counts as failed attempt)
+            $this->loginAttemptService->recordFailedAttempt($email, $user, $request);
+
             throw ValidationException::withMessages([
                 'email' => ['Access denied. Super admin privileges required.'],
             ]);
@@ -49,10 +90,19 @@ class SuperAdminAuthController extends Controller
             ]);
         }
 
+        // Successful login - reset failed attempts
+        $this->loginAttemptService->resetAttempts($email);
+
+        // Check for suspicious login patterns (extra important for super admins)
+        $suspiciousCheck = $this->loginAttemptService->checkSuspiciousLogin($user, $request);
+
+        // Record successful login
+        $this->loginAttemptService->recordSuccessfulLogin($user, $request, $suspiciousCheck['isSuspicious']);
+
         // Create a new token for the super admin
         $token = $user->createToken('super-admin-token')->plainTextToken;
 
-        return response()->json([
+        $responseData = [
             'success' => true,
             'data' => [
                 'user' => $user,
@@ -60,7 +110,14 @@ class SuperAdminAuthController extends Controller
                 'token_type' => 'Bearer',
             ],
             'message' => 'Login successful',
-        ], 200);
+        ];
+
+        // Add security notice if suspicious login detected
+        if ($suspiciousCheck['isSuspicious']) {
+            $responseData['data']['security_notice'] = 'Login from new device or location detected';
+        }
+
+        return response()->json($responseData, 200);
     }
 
     /**

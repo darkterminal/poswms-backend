@@ -1,0 +1,207 @@
+name: Dependency Vulnerability Audit
+
+on:
+  schedule:
+    # Run daily at 2:00 AM UTC
+    - cron: '0 2 * * *'
+  push:
+    branches: [main, develop]
+    paths:
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+# Allow workflow to read contents and write security events
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  composer-audit:
+    runs-on: ubuntu-latest
+    name: PHP Dependency Audit (composer)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, pgsql, pdo_pgsql, bcmath, soap, intl
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run Composer Audit
+        id: composer_audit
+        run: |
+          echo "Running composer audit..."
+          # Run audit and capture output, but don't fail the build
+          composer audit --format=json > composer-audit-results.json 2>&1 || true
+          
+          # Also generate human-readable output
+          composer audit --format=table > composer-audit-report.txt 2>&1 || true
+          
+          # Count vulnerabilities
+          VULN_COUNT=$(cat composer-audit-results.json | jq '.vulnerabilities | length' 2>/dev/null || echo "0")
+          echo "vulnerability_count=$VULN_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "## Composer Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat composer-audit-report.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Composer audit results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: composer-audit-results
+          path: |
+            composer-audit-results.json
+            composer-audit-report.txt
+          retention-days: 30
+
+      - name: Log vulnerability findings (non-blocking)
+        if: steps.composer_audit.outputs.vulnerability_count > 0
+        run: |
+          echo "::warning::Found ${{ steps.composer_audit.outputs.vulnerability_count }} PHP vulnerability/ies. Check artifacts for details."
+          echo "VULNERABILITIES DETECTED - See artifacts for full report"
+
+  npm-audit:
+    runs-on: ubuntu-latest
+    name: JavaScript Dependency Audit (npm)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run NPM Audit
+        id: npm_audit
+        run: |
+          echo "Running npm audit..."
+          # Run audit and capture output, but don't fail the build
+          npm audit --json > npm-audit-results.json 2>&1 || true
+          
+          # Generate human-readable output
+          npm audit > npm-audit-report.txt 2>&1 || true
+          
+          # Count vulnerabilities (parse JSON if valid)
+          if [ -f npm-audit-results.json ]; then
+            VULN_COUNT=$(cat npm-audit-results.json | jq '.metadata.vulnerabilities.total // 0' 2>/dev/null || echo "0")
+          else
+            VULN_COUNT=0
+          fi
+          echo "vulnerability_count=$VULN_COUNT" >> $GITHUB_OUTPUT
+          
+          echo "## NPM Audit Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat npm-audit-report.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload NPM audit results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit-results
+          path: |
+            npm-audit-results.json
+            npm-audit-report.txt
+          retention-days: 30
+
+      - name: Log vulnerability findings (non-blocking)
+        if: steps.npm_audit.outputs.vulnerability_count > 0
+        run: |
+          echo "::warning::Found ${{ steps.npm_audit.outputs.vulnerability_count }} JavaScript vulnerability/ies. Check artifacts for details."
+          echo "VULNERABILITIES DETECTED - See artifacts for full report"
+
+  audit-summary:
+    runs-on: ubuntu-latest
+    name: Dependency Audit Summary
+    needs: [composer-audit, npm-audit]
+    if: always()
+
+    steps:
+      - name: Download Composer audit results
+        uses: actions/download-artifact@v4
+        with:
+          name: composer-audit-results
+          path: ./composer-audit
+
+      - name: Download NPM audit results
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-audit-results
+          path: ./npm-audit
+
+      - name: Generate summary report
+        run: |
+          echo "## 🔍 Dependency Vulnerability Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Audit Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Composer summary
+          echo "### PHP Dependencies (Composer)" >> $GITHUB_STEP_SUMMARY
+          if [ -f composer-audit/composer-audit-results.json ]; then
+            VULN_COUNT=$(cat composer-audit/composer-audit-results.json | jq '.vulnerabilities | length' 2>/dev/null || echo "0")
+            echo "- **Vulnerabilities Found:** $VULN_COUNT" >> $GITHUB_STEP_SUMMARY
+            if [ "$VULN_COUNT" -gt 0 ]; then
+              echo "- **Status:** ⚠️ Review Required" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "#### Vulnerability Details:" >> $GITHUB_STEP_SUMMARY
+              cat composer-audit/composer-audit-report.txt >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- **Status:** ✅ No vulnerabilities detected" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # NPM summary
+          echo "### JavaScript Dependencies (NPM)" >> $GITHUB_STEP_SUMMARY
+          if [ -f npm-audit/npm-audit-results.json ]; then
+            VULN_COUNT=$(cat npm-audit/npm-audit-results.json | jq '.metadata.vulnerabilities.total // 0' 2>/dev/null || echo "0")
+            echo "- **Vulnerabilities Found:** $VULN_COUNT" >> $GITHUB_STEP_SUMMARY
+            if [ "$VULN_COUNT" -gt 0 ]; then
+              echo "- **Status:** ⚠️ Review Required" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "#### Vulnerability Details:" >> $GITHUB_STEP_SUMMARY
+              cat npm-audit/npm-audit-report.txt >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- **Status:** ✅ No vulnerabilities detected" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "**Note:** This audit is non-blocking and does not fail the CI/CD pipeline." >> $GITHUB_STEP_SUMMARY
+          echo "Please review vulnerabilities and update dependencies as needed." >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload combined audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-complete-report
+          path: |
+            composer-audit/
+            npm-audit/
+          retention-days: 30

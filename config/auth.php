@@ -117,4 +117,44 @@ return [
     */
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Login Attempt Security Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configure the progressive delay and lockout system for failed login
+    | attempts. This helps prevent brute force attacks while avoiding
+    | sudden lockouts that could block legitimate users.
+    |
+    | Strategy: Soft lockout with progressive delays
+    | - Warning after X attempts (warning_threshold)
+    | - Progressive delays increase with each attempt
+    | - Hard lockout after max_attempts
+    | - Exponential backoff for repeated lockouts
+    |
+    */
+
+    'login' => [
+        // Maximum failed attempts before hard lockout
+        'max_attempts' => (int) env('LOGIN_MAX_ATTEMPTS', 5),
+
+        // Number of attempts before showing warning
+        'warning_threshold' => (int) env('LOGIN_WARNING_THRESHOLD', 3),
+
+        // Base lockout duration in seconds (5 minutes)
+        'base_lockout_duration' => (int) env('LOGIN_BASE_LOCKOUT_DURATION', 300),
+
+        // Maximum lockout duration in seconds (30 minutes)
+        'max_lockout_duration' => (int) env('LOGIN_MAX_LOCKOUT_DURATION', 1800),
+
+        // Cache TTL for failed attempts in seconds (15 minutes)
+        'cache_ttl' => (int) env('LOGIN_CACHE_TTL', 900),
+
+        // Delay multiplier for progressive delays (2x = 2s, 4s, 8s, 16s...)
+        'delay_multiplier' => (int) env('LOGIN_DELAY_MULTIPLIER', 2),
+
+        // Hours considered unusual for login (for suspicious activity detection)
+        'unusual_hours' => [0, 1, 2, 3, 4, 5],
+    ],
 ];

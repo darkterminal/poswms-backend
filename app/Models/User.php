@@ -13,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'role', 'store_id', 'warehouse_id', 'is_super_admin', 'is_active'])]
+#[Fillable(['name', 'email', 'password', 'role', 'store_id', 'warehouse_id', 'is_super_admin', 'is_active', 'last_login_at', 'last_login_ip'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -169,6 +169,48 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_super_admin' => 'boolean',
             'is_active' => 'boolean',
+            'last_login_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Change the user's password and invalidate all existing tokens.
+     *
+     * This method ensures that when a password is changed:
+     * 1. All existing API tokens are revoked (forcing re-authentication)
+     * 2. An audit log is created for security tracking
+     * 3. A password changed notification can be sent
+     *
+     * @param  string  $newPassword  The new plain-text password
+     * @param  int|null  $changedByUserId  ID of user who changed the password (null if self-change)
+     */
+    public function changePassword(string $newPassword, ?int $changedByUserId = null): void
+    {
+        $this->password = $newPassword;
+        $this->save();
+
+        // Invalidate all existing tokens (force re-authentication)
+        $this->tokens()->delete();
+
+        // Create audit log only if user has tenant_id
+        if ($this->tenant_id) {
+            AuditLog::create([
+                'tenant_id' => $this->tenant_id,
+                'user_id' => $this->id,
+                'event_type' => 'auth.password_changed',
+                'auditable_type' => 'App\\Models\\User',
+                'auditable_id' => $this->id,
+                'description' => 'Password changed' . ($changedByUserId ? ' by user ' . $changedByUserId : ''),
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'metadata' => [
+                    'changed_by_user_id' => $changedByUserId,
+                    'timestamp' => now()->toIso8601String(),
+                ],
+            ]);
+        }
+
+        // Optional: Send notification
+        // $this->sendPasswordChangedNotification();
     }
 }
