@@ -8,8 +8,12 @@ use Exception;
 
 class StockTransferService
 {
+    public function __construct(
+        private readonly FifoService $fifoService
+    ) {}
+
     /**
-     * Transfer stock from one location to another.
+     * Transfer stock from one location to another using FIFO.
      *
      * @throws Exception
      */
@@ -51,10 +55,14 @@ class StockTransferService
             throw new Exception('Source inventory not found');
         }
 
-        // Check if sufficient stock is available
-        if ($sourceInventory->available < $quantity) {
+        // Check if sufficient stock is available (FIFO-aware)
+        $availableStock = $sourceInventory->hasFifoLayers()
+            ? $sourceInventory->getLayerAvailableQuantity()
+            : $sourceInventory->available;
+
+        if ($availableStock < $quantity) {
             throw new Exception(
-                "Insufficient stock. Available: {$sourceInventory->available}, Requested: {$quantity}"
+                "Insufficient stock. Available: {$availableStock}, Requested: {$quantity}"
             );
         }
 
@@ -84,6 +92,78 @@ class StockTransferService
             ]);
         }
 
+        // Use FIFO service for transfer if source has FIFO layers
+        if ($sourceInventory->hasFifoLayers()) {
+            return $this->fifoTransfer(
+                sourceInventory: $sourceInventory,
+                destinationInventory: $destinationInventory,
+                quantity: $quantity,
+                userId: $userId,
+                reason: $reason
+            );
+        }
+
+        // Fallback to legacy transfer method
+        return $this->legacyTransfer(
+            tenantId: $tenantId,
+            productId: $productId,
+            quantity: $quantity,
+            sourceInventory: $sourceInventory,
+            destinationInventory: $destinationInventory,
+            userId: $userId,
+            reason: $reason
+        );
+    }
+
+    /**
+     * Perform FIFO-aware transfer using FifoService.
+     */
+    private function fifoTransfer(
+        Inventory $sourceInventory,
+        Inventory $destinationInventory,
+        int $quantity,
+        ?int $userId = null,
+        ?string $reason = null
+    ): array {
+        $reference = 'TRF-' . uniqid();
+
+        // Use FifoService for transfer
+        $transferResult = $this->fifoService->transferStock(
+            sourceInventory: $sourceInventory,
+            destinationInventory: $destinationInventory,
+            quantity: $quantity,
+            reason: $reason ?? 'Stock transfer'
+        );
+
+        // Record additional stock movements with reference
+        StockMovement::where('tenant_id', $sourceInventory->tenant_id)
+            ->where('reference', $reference)
+            ->update(['reference' => $reference]);
+
+        return [
+            'success' => true,
+            'message' => "Transferred {$quantity} units successfully using FIFO",
+            'source_inventory' => $sourceInventory->fresh(),
+            'destination_inventory' => $destinationInventory->fresh(),
+            'fifo_details' => $transferResult,
+            'reference' => $reference,
+        ];
+    }
+
+    /**
+     * Perform legacy transfer (backward compatible).
+     */
+    private function legacyTransfer(
+        int $tenantId,
+        int $productId,
+        int $quantity,
+        Inventory $sourceInventory,
+        Inventory $destinationInventory,
+        ?int $userId = null,
+        ?string $reason = null
+    ): array {
+        $reference = 'TRF-' . uniqid();
+
         // Record quantity before
         $sourceQtyBefore = $sourceInventory->quantity;
         $destQtyBefore = $destinationInventory->quantity;
@@ -107,11 +187,11 @@ class StockTransferService
             quantityBefore: $sourceQtyBefore,
             quantityAfter: $sourceInventory->quantity,
             inventoryId: $sourceInventory->id,
-            storeId: $fromStoreId,
-            warehouseId: $fromWarehouseId,
+            storeId: $sourceInventory->store_id,
+            warehouseId: $sourceInventory->warehouse_id,
             userId: $userId,
             reason: $reason ?? 'Stock transfer',
-            reference: 'TRF-' . uniqid()
+            reference: $reference
         );
 
         StockMovement::recordMovement(
@@ -122,11 +202,11 @@ class StockTransferService
             quantityBefore: $destQtyBefore,
             quantityAfter: $destinationInventory->quantity,
             inventoryId: $destinationInventory->id,
-            storeId: $toStoreId,
-            warehouseId: $toWarehouseId,
+            storeId: $destinationInventory->store_id,
+            warehouseId: $destinationInventory->warehouse_id,
             userId: $userId,
             reason: $reason ?? 'Stock transfer',
-            reference: 'TRF-' . uniqid()
+            reference: $reference
         );
 
         return [
@@ -134,6 +214,7 @@ class StockTransferService
             'message' => "Transferred {$quantity} units successfully",
             'source_inventory' => $sourceInventory,
             'destination_inventory' => $destinationInventory,
+            'reference' => $reference,
         ];
     }
 
