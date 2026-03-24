@@ -22,6 +22,8 @@ use Psr\Log\LoggerInterface;
  * - IPv6 support
  * - Audit logging for security events
  * - Configurable strictness levels
+ * - Allowlist for verified domains
+ * - Redirect validation
  */
 class UrlValidationService
 {
@@ -58,7 +60,7 @@ class UrlValidationService
     ];
 
     /**
-     * @var array<string> List of blocked cloud metadata endpoints
+     * @var array<string> List of blocked cloud metadata paths
      */
     private array $blockedCloudMetadataPaths = [
         '/latest/meta-data/',
@@ -67,7 +69,65 @@ class UrlValidationService
         '/2009-04-04/meta-data/',
     ];
 
+    /**
+     * @var array<string> List of allowed domains (when allowlist is enabled)
+     */
+    private array $allowedDomains = [];
+
+    /**
+     * @var bool Whether strict mode is enabled
+     */
+    private bool $strictMode = true;
+
+    /**
+     * @var bool Whether allowlist mode is enabled
+     */
+    private bool $allowlistEnabled = false;
+
+    /**
+     * @var bool Whether to validate redirects
+     */
+    private bool $validateRedirects = false;
+
+    /**
+     * @var bool Whether DNS rebinding protection is enabled
+     */
+    private bool $dnsRebindingProtection = true;
+
+    /**
+     * @var bool Whether testing mode is enabled
+     */
+    private bool $testingMode = false;
+
     private ?LoggerInterface $logger = null;
+
+    /**
+     * Create a new UrlValidationService instance.
+     */
+    public function __construct()
+    {
+        // Load configuration
+        $this->strictMode = config('ssrf.strict_mode', true);
+        $this->allowlistEnabled = config('ssrf.allowlist_enabled', false);
+        $this->validateRedirects = config('ssrf.validate_redirects', false);
+        $this->dnsRebindingProtection = config('ssrf.dns_rebinding_protection', true);
+        $this->testingMode = config('ssrf.testing_mode', false);
+
+        // Load allowed domains from config
+        $this->allowedDomains = config('ssrf.allowed_domains', []);
+
+        // Merge additional blocked patterns from config
+        $configBlockedPatterns = config('ssrf.blocked_ip_patterns', []);
+        if (! empty($configBlockedPatterns)) {
+            $this->blockedIpPatterns = array_merge($this->blockedIpPatterns, $configBlockedPatterns);
+        }
+
+        // Merge additional blocked hostnames from config
+        $configBlockedHostnames = config('ssrf.blocked_hostnames', []);
+        if (! empty($configBlockedHostnames)) {
+            $this->blockedHostnames = array_merge($this->blockedHostnames, $configBlockedHostnames);
+        }
+    }
 
     /**
      * Set the logger instance.
@@ -109,9 +169,14 @@ class UrlValidationService
         bool $skipDnsRebindingCheck = false
     ): array {
         // Basic URL validation
+        // In testing mode, skip active_url check which requires DNS resolution
+        $urlRules = $this->testingMode
+            ? ['required', 'url']
+            : ['required', 'url', 'active_url'];
+
         $validator = Validator::make(
             ['url' => $url],
-            ['url' => 'required|url|active_url']
+            ['url' => $urlRules]
         );
 
         if ($validator->fails()) {
@@ -170,8 +235,24 @@ class UrlValidationService
             }
         }
 
+        // If allowlist is enabled, check if domain is allowed
+        if ($this->allowlistEnabled && ! $this->isDomainAllowed($host)) {
+            $this->log('warning', 'SSRF validation: Domain not in allowlist', [
+                'host' => $host,
+                'url' => $url,
+            ]);
+
+            return [
+                'valid' => false,
+                'error' => 'Domain not in allowed list: ' . $host,
+                'risk_level' => 'high',
+            ];
+        }
+
         // DNS rebinding protection: resolve twice with delay
-        if (! $skipDnsRebindingCheck) {
+        $shouldSkipDnsCheck = $skipDnsRebindingCheck || ! $this->dnsRebindingProtection || $this->testingMode;
+
+        if (! $shouldSkipDnsCheck) {
             $firstResolution = $this->resolveHostname($host);
 
             if (! $firstResolution['success']) {
@@ -233,38 +314,46 @@ class UrlValidationService
                     ];
                 }
 
-                // Allow non-IP hostnames in testing (they'll be checked against blocked patterns)
-                $ip = '0.0.0.0'; // Placeholder - will pass through if not in blocked patterns
+                // If allowlist is enabled and domain is allowed, skip IP checks
+                if ($this->allowlistEnabled && $this->isDomainAllowed($host)) {
+                    // Domain is in allowlist, allow even if it doesn't resolve (testing mode)
+                    $ip = null; // Skip IP checks
+                } else {
+                    // Allow non-IP hostnames in testing (they'll be checked against blocked patterns)
+                    $ip = '0.0.0.0'; // Placeholder - will pass through if not in blocked patterns
+                }
             }
         }
 
-        // Check if IP is in blocked ranges
-        foreach ($this->blockedIpPatterns as $pattern) {
-            if (preg_match($pattern, $ip)) {
-                $this->log('warning', 'SSRF validation: Blocked private IP', [
-                    'url' => $url,
-                    'ip' => $ip,
-                    'tenant_id' => $tenantId,
-                    'user_id' => $userId,
-                ]);
+        // Check if IP is in blocked ranges (skip if IP is null - allowlisted domain)
+        if ($ip !== null) {
+            foreach ($this->blockedIpPatterns as $pattern) {
+                if (preg_match($pattern, $ip)) {
+                    $this->log('warning', 'SSRF validation: Blocked private IP', [
+                        'url' => $url,
+                        'ip' => $ip,
+                        'tenant_id' => $tenantId,
+                        'user_id' => $userId,
+                    ]);
 
-                $this->createAuditLog($tenantId, $userId, 'ssrf_url_blocked', [
-                    'url' => $url,
-                    'ip' => $ip,
-                    'reason' => 'Private/reserved IP range',
-                    'risk_level' => 'high',
-                ]);
+                    $this->createAuditLog($tenantId, $userId, 'ssrf_url_blocked', [
+                        'url' => $url,
+                        'ip' => $ip,
+                        'reason' => 'Private/reserved IP range',
+                        'risk_level' => 'high',
+                    ]);
 
-                return [
-                    'valid' => false,
-                    'error' => 'URL points to internal/private IP address: ' . $ip,
-                    'risk_level' => 'high',
-                ];
+                    return [
+                        'valid' => false,
+                        'error' => 'URL points to internal/private IP address: ' . $ip,
+                        'risk_level' => 'high',
+                    ];
+                }
             }
         }
 
-        // Additional check using PHP's filter for private/reserved ranges
-        if (! filter_var(
+        // Additional check using PHP's filter for private/reserved ranges (skip if IP is null)
+        if ($ip !== null && ! filter_var(
             $ip,
             FILTER_VALIDATE_IP,
             FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
@@ -290,14 +379,71 @@ class UrlValidationService
             ];
         }
 
+        // In strict mode, validate redirects
+        if ($this->strictMode && $this->validateRedirects && ! $this->testingMode) {
+            $redirectsToBlocked = $this->checkRedirects($url);
+
+            if ($redirectsToBlocked) {
+                $this->log('critical', 'SSRF attack blocked: Redirect to blocked location', [
+                    'url' => $url,
+                    'tenant_id' => $tenantId,
+                    'user_id' => $userId,
+                ]);
+
+                $this->createAuditLog($tenantId, $userId, 'ssrf_redirect_blocked', [
+                    'url' => $url,
+                    'reason' => 'Redirects to blocked location',
+                    'risk_level' => 'critical',
+                ]);
+
+                return [
+                    'valid' => false,
+                    'error' => 'URL redirects to a blocked location',
+                    'risk_level' => 'critical',
+                ];
+            }
+        }
+
         // URL is valid - log for new URLs
-        $this->log('info', 'SSRF validation: URL validated successfully', [
+        $logLevel = config('ssrf.logging.log_validated', false) ? 'info' : 'debug';
+        $this->log($logLevel, 'SSRF validation: URL validated successfully', [
             'url' => $url,
             'ip' => $ip,
             'tenant_id' => $tenantId,
         ]);
 
         return ['valid' => true];
+    }
+
+    /**
+     * Check if a domain is in the allowed list.
+     *
+     * @param  string  $domain  The domain to check
+     * @return bool True if domain is allowed
+     */
+    private function isDomainAllowed(string $domain): bool
+    {
+        if (empty($this->allowedDomains)) {
+            return false;
+        }
+
+        foreach ($this->allowedDomains as $allowedDomain) {
+            // Exact match
+            if ($domain === $allowedDomain) {
+                return true;
+            }
+
+            // Wildcard subdomain match (e.g., *.example.com matches sub.example.com)
+            if (str_starts_with($allowedDomain, '*.')) {
+                $baseDomain = substr($allowedDomain, 2);
+
+                if ($domain === $baseDomain || str_ends_with($domain, '.' . $baseDomain)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -358,8 +504,8 @@ class UrlValidationService
         string $eventType,
         array $properties
     ): void {
-        // Only create audit log if we have tenant context
-        if (! $tenantId) {
+        // Only create audit log if enabled and we have tenant context
+        if (! config('ssrf.audit_logging', true) || ! $tenantId) {
             return;
         }
 
@@ -426,5 +572,57 @@ class UrlValidationService
             // If we can't check, be safe and block
             return true;
         }
+    }
+
+    /**
+     * Enable strict mode for enhanced security.
+     */
+    public function enableStrictMode(): void
+    {
+        $this->strictMode = true;
+    }
+
+    /**
+     * Disable strict mode for development/testing.
+     */
+    public function disableStrictMode(): void
+    {
+        $this->strictMode = false;
+    }
+
+    /**
+     * Enable allowlist-only mode.
+     *
+     * @param  array<string>  $domains  List of allowed domains
+     */
+    public function enableAllowlistMode(array $domains): void
+    {
+        $this->allowlistEnabled = true;
+        $this->allowedDomains = $domains;
+    }
+
+    /**
+     * Disable allowlist mode.
+     */
+    public function disableAllowlistMode(): void
+    {
+        $this->allowlistEnabled = false;
+        $this->allowedDomains = [];
+    }
+
+    /**
+     * Check if strict mode is enabled.
+     */
+    public function isStrictModeEnabled(): bool
+    {
+        return $this->strictMode;
+    }
+
+    /**
+     * Check if allowlist mode is enabled.
+     */
+    public function isAllowlistModeEnabled(): bool
+    {
+        return $this->allowlistEnabled;
     }
 }
