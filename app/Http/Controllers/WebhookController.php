@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Webhook;
 use App\Models\WebhookDeliveryAttempt;
 use App\Services\UrlValidationService;
 use App\Services\WebhookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class WebhookController extends Controller
 {
@@ -53,8 +55,29 @@ class WebhookController extends Controller
         ]);
 
         // SSRF Protection: Validate URL against private IP ranges
-        $urlValidationResult = $this->urlValidationService->validateUrl($validated['url']);
+        $tenantId = $request->route('tenant_id');
+        $userId = $request->user()->id;
+
+        // Skip DNS rebinding check in testing environment
+        $skipDnsRebinding = app()->environment('testing');
+
+        $urlValidationResult = $this->urlValidationService->validateUrl(
+            $validated['url'],
+            allowLegacy: false,
+            tenantId: $tenantId,
+            userId: $userId,
+            skipDnsRebindingCheck: $skipDnsRebinding
+        );
+
         if (! $urlValidationResult['valid']) {
+            Log::warning('Webhook creation blocked: SSRF risk detected', [
+                'tenant_id' => $tenantId,
+                'user_id' => $userId,
+                'url' => $validated['url'],
+                'reason' => $urlValidationResult['error'],
+                'risk_level' => $urlValidationResult['risk_level'] ?? 'high',
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -76,6 +99,21 @@ class WebhookController extends Controller
             'headers' => $validated['headers'] ?? [],
             'retry_count' => $validated['retry_count'] ?? 3,
             'timeout' => $validated['timeout'] ?? 30,
+        ]);
+
+        // Audit log for successful webhook creation
+        AuditLog::create([
+            'tenant_id' => $tenantId,
+            'user_id' => $userId,
+            'event_type' => 'webhook.created',
+            'auditable_type' => Webhook::class,
+            'auditable_id' => $webhook->id,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'metadata' => [
+                'url' => $validated['url'],
+                'events' => $validated['events'],
+            ],
         ]);
 
         return response()->json([
@@ -111,6 +149,7 @@ class WebhookController extends Controller
     {
         $tenantId = $request->route('tenant_id');
         $webhookId = $request->route('webhook');
+        $userId = $request->user()->id;
 
         $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($webhookId);
 
@@ -129,8 +168,27 @@ class WebhookController extends Controller
 
         // SSRF Protection: Validate URL if being updated
         if (isset($validated['url'])) {
-            $urlValidationResult = $this->urlValidationService->validateUrl($validated['url']);
+            // Skip DNS rebinding check in testing environment
+            $skipDnsRebinding = app()->environment('testing');
+
+            $urlValidationResult = $this->urlValidationService->validateUrl(
+                $validated['url'],
+                allowLegacy: false,
+                tenantId: $tenantId,
+                userId: $userId,
+                skipDnsRebindingCheck: $skipDnsRebinding
+            );
+
             if (! $urlValidationResult['valid']) {
+                Log::warning('Webhook update blocked: SSRF risk detected', [
+                    'tenant_id' => $tenantId,
+                    'user_id' => $userId,
+                    'webhook_id' => $webhookId,
+                    'url' => $validated['url'],
+                    'reason' => $urlValidationResult['error'],
+                    'risk_level' => $urlValidationResult['risk_level'] ?? 'high',
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'error' => [
@@ -142,7 +200,35 @@ class WebhookController extends Controller
             }
         }
 
+        $oldUrl = $webhook->url;
+        $oldEvents = $webhook->events;
+
         $webhook->update($validated);
+
+        // Audit log for webhook update
+        $changes = [];
+        if (isset($validated['url']) && $validated['url'] !== $oldUrl) {
+            $changes['url'] = ['old' => $oldUrl, 'new' => $validated['url']];
+        }
+        if (isset($validated['events']) && $validated['events'] !== $oldEvents) {
+            $changes['events'] = ['old' => $oldEvents, 'new' => $validated['events']];
+        }
+
+        if (! empty($changes)) {
+            AuditLog::create([
+                'tenant_id' => $tenantId,
+                'user_id' => $userId,
+                'event_type' => 'webhook.updated',
+                'auditable_type' => Webhook::class,
+                'auditable_id' => $webhook->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'old_values' => $changes,
+                'metadata' => [
+                    'webhook_id' => $webhook->id,
+                ],
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -176,12 +262,49 @@ class WebhookController extends Controller
     {
         $tenantId = $request->route('tenant_id');
         $webhookId = $request->route('webhook');
+        $userId = $request->user()->id;
+
         $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($webhookId);
 
         // SSRF Protection: Validate URL before testing
         // This prevents testing webhooks that point to internal networks
-        $urlValidationResult = $this->urlValidationService->validateUrl($webhook->url);
+        // Skip DNS rebinding check in testing environment
+        $skipDnsRebinding = app()->environment('testing');
+
+        $urlValidationResult = $this->urlValidationService->validateUrl(
+            $webhook->url,
+            allowLegacy: true, // Allow testing existing webhooks but log risk
+            tenantId: $tenantId,
+            userId: $userId,
+            skipDnsRebindingCheck: $skipDnsRebinding
+        );
+
         if (! $urlValidationResult['valid']) {
+            Log::warning('Webhook test blocked: SSRF risk detected', [
+                'tenant_id' => $tenantId,
+                'user_id' => $userId,
+                'webhook_id' => $webhookId,
+                'url' => $webhook->url,
+                'reason' => $urlValidationResult['error'],
+                'risk_level' => $urlValidationResult['risk_level'] ?? 'high',
+            ]);
+
+            AuditLog::create([
+                'tenant_id' => $tenantId,
+                'user_id' => $userId,
+                'event_type' => 'security.ssrf_test_blocked',
+                'auditable_type' => Webhook::class,
+                'auditable_id' => $webhookId,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'metadata' => [
+                    'webhook_id' => $webhookId,
+                    'url' => $webhook->url,
+                    'reason' => $urlValidationResult['error'],
+                    'risk_level' => $urlValidationResult['risk_level'] ?? 'high',
+                ],
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -190,6 +313,17 @@ class WebhookController extends Controller
                     'details' => $urlValidationResult['error'],
                 ],
             ], 422);
+        }
+
+        // Log warning if testing a potentially risky existing webhook
+        if (isset($urlValidationResult['warning'])) {
+            Log::warning('Testing webhook with SSRF risk (legacy URL)', [
+                'tenant_id' => $tenantId,
+                'user_id' => $userId,
+                'webhook_id' => $webhookId,
+                'url' => $webhook->url,
+                'warning' => $urlValidationResult['warning'],
+            ]);
         }
 
         $webhookService = app(WebhookService::class);
@@ -201,6 +335,23 @@ class WebhookController extends Controller
         ];
 
         $result = $webhookService->dispatchToWebhook($webhook, 'webhook.test', $testPayload);
+
+        // Audit log for webhook test
+        AuditLog::create([
+            'tenant_id' => $tenantId,
+            'user_id' => $userId,
+            'event_type' => 'webhook.tested',
+            'auditable_type' => Webhook::class,
+            'auditable_id' => $webhook->id,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'metadata' => [
+                'webhook_id' => $webhook->id,
+                'url' => $webhook->url,
+                'success' => $result['success'],
+                'status' => $result['status'] ?? null,
+            ],
+        ]);
 
         return response()->json([
             'success' => true,
