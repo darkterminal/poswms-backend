@@ -158,7 +158,7 @@ class OrderFulfillmentServiceTest extends TestCase
             'product_id' => $product->id,
             'type' => 'order_fulfillment',
             'order_id' => $order->id,
-            'quantity' => -15,
+            'quantity' => 15,
         ]);
     }
 
