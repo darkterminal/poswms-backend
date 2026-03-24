@@ -108,8 +108,9 @@ class DashboardController extends Controller
                 ->value('value') ?? 0;
 
             // Low stock and out of stock counts using optimized queries
-            $lowStockCount = Inventory::forTenant($tenantId)
+            $lowStockCount = Inventory::query()
                 ->join('products', 'inventories.product_id', '=', 'products.id')
+                ->where('inventories.tenant_id', $tenantId)
                 ->whereColumn('inventories.available', '<=', 'products.min_stock')
                 ->count();
 
