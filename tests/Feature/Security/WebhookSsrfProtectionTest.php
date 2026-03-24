@@ -154,7 +154,7 @@ class WebhookSsrfProtectionTest extends TestCase
     {
         $response = $this->postJson("/api/v1/tenants/{$this->tenant->id}/webhooks", [
             'name' => 'Valid Webhook',
-            'url' => 'https://hooks.example.com/webhook',
+            'url' => 'https://example.com/webhook',
             'events' => ['order.created'],
             'active' => true,
         ]);
@@ -166,5 +166,167 @@ class WebhookSsrfProtectionTest extends TestCase
             'name' => 'Valid Webhook',
             'active' => true,
         ]);
+    }
+
+    public function test_webhook_creation_creates_audit_log(): void
+    {
+        $response = $this->postJson("/api/v1/tenants/{$this->tenant->id}/webhooks", [
+            'name' => 'Audited Webhook',
+            'url' => 'https://example.com/audited',
+            'events' => ['order.created'],
+        ]);
+
+        $response->assertStatus(201);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'tenant_id' => $this->tenant->id,
+            'event_type' => 'webhook.created',
+        ]);
+    }
+
+    public function test_webhook_update_creates_audit_log(): void
+    {
+        $webhook = Webhook::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'url' => 'https://example.com/old',
+            'events' => ['order.created'],
+        ]);
+
+        $response = $this->putJson("/api/v1/tenants/{$this->tenant->id}/webhooks/{$webhook->id}", [
+            'url' => 'https://example.com/new',
+        ]);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'tenant_id' => $this->tenant->id,
+            'event_type' => 'webhook.updated',
+        ]);
+    }
+
+    public function test_webhook_test_creates_audit_log(): void
+    {
+        $webhook = Webhook::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'url' => 'https://httpbin.org/post',
+        ]);
+
+        $response = $this->postJson("/api/v1/tenants/{$this->tenant->id}/webhooks/{$webhook->id}/test");
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'tenant_id' => $this->tenant->id,
+            'event_type' => 'webhook.tested',
+        ]);
+    }
+
+    public function test_ssrf_attack_attempt_is_logged(): void
+    {
+        $response = $this->postJson("/api/v1/tenants/{$this->tenant->id}/webhooks", [
+            'name' => 'Attack Webhook',
+            'url' => 'http://169.254.169.254/latest/meta-data/',
+            'events' => ['order.created'],
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error.code', 'SSRF_PROTECTION');
+    }
+
+    public function test_docker_internal_hostnames_are_blocked(): void
+    {
+        $blockedUrls = [
+            'http://host.docker.internal/webhook',
+            'http://docker.internal/webhook',
+            'http://minikube/webhook',
+        ];
+
+        foreach ($blockedUrls as $url) {
+            $result = $this->urlValidator->validateUrl($url);
+
+            $this->assertFalse($result['valid'], "URL should be blocked: {$url}");
+        }
+    }
+
+    public function test_kubernetes_internal_hostnames_are_blocked(): void
+    {
+        $blockedUrls = [
+            'http://kubernetes.default.svc/webhook',
+        ];
+
+        foreach ($blockedUrls as $url) {
+            $result = $this->urlValidator->validateUrl($url);
+
+            $this->assertFalse($result['valid'], "URL should be blocked: {$url}");
+        }
+    }
+
+    public function test_cloud_metadata_paths_are_blocked(): void
+    {
+        $blockedUrls = [
+            'https://example.com/latest/meta-data/',
+            'https://example.com/computeMetadata/v1/',
+            'https://example.com/2009-04-04/meta-data/',
+        ];
+
+        foreach ($blockedUrls as $url) {
+            $result = $this->urlValidator->validateUrl($url);
+
+            $this->assertFalse($result['valid'], "URL should be blocked: {$url}");
+        }
+    }
+
+    public function test_invalid_url_format_is_rejected(): void
+    {
+        $invalidUrls = [
+            'not-a-url',
+            'ftp://invalid',
+            '',
+            'javascript:alert(1)',
+        ];
+
+        foreach ($invalidUrls as $url) {
+            $result = $this->urlValidator->validateUrl($url);
+
+            $this->assertFalse($result['valid'], "URL should be invalid: {$url}");
+        }
+    }
+
+    public function test_webhook_update_without_url_change_does_not_revalidate(): void
+    {
+        $webhook = Webhook::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'url' => 'https://example.com/webhook',
+            'name' => 'Original Name',
+        ]);
+
+        $response = $this->putJson("/api/v1/tenants/{$this->tenant->id}/webhooks/{$webhook->id}", [
+            'name' => 'Updated Name',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.name', 'Updated Name');
+    }
+
+    public function test_non_admin_cannot_access_webhooks(): void
+    {
+        // Create non-admin user
+        $nonAdminUser = User::factory()->create([
+            'tenant_id' => $this->tenant->id,
+        ]);
+
+        // Non-admin users don't have webhook permissions
+        Sanctum::actingAs($nonAdminUser);
+
+        $webhook = Webhook::factory()->create([
+            'tenant_id' => $this->tenant->id,
+            'url' => 'https://example.com/webhook',
+        ]);
+
+        // Try to access webhook list - should be forbidden
+        $response = $this->getJson("/api/v1/tenants/{$this->tenant->id}/webhooks");
+
+        $response->assertStatus(403);
     }
 }
