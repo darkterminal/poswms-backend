@@ -45,7 +45,14 @@ class CustomerTest extends TestCase
 
         $response->assertStatus(201)
             ->assertJson(['success' => true]);
-        $this->assertDatabaseHas('customers', ['name' => 'John Doe', 'email' => 'john@example.com']);
+
+        // Verify customer was created (check non-encrypted fields)
+        $this->assertDatabaseHas('customers', ['name' => 'John Doe']);
+
+        // Verify encrypted email can be retrieved via model
+        $customer = Customer::where('name', 'John Doe')->first();
+        $this->assertNotNull($customer);
+        $this->assertEquals('john@example.com', $customer->email);
     }
 
     public function test_can_list_customers(): void

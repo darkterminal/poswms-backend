@@ -118,20 +118,30 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
         Route::apiResource('audit-logs', AuditLogController::class)->only(['index', 'show']);
 
         // Webhook routes (admin only)
+        // Note: Webhook test endpoint has stricter rate limiting (throttle:api-webhook-test)
         Route::apiResource('webhooks', WebhookController::class);
-        Route::post('/webhooks/{webhook}/test', [WebhookController::class, 'test']);
+        Route::post('/webhooks/{webhook}/test', [WebhookController::class, 'test'])
+            ->middleware('throttle:api-webhook-test');
         Route::get('/webhooks/{webhook}/attempts', [WebhookController::class, 'deliveryAttempts']);
         Route::post('/webhooks/{webhook}/retry', [WebhookController::class, 'retry']);
 
         // Inventory report exports (admin only)
-        Route::get('/reports/inventory/export/stock-levels', [InventoryReportController::class, 'exportStockLevels']);
-        Route::get('/reports/inventory/export/movements', [InventoryReportController::class, 'exportMovements']);
-        Route::get('/reports/inventory/export/low-stock', [InventoryReportController::class, 'exportLowStock']);
+        // These endpoints are resource-heavy and have stricter rate limiting (throttle:api-exports)
+        Route::get('/reports/inventory/export/stock-levels', [InventoryReportController::class, 'exportStockLevels'])
+            ->middleware('throttle:api-exports');
+        Route::get('/reports/inventory/export/movements', [InventoryReportController::class, 'exportMovements'])
+            ->middleware('throttle:api-exports');
+        Route::get('/reports/inventory/export/low-stock', [InventoryReportController::class, 'exportLowStock'])
+            ->middleware('throttle:api-exports');
 
         // Sales report exports (admin only)
-        Route::get('/reports/sales/export/revenue', [SalesReportController::class, 'exportRevenue']);
-        Route::get('/reports/sales/export/orders-by-period', [SalesReportController::class, 'exportOrdersByPeriod']);
-        Route::get('/reports/sales/export/top-products', [SalesReportController::class, 'exportTopProducts']);
+        // These endpoints are resource-heavy and have stricter rate limiting (throttle:api-exports)
+        Route::get('/reports/sales/export/revenue', [SalesReportController::class, 'exportRevenue'])
+            ->middleware('throttle:api-exports');
+        Route::get('/reports/sales/export/orders-by-period', [SalesReportController::class, 'exportOrdersByPeriod'])
+            ->middleware('throttle:api-exports');
+        Route::get('/reports/sales/export/top-products', [SalesReportController::class, 'exportTopProducts'])
+            ->middleware('throttle:api-exports');
     });
 
     // Core entity routes (manually defined to avoid route model binding conflicts)

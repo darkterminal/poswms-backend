@@ -20,8 +20,10 @@ class Warehouse extends Model
     protected function casts(): array
     {
         return [
-            'settings' => 'array',
+            'settings' => 'encrypted:array',
             'active' => 'boolean',
+            'email' => 'encrypted',
+            'phone' => 'encrypted',
         ];
     }
 

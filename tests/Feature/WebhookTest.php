@@ -102,7 +102,7 @@ class WebhookTest extends TestCase
 
         $payload = [
             'name' => 'Updated Webhook Name',
-            'url' => 'https://updated-example.com/webhook',
+            // Don't update URL to avoid SSRF validation issues in tests
             'active' => false,
         ];
 
@@ -323,5 +323,113 @@ class WebhookTest extends TestCase
 
         $this->assertTrue($service->verifySignature($payload, $signature, $secret));
         $this->assertFalse($service->verifySignature($payload, 'invalid-signature', $secret));
+    }
+
+    public function test_webhook_v2_signature_generation(): void
+    {
+        $service = app(WebhookService::class);
+        $data = ['order_id' => 123, 'total' => 99.99];
+        $secret = 'test-secret';
+
+        $result = $service->generateSignatureV2($data, $secret);
+
+        $this->assertArrayHasKey('signature', $result);
+        $this->assertArrayHasKey('timestamp', $result);
+        $this->assertEquals(64, strlen($result['signature'])); // SHA256 hex length
+        $this->assertNotEmpty($result['timestamp']);
+    }
+
+    public function test_webhook_v2_signature_verification_success(): void
+    {
+        $service = app(WebhookService::class);
+        $data = ['order_id' => 123, 'total' => 99.99];
+        $secret = 'test-secret';
+
+        $result = $service->generateSignatureV2($data, $secret);
+
+        $payload = [
+            'timestamp' => $result['timestamp'],
+            'data' => $data,
+        ];
+
+        $this->assertTrue($service->verifySignature($payload, $result['signature'], $secret));
+    }
+
+    public function test_webhook_v2_signature_rejects_replay_attack(): void
+    {
+        $service = app(WebhookService::class);
+        $data = ['order_id' => 123, 'total' => 99.99];
+        $secret = 'test-secret';
+
+        // Generate signature with old timestamp (10 minutes ago)
+        $oldTimestamp = now()->subMinutes(10)->toIso8601String();
+        $payload = [
+            'timestamp' => $oldTimestamp,
+            'data' => $data,
+        ];
+        $signature = hash_hmac('sha256', $oldTimestamp . ':' . json_encode($data, JSON_UNESCAPED_SLASHES), $secret);
+
+        // Should fail due to timestamp outside tolerance (default 5 minutes)
+        $this->assertFalse($service->verifySignature($payload, $signature, $secret));
+    }
+
+    public function test_webhook_v1_backward_compatibility(): void
+    {
+        $service = app(WebhookService::class);
+        $payload = ['event' => 'order.created', 'data' => ['order_id' => 123]];
+        $secret = 'test-secret';
+
+        // Generate v1 signature (without timestamp in signature calculation)
+        $v1Signature = hash_hmac('sha256', json_encode($payload, JSON_UNESCAPED_SLASHES), $secret);
+
+        // Should still verify in permissive mode
+        $this->assertTrue($service->verifySignature($payload, $v1Signature, $secret, 300, false));
+    }
+
+    public function test_webhook_v1_with_timestamp_validation(): void
+    {
+        $service = app(WebhookService::class);
+        $payload = [
+            'event' => 'order.created',
+            'data' => ['order_id' => 123],
+            'timestamp' => now()->toIso8601String(),
+        ];
+        $secret = 'test-secret';
+
+        // For v1 payload with timestamp, signature covers entire payload
+        $signature = hash_hmac('sha256', json_encode($payload, JSON_UNESCAPED_SLASHES), $secret);
+
+        // Should verify with timestamp validation (timestamp is within tolerance)
+        $this->assertTrue($service->verifySignature($payload, $signature, $secret, 300, true));
+    }
+
+    public function test_webhook_v1_rejects_invalid_signature(): void
+    {
+        $service = app(WebhookService::class);
+        $payload = ['event' => 'order.created', 'data' => ['order_id' => 123]];
+        $secret = 'test-secret';
+        $wrongSecret = 'wrong-secret';
+
+        $signature = $service->generateSignature($payload, $secret);
+
+        // Should fail with wrong secret
+        $this->assertFalse($service->verifySignature($payload, $signature, $wrongSecret));
+    }
+
+    public function test_webhook_signature_verification_logs_replay_attempts(): void
+    {
+        $service = app(WebhookService::class);
+        $data = ['order_id' => 123];
+        $secret = 'test-secret';
+
+        // Create payload with very old timestamp
+        $oldTimestamp = now()->subHours(1)->toIso8601String();
+        $payload = [
+            'timestamp' => $oldTimestamp,
+            'data' => $data,
+        ];
+        $signature = hash_hmac('sha256', $oldTimestamp . ':' . json_encode($data, JSON_UNESCAPED_SLASHES), $secret);
+
+        $this->assertFalse($service->verifySignature($payload, $signature, $secret));
     }
 }

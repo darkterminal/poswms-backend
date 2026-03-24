@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\ValidatesSorting;
 use App\Http\Controllers\Controller;
 use App\Models\Tenant;
 use Illuminate\Http\JsonResponse;
@@ -10,6 +11,8 @@ use Illuminate\Validation\Rule;
 
 class TenantController extends Controller
 {
+    use ValidatesSorting;
+
     /**
      * Display a listing of tenants.
      */
@@ -32,10 +35,15 @@ class TenantController extends Controller
             $query->where('status', $status);
         }
 
-        // Sort
-        $sortBy = $request->query('sort_by', 'created_at');
-        $sortOrder = $request->query('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        // Sort - validated against whitelist to prevent SQL injection
+        $allowedSortFields = ['name', 'slug', 'company_name', 'email', 'status', 'created_at', 'updated_at'];
+        $sortParams = $this->getValidatedSortParams(
+            $request,
+            'created_at',
+            $allowedSortFields,
+            'desc'
+        );
+        $query->orderBy($sortParams['sort_by'], $sortParams['sort_order']);
 
         // Paginate
         $perPage = $request->query('per_page', 15);
@@ -51,6 +59,12 @@ class TenantController extends Controller
                     'total' => $tenants->total(),
                     'last_page' => $tenants->lastPage(),
                     'has_more' => $tenants->hasMorePages(),
+                ],
+            ],
+            'meta' => [
+                'sorting' => [
+                    'field' => $sortParams['sort_by'],
+                    'order' => $sortParams['sort_order'],
                 ],
             ],
             'message' => 'Tenants retrieved successfully',

@@ -18,9 +18,7 @@ class RolePermissionSeeder extends Seeder
         $tenants = Tenant::all();
 
         if ($tenants->isEmpty()) {
-            // Create default permissions without tenant (for reference)
-            $this->createDefaultPermissions(null);
-
+            // Skip creating permissions without tenant - tenant_id is required
             return;
         }
 

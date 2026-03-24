@@ -4,12 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\Webhook;
 use App\Models\WebhookDeliveryAttempt;
+use App\Services\UrlValidationService;
 use App\Services\WebhookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class WebhookController extends Controller
 {
+    public function __construct(
+        private UrlValidationService $urlValidationService
+    ) {}
+
     /**
      * Display a listing of the resource.
      */
@@ -46,6 +51,19 @@ class WebhookController extends Controller
             'retry_count' => ['integer', 'min:0', 'max:10'],
             'timeout' => ['integer', 'min:1', 'max:300'],
         ]);
+
+        // SSRF Protection: Validate URL against private IP ranges
+        $urlValidationResult = $this->urlValidationService->validateUrl($validated['url']);
+        if (! $urlValidationResult['valid']) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'SSRF_PROTECTION',
+                    'message' => 'Webhook URL validation failed',
+                    'details' => $urlValidationResult['error'],
+                ],
+            ], 422);
+        }
 
         $webhook = Webhook::create([
             'tenant_id' => $request->route('tenant_id'),
@@ -109,6 +127,21 @@ class WebhookController extends Controller
             'timeout' => ['integer', 'min:1', 'max:300'],
         ]);
 
+        // SSRF Protection: Validate URL if being updated
+        if (isset($validated['url'])) {
+            $urlValidationResult = $this->urlValidationService->validateUrl($validated['url']);
+            if (! $urlValidationResult['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'error' => [
+                        'code' => 'SSRF_PROTECTION',
+                        'message' => 'Webhook URL validation failed',
+                        'details' => $urlValidationResult['error'],
+                    ],
+                ], 422);
+            }
+        }
+
         $webhook->update($validated);
 
         return response()->json([
@@ -144,6 +177,20 @@ class WebhookController extends Controller
         $tenantId = $request->route('tenant_id');
         $webhookId = $request->route('webhook');
         $webhook = Webhook::query()->forTenant($tenantId)->findOrFail($webhookId);
+
+        // SSRF Protection: Validate URL before testing
+        // This prevents testing webhooks that point to internal networks
+        $urlValidationResult = $this->urlValidationService->validateUrl($webhook->url);
+        if (! $urlValidationResult['valid']) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'SSRF_PROTECTION',
+                    'message' => 'Webhook URL blocked for security reasons',
+                    'details' => $urlValidationResult['error'],
+                ],
+            ], 422);
+        }
 
         $webhookService = app(WebhookService::class);
 

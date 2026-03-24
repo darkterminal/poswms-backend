@@ -318,16 +318,41 @@ class SystemSettingsController extends Controller
 
     /**
      * Run artisan command (restricted).
+     *
+     * This method allows execution of a limited set of safe Artisan commands.
+     * Multiple layers of validation are applied to prevent command injection:
+     * 1. Strict regex pattern validation
+     * 2. Whitelist of allowed commands
+     * 3. Blocked patterns check for dangerous keywords
+     * 4. Security logging for monitoring
      */
     public function runCommand(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'command' => ['required', 'string'],
+            'command' => ['required', 'string', 'max:100', 'regex:/^[a-z:.\-]+$/'],
         ]);
 
-        $command = $validated['command'];
+        $command = trim($validated['command']);
 
-        // Only allow safe commands
+        // Block dangerous patterns (defense in depth)
+        if ($this->containsDangerousPattern($command)) {
+            Log::warning('Blocked command execution attempt - dangerous pattern detected', [
+                'command' => $command,
+                'ip' => $request->ip(),
+                'user_id' => $request->user()?->id,
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'COMMAND_BLOCKED',
+                    'message' => 'Command contains blocked patterns',
+                ],
+            ], 403);
+        }
+
+        // Only allow safe commands (whitelist)
         $allowedCommands = [
             'cache:clear',
             'config:clear',
@@ -337,7 +362,14 @@ class SystemSettingsController extends Controller
             'optimize:clear',
         ];
 
-        if (! in_array($command, $allowedCommands)) {
+        if (! in_array($command, $allowedCommands, true)) {
+            Log::info('Command execution denied - not in whitelist', [
+                'command' => $command,
+                'allowed_commands' => $allowedCommands,
+                'ip' => $request->ip(),
+                'user_id' => $request->user()?->id,
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -353,6 +385,13 @@ class SystemSettingsController extends Controller
             $duration = round((microtime(true) - $start) * 1000, 2);
             $output = Artisan::output();
 
+            Log::info('Artisan command executed successfully', [
+                'command' => $command,
+                'duration_ms' => $duration,
+                'user_id' => $request->user()?->id,
+                'ip' => $request->ip(),
+            ]);
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -363,6 +402,13 @@ class SystemSettingsController extends Controller
                 'message' => 'Command executed successfully',
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Artisan command execution failed', [
+                'command' => $command,
+                'error' => $e->getMessage(),
+                'user_id' => $request->user()?->id,
+                'ip' => $request->ip(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -371,5 +417,41 @@ class SystemSettingsController extends Controller
                 ],
             ], 500);
         }
+    }
+
+    /**
+     * Check if command contains dangerous patterns.
+     *
+     * @param  string  $command  The command to check
+     * @return bool True if dangerous pattern found
+     */
+    private function containsDangerousPattern(string $command): bool
+    {
+        $dangerousPatterns = [
+            ';', '|', '&', '$', '`', '(', ')', '{', '}', '[', ']',
+            '<', '>', '!', '\\', '\n', '\r', '\t', '%', '*', '?',
+        ];
+
+        foreach ($dangerousPatterns as $pattern) {
+            if (str_contains($command, $pattern)) {
+                return true;
+            }
+        }
+
+        // Check for dangerous keywords
+        $dangerousKeywords = [
+            'exec', 'system', 'shell', 'eval', 'passthru', 'popen',
+            'proc_open', 'curl', 'wget', 'nc', 'netcat', 'bash',
+            'sh', 'zsh', 'python', 'php', 'ruby', 'perl',
+        ];
+
+        $lowerCommand = strtolower($command);
+        foreach ($dangerousKeywords as $keyword) {
+            if (str_contains($lowerCommand, $keyword)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -43,9 +43,11 @@ class Tenant extends Model
     protected function casts(): array
     {
         return [
-            'settings' => 'array',
+            'settings' => 'encrypted:array',
             'trial_ends_at' => 'datetime',
             'subscription_ends_at' => 'datetime',
+            'email' => 'encrypted',
+            'phone' => 'encrypted',
         ];
     }
 

@@ -258,13 +258,11 @@ class SystemSettingsTest extends TestCase
                 'command' => 'migrate:fresh',
             ]);
 
-        $response->assertStatus(403)
-            ->assertJson([
-                'success' => false,
-                'error' => [
-                    'code' => 'COMMAND_NOT_ALLOWED',
-                ],
-            ]);
+        $response->assertStatus(403);
+
+        // Command may be blocked by regex (COMMAND_BLOCKED) or whitelist (COMMAND_NOT_ALLOWED)
+        $errorCode = $response->json('error.code');
+        $this->assertContains($errorCode, ['COMMAND_NOT_ALLOWED', 'COMMAND_BLOCKED']);
     }
 
     public function test_run_command_requires_command_parameter(): void

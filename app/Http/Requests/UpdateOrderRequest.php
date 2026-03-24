@@ -2,16 +2,15 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class UpdateOrderRequest extends FormRequest
+class UpdateOrderRequest extends BaseFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true;
+        // Soft enforcement: check for orders.update permission
+        return $this->authorizeSoft('orders.update', 'update order');
     }
 
     /**

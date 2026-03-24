@@ -2,16 +2,16 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class StoreProductRequest extends FormRequest
+class StoreProductRequest extends BaseFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true;
+        // Soft enforcement: check for products.create permission
+        // Falls back to allow with logging for backward compatibility
+        return $this->authorizeSoft('products.create', 'create product');
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopedByTenant;
 use Database\Factories\WebhookFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Webhook extends Model
 {
     /** @use HasFactory<WebhookFactory> */
-    use HasFactory;
+    use HasFactory, ScopedByTenant;
 
     /**
      * The attributes that are mass assignable.
@@ -37,14 +38,18 @@ class Webhook extends Model
      *
      * @var array<string, string>
      */
-    protected $casts = [
-        'events' => 'array',
-        'headers' => 'array',
-        'active' => 'boolean',
-        'retry_count' => 'integer',
-        'timeout' => 'integer',
-        'last_triggered_at' => 'datetime',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'events' => 'array',
+            'headers' => 'encrypted:array',
+            'active' => 'boolean',
+            'retry_count' => 'integer',
+            'timeout' => 'integer',
+            'last_triggered_at' => 'datetime',
+            'secret' => 'encrypted',
+        ];
+    }
 
     /**
      * Get the tenant that owns the webhook.

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Concerns\ValidatesSorting;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SearchUsersRequest;
 use App\Models\User;
@@ -11,6 +12,8 @@ use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
+    use ValidatesSorting;
+
     public function __construct(
         private ImpersonationService $impersonationService
     ) {}
@@ -48,10 +51,15 @@ class UserController extends Controller
             $query->where('is_super_admin', $request->boolean('is_super_admin'));
         }
 
-        // Sorting
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+        // Sorting - validated against whitelist to prevent SQL injection
+        $allowedSortFields = ['name', 'email', 'created_at', 'updated_at', 'is_active'];
+        $sortParams = $this->getValidatedSortParams(
+            $request,
+            'created_at',
+            $allowedSortFields,
+            'desc'
+        );
+        $query->orderBy($sortParams['sort_by'], $sortParams['sort_order']);
 
         // Pagination
         $perPage = $request->get('per_page', 15);
@@ -98,7 +106,7 @@ class UserController extends Controller
             ],
             'meta' => [
                 'filters_applied' => $request->only(['search', 'email', 'tenant_id', 'status', 'is_super_admin']),
-                'sorting' => ['by' => $sortBy, 'order' => $sortOrder],
+                'sorting' => ['by' => $sortParams['sort_by'], 'order' => $sortParams['sort_order']],
             ],
         ]);
     }

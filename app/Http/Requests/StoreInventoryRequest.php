@@ -2,16 +2,15 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class StoreInventoryRequest extends FormRequest
+class StoreInventoryRequest extends BaseFormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return true;
+        // Soft enforcement: check for inventory.create permission
+        return $this->authorizeSoft('inventory.create', 'create inventory record');
     }
 
     /**

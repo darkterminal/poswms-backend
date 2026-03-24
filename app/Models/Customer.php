@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\ScopedByTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, ScopedByTenant, SoftDeletes;
 
     protected $fillable = [
         'tenant_id', 'name', 'email', 'phone', 'company', 'tax_id',
@@ -23,8 +24,11 @@ class Customer extends Model
         return [
             'credit_limit' => 'decimal:2',
             'balance' => 'decimal:2',
-            'settings' => 'array',
+            'settings' => 'encrypted:array',
             'active' => 'boolean',
+            'tax_id' => 'encrypted',
+            'email' => 'encrypted',
+            'phone' => 'encrypted',
         ];
     }
 
