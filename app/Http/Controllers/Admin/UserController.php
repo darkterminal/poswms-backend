@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\ValidatesSorting;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SearchUsersRequest;
 use App\Models\User;
+use App\SecurityAuditLogger;
 use App\Services\ImpersonationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +16,8 @@ class UserController extends Controller
     use ValidatesSorting;
 
     public function __construct(
-        private ImpersonationService $impersonationService
+        private ImpersonationService $impersonationService,
+        private SecurityAuditLogger $securityLogger
     ) {}
 
     /**
@@ -183,6 +185,24 @@ class UserController extends Controller
         // Generate impersonation token
         $tokenData = $this->impersonationService->generateImpersonationToken($user, $impersonator);
 
+        // Security audit logging for impersonation start
+        $this->securityLogger->logAsync(
+            eventType: 'auth.impersonation_started',
+            description: "Super admin '{$impersonator->name}' started impersonating '{$user->name}'",
+            context: [
+                'impersonator_id' => $impersonator->id,
+                'impersonator_email' => $impersonator->email,
+                'impersonator_name' => $impersonator->name,
+                'target_user_id' => $user->id,
+                'target_user_email' => $user->email,
+                'target_user_name' => $user->name,
+                'expires_at' => $tokenData['expiresAt']->toIso8601String(),
+            ],
+            tenantId: $user->tenant_id,
+            userId: $impersonator->id,
+            request: $request,
+        );
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -224,9 +244,12 @@ class UserController extends Controller
 
         // Check if this is an impersonation token by checking all user tokens
         $isImpersonationToken = false;
+        $impersonatorId = null;
         foreach ($user->tokens as $userToken) {
             if ($userToken->id === $token->id && str_starts_with($userToken->name, 'impersonation_')) {
                 $isImpersonationToken = true;
+                // Extract impersonator ID from token name
+                $impersonatorId = (int) substr($userToken->name, strlen('impersonation_'));
                 break;
             }
         }
@@ -243,6 +266,21 @@ class UserController extends Controller
 
         // Revoke the token
         $token->delete();
+
+        // Security audit logging for impersonation end
+        $this->securityLogger->logAsync(
+            eventType: 'auth.impersonation_ended',
+            description: "Impersonation session ended for user '{$user->name}'",
+            context: [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_name' => $user->name,
+                'impersonator_id' => $impersonatorId,
+            ],
+            tenantId: $user->tenant_id,
+            userId: $user->id,
+            request: $request,
+        );
 
         return response()->json([
             'success' => true,

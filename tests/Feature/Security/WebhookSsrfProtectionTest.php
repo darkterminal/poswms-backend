@@ -264,6 +264,10 @@ class WebhookSsrfProtectionTest extends TestCase
 
     public function test_cloud_metadata_paths_are_blocked(): void
     {
+        // Set STRICT mode to ensure cloud metadata paths are blocked
+        config(['ssrf.strict_mode' => 'STRICT']);
+        $validator = app(UrlValidationService::class);
+
         $blockedUrls = [
             'https://example.com/latest/meta-data/',
             'https://example.com/computeMetadata/v1/',
@@ -271,7 +275,7 @@ class WebhookSsrfProtectionTest extends TestCase
         ];
 
         foreach ($blockedUrls as $url) {
-            $result = $this->urlValidator->validateUrl($url);
+            $result = $validator->validateUrl($url);
 
             $this->assertFalse($result['valid'], "URL should be blocked: {$url}");
         }

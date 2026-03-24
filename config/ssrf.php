@@ -13,19 +13,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Strict Mode
+    | Security Strict Mode
     |--------------------------------------------------------------------------
     |
-    | When enabled, strict mode enforces additional security checks:
-    | - DNS rebinding protection (double DNS resolution)
-    | - Redirect validation (checks final destination)
-    | - Allowlist-only mode (only pre-approved domains allowed)
+    | Defines the security enforcement level for SSRF protection.
+    | Supported modes:
+    | - OFF: Log only, no blocking (development/testing)
+    | - SOFT: Partial enforcement (staging/pre-production)
+    | - STRICT: Full enforcement with all security checks (production)
     |
-    | Set to false for development/testing environments where you need
-    | to use internal URLs (e.g., http://localhost, http://host.docker.internal)
+    | Default: OFF (log only)
     |
     */
-    'strict_mode' => env('SSRF_STRICT_MODE', true),
+    'strict_mode' => env('SECURITY_STRICT_MODE', 'OFF'),
 
     /*
     |--------------------------------------------------------------------------

@@ -75,9 +75,9 @@ class UrlValidationService
     private array $allowedDomains = [];
 
     /**
-     * @var bool Whether strict mode is enabled
+     * @var string Security mode: 'OFF', 'SOFT', or 'STRICT'
      */
-    private bool $strictMode = true;
+    private string $strictMode = 'OFF';
 
     /**
      * @var bool Whether allowlist mode is enabled
@@ -107,7 +107,7 @@ class UrlValidationService
     public function __construct()
     {
         // Load configuration
-        $this->strictMode = config('ssrf.strict_mode', true);
+        $this->strictMode = strtoupper((string) config('ssrf.strict_mode', 'OFF'));
         $this->allowlistEnabled = config('ssrf.allowlist_enabled', false);
         $this->validateRedirects = config('ssrf.validate_redirects', false);
         $this->dnsRebindingProtection = config('ssrf.dns_rebinding_protection', true);
@@ -199,6 +199,10 @@ class UrlValidationService
         $path = $parsedUrl['path'] ?? '/';
 
         // Check for cloud metadata paths
+        // Mode behavior:
+        // - OFF: Log only, allow through
+        // - SOFT: Log and audit, allow through with warning
+        // - STRICT: Block completely (critical security risk)
         foreach ($this->blockedCloudMetadataPaths as $metadataPath) {
             if (str_contains($path, $metadataPath)) {
                 $this->log('critical', 'SSRF attack blocked: Cloud metadata endpoint', [
@@ -213,6 +217,15 @@ class UrlValidationService
                     'risk_level' => 'critical',
                 ]);
 
+                // In OFF or SOFT mode, log but allow
+                if ($this->isSecurityModeOff() || $this->isSecurityModeSoft()) {
+                    $this->log('warning', sprintf('%s mode: Allowing URL to cloud metadata endpoint', $this->strictMode), [
+                        'url' => $url,
+                    ]);
+                    break;
+                }
+
+                // STRICT mode: block
                 return [
                     'valid' => false,
                     'error' => 'URL points to blocked cloud metadata endpoint',
@@ -222,15 +235,42 @@ class UrlValidationService
         }
 
         // Check blocked hostnames
+        // Mode behavior:
+        // - OFF: Log only, allow through
+        // - SOFT: Log and audit, allow through with warning
+        // - STRICT: Block completely
         if (in_array(strtolower($host), $this->blockedHostnames, true)) {
             $this->log('warning', 'SSRF validation: Blocked hostname', ['host' => $host, 'url' => $url]);
 
-            return ['valid' => false, 'error' => 'URL points to blocked host: ' . $host];
+            // In OFF or SOFT mode, log but allow
+            if ($this->isSecurityModeOff() || $this->isSecurityModeSoft()) {
+                $this->log('warning', sprintf('%s mode: Allowing URL to blocked hostname', $this->strictMode), [
+                    'url' => $url,
+                    'host' => $host,
+                ]);
+            } else {
+                // STRICT mode: block
+                return ['valid' => false, 'error' => 'URL points to blocked host: ' . $host];
+            }
         }
 
         // Check blocked hostname patterns
+        // Mode behavior:
+        // - OFF: Allow through
+        // - SOFT: Log warning, allow through
+        // - STRICT: Block completely
         foreach ($this->blockedHostnames as $blockedHostname) {
             if (str_ends_with($host, '.' . $blockedHostname)) {
+                // In OFF or SOFT mode, log but allow
+                if ($this->isSecurityModeOff() || $this->isSecurityModeSoft()) {
+                    $this->log('warning', sprintf('%s mode: Allowing URL to blocked domain', $this->strictMode), [
+                        'url' => $url,
+                        'host' => $host,
+                    ]);
+                    break;
+                }
+
+                // STRICT mode: block
                 return ['valid' => false, 'error' => 'URL points to blocked domain: ' . $host];
             }
         }
@@ -250,7 +290,11 @@ class UrlValidationService
         }
 
         // DNS rebinding protection: resolve twice with delay
-        $shouldSkipDnsCheck = $skipDnsRebindingCheck || ! $this->dnsRebindingProtection || $this->testingMode;
+        // Mode behavior:
+        // - OFF: Skip DNS rebinding check entirely
+        // - SOFT: Perform check but only log warnings, don't block
+        // - STRICT: Full enforcement with blocking
+        $shouldSkipDnsCheck = $skipDnsRebindingCheck || ! $this->dnsRebindingProtection || $this->testingMode || $this->isSecurityModeOff();
 
         if (! $shouldSkipDnsCheck) {
             $firstResolution = $this->resolveHostname($host);
@@ -261,44 +305,64 @@ class UrlValidationService
                     'error' => $firstResolution['error'],
                 ]);
 
-                return ['valid' => false, 'error' => 'Could not resolve hostname: ' . $host];
+                // In SOFT mode, log but continue
+                if ($this->isSecurityModeSoft()) {
+                    $this->log('warning', 'SOFT mode: Allowing URL despite DNS failure', ['url' => $url]);
+                    $ip = '0.0.0.0'; // Placeholder to pass through
+                } else {
+                    // STRICT mode: block
+                    return ['valid' => false, 'error' => 'Could not resolve hostname: ' . $host];
+                }
+            } else {
+                // Small delay to prevent DNS rebinding attacks
+                usleep(100000); // 100ms
+
+                $secondResolution = $this->resolveHostname($host);
+
+                if (! $secondResolution['success']) {
+                    // In SOFT mode, log but continue
+                    if ($this->isSecurityModeSoft()) {
+                        $this->log('warning', 'SOFT mode: Allowing URL despite inconsistent DNS', ['url' => $url]);
+                        $ip = $firstResolution['ip'];
+                    } else {
+                        // STRICT mode: block
+                        return ['valid' => false, 'error' => 'DNS resolution inconsistent (possible rebinding attack)'];
+                    }
+                } elseif ($firstResolution['ip'] !== $secondResolution['ip']) {
+                    // DNS rebinding detected
+                    $this->log('critical', 'SSRF attack blocked: DNS rebinding detected', [
+                        'url' => $url,
+                        'first_ip' => $firstResolution['ip'],
+                        'second_ip' => $secondResolution['ip'],
+                        'tenant_id' => $tenantId,
+                        'user_id' => $userId,
+                    ]);
+
+                    $this->createAuditLog($tenantId, $userId, 'ssrf_attack_blocked', [
+                        'url' => $url,
+                        'reason' => 'DNS rebinding detected',
+                        'first_ip' => $firstResolution['ip'],
+                        'second_ip' => $secondResolution['ip'],
+                        'risk_level' => 'critical',
+                    ]);
+
+                    // In SOFT mode, log but allow
+                    if ($this->isSecurityModeSoft()) {
+                        $this->log('warning', 'SOFT mode: Allowing URL despite DNS rebinding detection', ['url' => $url]);
+                        $ip = $firstResolution['ip'];
+                    } else {
+                        // STRICT mode: block
+                        return [
+                            'valid' => false,
+                            'error' => 'DNS rebinding detected (possible attack)',
+                            'risk_level' => 'critical',
+                        ];
+                    }
+                } else {
+                    // DNS checks passed
+                    $ip = $firstResolution['ip'];
+                }
             }
-
-            // Small delay to prevent DNS rebinding attacks
-            usleep(100000); // 100ms
-
-            $secondResolution = $this->resolveHostname($host);
-
-            if (! $secondResolution['success']) {
-                return ['valid' => false, 'error' => 'DNS resolution inconsistent (possible rebinding attack)'];
-            }
-
-            // Check for DNS rebinding (IP changed between resolutions)
-            if ($firstResolution['ip'] !== $secondResolution['ip']) {
-                $this->log('critical', 'SSRF attack blocked: DNS rebinding detected', [
-                    'url' => $url,
-                    'first_ip' => $firstResolution['ip'],
-                    'second_ip' => $secondResolution['ip'],
-                    'tenant_id' => $tenantId,
-                    'user_id' => $userId,
-                ]);
-
-                $this->createAuditLog($tenantId, $userId, 'ssrf_attack_blocked', [
-                    'url' => $url,
-                    'reason' => 'DNS rebinding detected',
-                    'first_ip' => $firstResolution['ip'],
-                    'second_ip' => $secondResolution['ip'],
-                    'risk_level' => 'critical',
-                ]);
-
-                return [
-                    'valid' => false,
-                    'error' => 'DNS rebinding detected (possible attack)',
-                    'risk_level' => 'critical',
-                ];
-            }
-
-            $ip = $firstResolution['ip'];
         } else {
             // Skip DNS rebinding check - use simple resolution
             $ip = gethostbyname($host);
@@ -326,6 +390,10 @@ class UrlValidationService
         }
 
         // Check if IP is in blocked ranges (skip if IP is null - allowlisted domain)
+        // Mode behavior:
+        // - OFF: Log only, allow through
+        // - SOFT: Log and create audit trail, allow through with warning
+        // - STRICT: Block completely
         if ($ip !== null) {
             foreach ($this->blockedIpPatterns as $pattern) {
                 if (preg_match($pattern, $ip)) {
@@ -343,6 +411,18 @@ class UrlValidationService
                         'risk_level' => 'high',
                     ]);
 
+                    // In OFF or SOFT mode, log but allow
+                    if ($this->isSecurityModeOff() || $this->isSecurityModeSoft()) {
+                        $this->log('warning', sprintf('%s mode: Allowing URL to private IP', $this->strictMode), [
+                            'url' => $url,
+                            'ip' => $ip,
+                        ]);
+
+                        // Continue to next validation step
+                        break;
+                    }
+
+                    // STRICT mode: block
                     return [
                         'valid' => false,
                         'error' => 'URL points to internal/private IP address: ' . $ip,
@@ -353,6 +433,10 @@ class UrlValidationService
         }
 
         // Additional check using PHP's filter for private/reserved ranges (skip if IP is null)
+        // Mode behavior:
+        // - OFF: Log only, allow through
+        // - SOFT: Log and create audit trail, allow through with warning
+        // - STRICT: Block completely
         if ($ip !== null && ! filter_var(
             $ip,
             FILTER_VALIDATE_IP,
@@ -372,15 +456,24 @@ class UrlValidationService
                 'risk_level' => 'high',
             ]);
 
-            return [
-                'valid' => false,
-                'error' => 'URL points to private or reserved IP range: ' . $ip,
-                'risk_level' => 'high',
-            ];
+            // In OFF or SOFT mode, log but allow
+            if ($this->isSecurityModeOff() || $this->isSecurityModeSoft()) {
+                $this->log('warning', sprintf('%s mode: Allowing URL to private/reserved IP', $this->strictMode), [
+                    'url' => $url,
+                    'ip' => $ip,
+                ]);
+            } else {
+                // STRICT mode: block
+                return [
+                    'valid' => false,
+                    'error' => 'URL points to private or reserved IP range: ' . $ip,
+                    'risk_level' => 'high',
+                ];
+            }
         }
 
-        // In strict mode, validate redirects
-        if ($this->strictMode && $this->validateRedirects && ! $this->testingMode) {
+        // In STRICT mode, validate redirects
+        if ($this->isSecurityModeStrict() && $this->validateRedirects && ! $this->testingMode) {
             $redirectsToBlocked = $this->checkRedirects($url);
 
             if ($redirectsToBlocked) {
@@ -579,7 +672,7 @@ class UrlValidationService
      */
     public function enableStrictMode(): void
     {
-        $this->strictMode = true;
+        $this->strictMode = 'STRICT';
     }
 
     /**
@@ -587,7 +680,17 @@ class UrlValidationService
      */
     public function disableStrictMode(): void
     {
-        $this->strictMode = false;
+        $this->strictMode = 'OFF';
+    }
+
+    /**
+     * Set security mode.
+     *
+     * @param  string  $mode  Security mode: 'OFF', 'SOFT', or 'STRICT'
+     */
+    public function setSecurityMode(string $mode): void
+    {
+        $this->strictMode = strtoupper($mode);
     }
 
     /**
@@ -615,7 +718,31 @@ class UrlValidationService
      */
     public function isStrictModeEnabled(): bool
     {
-        return $this->strictMode;
+        return $this->strictMode === 'STRICT';
+    }
+
+    /**
+     * Check if security mode is OFF (log only).
+     */
+    public function isSecurityModeOff(): bool
+    {
+        return $this->strictMode === 'OFF';
+    }
+
+    /**
+     * Check if security mode is SOFT (partial enforcement).
+     */
+    public function isSecurityModeSoft(): bool
+    {
+        return $this->strictMode === 'SOFT';
+    }
+
+    /**
+     * Check if security mode is STRICT (full enforcement).
+     */
+    public function isSecurityModeStrict(): bool
+    {
+        return $this->strictMode === 'STRICT';
     }
 
     /**

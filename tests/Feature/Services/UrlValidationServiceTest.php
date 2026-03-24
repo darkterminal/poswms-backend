@@ -18,7 +18,7 @@ class UrlValidationServiceTest extends TestCase
 
         // Force testing mode to skip DNS rebinding checks
         config(['ssrf.testing_mode' => true]);
-        config(['ssrf.strict_mode' => true]);
+        config(['ssrf.strict_mode' => 'STRICT']);
         config(['ssrf.allowlist_enabled' => false]);
 
         $this->urlValidator = app(UrlValidationService::class);
@@ -289,7 +289,7 @@ class UrlValidationServiceTest extends TestCase
         $this->assertTrue($this->urlValidator->isStrictModeEnabled());
 
         $this->urlValidator->disableStrictMode();
-        $this->assertFalse($this->urlValidator->isStrictModeEnabled());
+        $this->assertTrue($this->urlValidator->isSecurityModeOff());
 
         $this->urlValidator->enableStrictMode();
         $this->assertTrue($this->urlValidator->isStrictModeEnabled());
@@ -297,7 +297,7 @@ class UrlValidationServiceTest extends TestCase
 
     public function test_strict_mode_blocks_redirects_to_private_ips(): void
     {
-        config(['ssrf.strict_mode' => true]);
+        config(['ssrf.strict_mode' => 'STRICT']);
         config(['ssrf.validate_redirects' => true]);
 
         $validator = app(UrlValidationService::class);
@@ -445,13 +445,13 @@ class UrlValidationServiceTest extends TestCase
 
     public function test_service_loads_config_on_construction(): void
     {
-        config(['ssrf.strict_mode' => false]);
+        config(['ssrf.strict_mode' => 'OFF']);
         config(['ssrf.allowlist_enabled' => true]);
         config(['ssrf.allowed_domains' => ['test.com']]);
 
         $validator = app(UrlValidationService::class);
 
-        $this->assertFalse($validator->isStrictModeEnabled());
+        $this->assertTrue($validator->isSecurityModeOff());
         $this->assertTrue($validator->isAllowlistModeEnabled());
     }
 
@@ -496,5 +496,144 @@ class UrlValidationServiceTest extends TestCase
             str_contains(strtolower($result['error']), 'private'),
             'Expected error about metadata or private IP, got: ' . ($result['error'] ?? 'no error')
         );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Security Mode Tests (OFF, SOFT, STRICT)
+    |--------------------------------------------------------------------------
+    */
+
+    public function test_security_mode_off_allows_private_ips(): void
+    {
+        config(['ssrf.strict_mode' => 'OFF']);
+        config(['ssrf.testing_mode' => true]);
+
+        $validator = app(UrlValidationService::class);
+
+        // In OFF mode, private IPs should be logged but allowed
+        $result = $validator->validateUrl('http://192.168.1.1/webhook');
+
+        $this->assertTrue($result['valid']);
+    }
+
+    public function test_security_mode_soft_allows_private_ips_with_logging(): void
+    {
+        config(['ssrf.strict_mode' => 'SOFT']);
+        config(['ssrf.testing_mode' => true]);
+
+        $validator = app(UrlValidationService::class);
+
+        // In SOFT mode, private IPs should be logged but allowed
+        $result = $validator->validateUrl('http://10.0.0.1/webhook');
+
+        $this->assertTrue($result['valid']);
+    }
+
+    public function test_security_mode_strict_blocks_private_ips(): void
+    {
+        config(['ssrf.strict_mode' => 'STRICT']);
+        config(['ssrf.testing_mode' => true]);
+
+        $validator = app(UrlValidationService::class);
+
+        // In STRICT mode, private IPs should be blocked
+        $result = $validator->validateUrl('http://192.168.1.1/webhook');
+
+        $this->assertFalse($result['valid']);
+        $this->assertStringContainsString('private', strtolower($result['error'] ?? ''));
+    }
+
+    public function test_security_mode_off_allows_blocked_hostnames(): void
+    {
+        config(['ssrf.strict_mode' => 'OFF']);
+        config(['ssrf.testing_mode' => true]);
+
+        $validator = app(UrlValidationService::class);
+
+        // In OFF mode, blocked hostnames should be logged but allowed
+        $result = $validator->validateUrl('http://localhost/webhook');
+
+        $this->assertTrue($result['valid']);
+    }
+
+    public function test_security_mode_soft_allows_blocked_hostnames_with_logging(): void
+    {
+        config(['ssrf.strict_mode' => 'SOFT']);
+        config(['ssrf.testing_mode' => true]);
+
+        $validator = app(UrlValidationService::class);
+
+        // In SOFT mode, blocked hostnames should be logged but allowed
+        $result = $validator->validateUrl('http://localhost/webhook');
+
+        $this->assertTrue($result['valid']);
+    }
+
+    public function test_security_mode_strict_blocks_blocked_hostnames(): void
+    {
+        config(['ssrf.strict_mode' => 'STRICT']);
+        config(['ssrf.testing_mode' => true]);
+
+        $validator = app(UrlValidationService::class);
+
+        // In STRICT mode, blocked hostnames should be blocked
+        $result = $validator->validateUrl('http://localhost/webhook');
+
+        $this->assertFalse($result['valid']);
+    }
+
+    public function test_security_mode_off_allows_cloud_metadata_paths(): void
+    {
+        config(['ssrf.strict_mode' => 'OFF']);
+        config(['ssrf.testing_mode' => true]);
+
+        $validator = app(UrlValidationService::class);
+
+        // In OFF mode, cloud metadata paths should be logged but allowed
+        $result = $validator->validateUrl('http://example.com/latest/meta-data/');
+
+        $this->assertTrue($result['valid']);
+    }
+
+    public function test_security_mode_soft_allows_cloud_metadata_paths_with_logging(): void
+    {
+        config(['ssrf.strict_mode' => 'SOFT']);
+        config(['ssrf.testing_mode' => true]);
+
+        $validator = app(UrlValidationService::class);
+
+        // In SOFT mode, cloud metadata paths should be logged but allowed
+        $result = $validator->validateUrl('http://example.com/latest/meta-data/');
+
+        $this->assertTrue($result['valid']);
+    }
+
+    public function test_security_mode_strict_blocks_cloud_metadata_paths(): void
+    {
+        config(['ssrf.strict_mode' => 'STRICT']);
+        config(['ssrf.testing_mode' => true]);
+
+        $validator = app(UrlValidationService::class);
+
+        // In STRICT mode, cloud metadata paths should be blocked
+        $result = $validator->validateUrl('http://example.com/latest/meta-data/');
+
+        $this->assertFalse($result['valid']);
+        $this->assertStringContainsString('metadata', strtolower($result['error'] ?? ''));
+    }
+
+    public function test_set_security_mode_method(): void
+    {
+        $validator = app(UrlValidationService::class);
+
+        $validator->setSecurityMode('OFF');
+        $this->assertTrue($validator->isSecurityModeOff());
+
+        $validator->setSecurityMode('soft');
+        $this->assertTrue($validator->isSecurityModeSoft());
+
+        $validator->setSecurityMode('STRICT');
+        $this->assertTrue($validator->isSecurityModeStrict());
     }
 }

@@ -13,6 +13,49 @@ class AuditLog extends Model
     use HasFactory;
 
     /**
+     * High-risk security event types.
+     */
+    public const HIGH_RISK_EVENTS = [
+        // Authentication events
+        'auth.login_failed',
+        'auth.login_locked',
+        'auth.logout',
+        'auth.token_revoked',
+        'auth.impersonation_started',
+        'auth.impersonation_ended',
+
+        // Authorization events
+        'authorization.denied',
+        'permission.assigned',
+        'permission.revoked',
+        'role.assigned',
+        'role.revoked',
+        'role.created',
+        'role.updated',
+        'role.deleted',
+
+        // User management events
+        'user.created',
+        'user.updated',
+        'user.deleted',
+        'user.deactivated',
+        'user.activated',
+
+        // Webhook events
+        'webhook.created',
+        'webhook.updated',
+        'webhook.deleted',
+        'webhook.ssrf_blocked',
+        'webhook.test_blocked',
+
+        // Security events
+        'security.ssrf_detected',
+        'security.rate_limit_exceeded',
+        'security.suspicious_activity',
+        'security.data_export',
+    ];
+
+    /**
      * The attributes that are mass assignable.
      *
      * @var array<int, string>
@@ -21,6 +64,7 @@ class AuditLog extends Model
         'tenant_id',
         'user_id',
         'event_type',
+        'description',
         'auditable_type',
         'auditable_id',
         'url',
@@ -105,5 +149,92 @@ class AuditLog extends Model
     public function scopeBetweenDates($query, string $startDate, string $endDate): void
     {
         $query->whereBetween('created_at', [$startDate, $endDate]);
+    }
+
+    /**
+     * Scope a query to only include high-risk security events.
+     */
+    public function scopeHighRisk($query): void
+    {
+        $query->whereIn('event_type', self::HIGH_RISK_EVENTS);
+    }
+
+    /**
+     * Scope a query to only include authentication events.
+     */
+    public function scopeAuthEvents($query): void
+    {
+        $query->where('event_type', 'like', 'auth.%');
+    }
+
+    /**
+     * Scope a query to only include authorization events.
+     */
+    public function scopeAuthorizationEvents($query): void
+    {
+        $query->where('event_type', 'like', 'authorization.%');
+    }
+
+    /**
+     * Scope a query to only include webhook security events.
+     */
+    public function scopeWebhookEvents($query): void
+    {
+        $query->where('event_type', 'like', 'webhook.%');
+    }
+
+    /**
+     * Scope a query to only include security events.
+     */
+    public function scopeSecurityEvents($query): void
+    {
+        $query->where('event_type', 'like', 'security.%');
+    }
+
+    /**
+     * Scope a query to only include failed authentication attempts.
+     */
+    public function scopeFailedAuth($query): void
+    {
+        $query->where(function ($q) {
+            $q->where('event_type', 'auth.login_failed')
+                ->orWhere('event_type', 'auth.login_locked');
+        });
+    }
+
+    /**
+     * Scope a query to only include permission/role changes.
+     */
+    public function scopePermissionChanges($query): void
+    {
+        $query->where(function ($q) {
+            $q->where('event_type', 'like', 'permission.%')
+                ->orWhere('event_type', 'like', 'role.%');
+        });
+    }
+
+    /**
+     * Check if this audit log entry is a high-risk event.
+     */
+    public function isHighRisk(): bool
+    {
+        return in_array($this->event_type, self::HIGH_RISK_EVENTS, true);
+    }
+
+    /**
+     * Get the risk level for this event.
+     *
+     * @return string Risk level (high, medium, low)
+     */
+    public function getRiskLevelAttribute(): string
+    {
+        return match (true) {
+            str_contains($this->event_type, 'ssrf'),
+            str_contains($this->event_type, 'locked') => 'high',
+            str_contains($this->event_type, 'denied'),
+            str_contains($this->event_type, 'failed'),
+            str_contains($this->event_type, 'suspicious') => 'medium',
+            default => 'low',
+        };
     }
 }

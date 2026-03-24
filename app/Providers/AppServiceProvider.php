@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\AuditLogService;
 use App\Models\Product;
 use App\Observers\AuditObserver;
+use App\SecurityAuditLogger;
 use App\Services\RateLimitService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -21,6 +22,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(AuditLogService::class, AuditLogService::class);
         $this->app->singleton(ExportService::class, ExportService::class);
         $this->app->singleton(RateLimitService::class, RateLimitService::class);
+        $this->app->singleton(SecurityAuditLogger::class, SecurityAuditLogger::class);
     }
 
     /**

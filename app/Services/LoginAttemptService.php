@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\AuditLog;
 use App\Models\User;
+use App\SecurityAuditLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -50,8 +50,9 @@ class LoginAttemptService
      */
     private int $delayMultiplier;
 
-    public function __construct()
-    {
+    public function __construct(
+        private SecurityAuditLogger $securityLogger
+    ) {
         // Configuration can be overridden via config/auth.php if needed
         $this->maxAttempts = config('auth.login.max_attempts', 5);
         $this->warningThreshold = config('auth.login.warning_threshold', 3);
@@ -131,18 +132,11 @@ class LoginAttemptService
                 'lockout_duration' => $lockoutDuration,
             ]);
 
-            // Create audit log
-            $this->createAuditLog(
-                $user,
-                'auth.login_locked',
-                'Account locked after ' . $attempts . ' failed attempts',
-                $ipAddress,
-                $request->userAgent(),
-                [
-                    'email' => $email,
-                    'attempts' => $attempts,
-                    'lockout_duration' => $lockoutDuration,
-                ]
+            // Create audit log using security logger
+            $this->securityLogger->logAccountLockout(
+                email: $email,
+                attemptCount: $attempts,
+                lockoutDuration: $lockoutDuration
             );
         } elseif ($attempts >= $this->warningThreshold) {
             // Progressive delay before lockout
@@ -165,18 +159,15 @@ class LoginAttemptService
             'wait_time' => $waitTime,
         ]);
 
-        // Create audit log for failed attempt
-        $this->createAuditLog(
-            $user,
-            'auth.login_failed',
-            'Failed login attempt',
-            $ipAddress,
-            $request->userAgent(),
-            [
-                'email' => $email,
+        // Create audit log using security logger
+        $this->securityLogger->logAuthFailure(
+            email: $email,
+            userId: $user?->id,
+            context: [
                 'attempt' => $attempts,
                 'remaining_attempts' => $this->maxAttempts - $attempts,
                 'wait_time' => $waitTime,
+                'ip_address' => $ipAddress,
             ]
         );
 
@@ -276,17 +267,18 @@ class LoginAttemptService
             'suspicious' => $wasSuspicious,
         ]);
 
-        // Create audit log
-        $this->createAuditLog(
-            $user,
-            'auth.login_success',
-            'User logged in successfully' . ($wasSuspicious ? ' (suspicious)' : ''),
-            $ipAddress,
-            $request->userAgent(),
-            [
+        // Create audit log using security logger
+        $this->securityLogger->log(
+            eventType: 'auth.login_success',
+            description: 'User logged in successfully' . ($wasSuspicious ? ' (suspicious)' : ''),
+            context: [
                 'email' => $user->email,
                 'suspicious' => $wasSuspicious,
-            ]
+                'ip_address' => $ipAddress,
+            ],
+            tenantId: $user->tenant_id,
+            userId: $user->id,
+            request: $request,
         );
     }
 
@@ -332,39 +324,5 @@ class LoginAttemptService
     private function getLockoutKey(string $email): string
     {
         return 'login_attempts:' . strtolower(trim($email));
-    }
-
-    /**
-     * Create audit log entry for authentication events.
-     *
-     * @param  User|null  $user  User model
-     * @param  string  $eventType  Event type
-     * @param  string  $description  Event description
-     * @param  string  $ipAddress  IP address
-     * @param  string|null  $userAgent  User agent
-     * @param  array  $metadata  Additional metadata
-     */
-    private function createAuditLog(
-        ?User $user,
-        string $eventType,
-        string $description,
-        string $ipAddress,
-        ?string $userAgent,
-        array $metadata
-    ): void {
-        // Only create audit log if user has tenant_id
-        if ($user && $user->tenant_id) {
-            AuditLog::create([
-                'tenant_id' => $user->tenant_id,
-                'user_id' => $user->id,
-                'event_type' => $eventType,
-                'auditable_type' => 'App\\Models\\User',
-                'auditable_id' => $user->id,
-                'description' => $description,
-                'ip_address' => $ipAddress,
-                'user_agent' => $userAgent,
-                'metadata' => $metadata,
-            ]);
-        }
     }
 }

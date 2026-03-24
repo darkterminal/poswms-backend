@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AuditLog;
 use App\Models\Webhook;
 use App\Models\WebhookDeliveryAttempt;
+use App\SecurityAuditLogger;
 use App\Services\UrlValidationService;
 use App\Services\WebhookService;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\Log;
 class WebhookController extends Controller
 {
     public function __construct(
-        private UrlValidationService $urlValidationService
+        private UrlValidationService $urlValidationService,
+        private SecurityAuditLogger $securityLogger
     ) {}
 
     /**
@@ -78,6 +79,14 @@ class WebhookController extends Controller
                 'risk_level' => $urlValidationResult['risk_level'] ?? 'high',
             ]);
 
+            // Security audit logging for SSRF attempt
+            $this->securityLogger->logSsrfAttempt(
+                url: $validated['url'],
+                reason: $urlValidationResult['error'],
+                tenantId: $tenantId,
+                userId: $userId
+            );
+
             return response()->json([
                 'success' => false,
                 'error' => [
@@ -101,20 +110,19 @@ class WebhookController extends Controller
             'timeout' => $validated['timeout'] ?? 30,
         ]);
 
-        // Audit log for successful webhook creation
-        AuditLog::create([
-            'tenant_id' => $tenantId,
-            'user_id' => $userId,
-            'event_type' => 'webhook.created',
-            'auditable_type' => Webhook::class,
-            'auditable_id' => $webhook->id,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'metadata' => [
-                'url' => $validated['url'],
-                'events' => $validated['events'],
+        // Security audit logging for webhook creation (async to avoid performance impact)
+        $this->securityLogger->logWebhookChange(
+            action: 'created',
+            webhookId: $webhook->id,
+            webhookData: [
+                'name' => $webhook->name,
+                'url' => $webhook->url,
+                'events' => $webhook->events,
+                'active' => $webhook->active,
             ],
-        ]);
+            tenantId: $tenantId,
+            userId: $userId
+        );
 
         return response()->json([
             'success' => true,
@@ -189,6 +197,14 @@ class WebhookController extends Controller
                     'risk_level' => $urlValidationResult['risk_level'] ?? 'high',
                 ]);
 
+                // Security audit logging for SSRF attempt
+                $this->securityLogger->logSsrfAttempt(
+                    url: $validated['url'],
+                    reason: $urlValidationResult['error'],
+                    tenantId: $tenantId,
+                    userId: $userId
+                );
+
                 return response()->json([
                     'success' => false,
                     'error' => [
@@ -205,7 +221,7 @@ class WebhookController extends Controller
 
         $webhook->update($validated);
 
-        // Audit log for webhook update
+        // Security audit logging for webhook update
         $changes = [];
         if (isset($validated['url']) && $validated['url'] !== $oldUrl) {
             $changes['url'] = ['old' => $oldUrl, 'new' => $validated['url']];
@@ -215,19 +231,18 @@ class WebhookController extends Controller
         }
 
         if (! empty($changes)) {
-            AuditLog::create([
-                'tenant_id' => $tenantId,
-                'user_id' => $userId,
-                'event_type' => 'webhook.updated',
-                'auditable_type' => Webhook::class,
-                'auditable_id' => $webhook->id,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'old_values' => $changes,
-                'metadata' => [
-                    'webhook_id' => $webhook->id,
+            $this->securityLogger->logWebhookChange(
+                action: 'updated',
+                webhookId: $webhook->id,
+                webhookData: [
+                    'name' => $webhook->name,
+                    'url' => $validated['url'] ?? $oldUrl,
+                    'events' => $validated['events'] ?? $oldEvents,
+                    'changes' => $changes,
                 ],
-            ]);
+                tenantId: $tenantId,
+                userId: $userId
+            );
         }
 
         return response()->json([
@@ -289,21 +304,13 @@ class WebhookController extends Controller
                 'risk_level' => $urlValidationResult['risk_level'] ?? 'high',
             ]);
 
-            AuditLog::create([
-                'tenant_id' => $tenantId,
-                'user_id' => $userId,
-                'event_type' => 'security.ssrf_test_blocked',
-                'auditable_type' => Webhook::class,
-                'auditable_id' => $webhookId,
-                'ip_address' => $request->ip(),
-                'user_agent' => $request->userAgent(),
-                'metadata' => [
-                    'webhook_id' => $webhookId,
-                    'url' => $webhook->url,
-                    'reason' => $urlValidationResult['error'],
-                    'risk_level' => $urlValidationResult['risk_level'] ?? 'high',
-                ],
-            ]);
+            // Security audit logging for SSRF attempt
+            $this->securityLogger->logSsrfAttempt(
+                url: $webhook->url,
+                reason: $urlValidationResult['error'],
+                tenantId: $tenantId,
+                userId: $userId
+            );
 
             return response()->json([
                 'success' => false,
@@ -336,22 +343,18 @@ class WebhookController extends Controller
 
         $result = $webhookService->dispatchToWebhook($webhook, 'webhook.test', $testPayload);
 
-        // Audit log for webhook test
-        AuditLog::create([
-            'tenant_id' => $tenantId,
-            'user_id' => $userId,
-            'event_type' => 'webhook.tested',
-            'auditable_type' => Webhook::class,
-            'auditable_id' => $webhook->id,
-            'ip_address' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-            'metadata' => [
-                'webhook_id' => $webhook->id,
+        // Security audit logging for webhook test
+        $this->securityLogger->logWebhookChange(
+            action: 'tested',
+            webhookId: $webhook->id,
+            webhookData: [
                 'url' => $webhook->url,
                 'success' => $result['success'],
                 'status' => $result['status'] ?? null,
             ],
-        ]);
+            tenantId: $tenantId,
+            userId: $userId
+        );
 
         return response()->json([
             'success' => true,
