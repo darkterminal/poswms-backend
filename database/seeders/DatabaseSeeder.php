@@ -55,6 +55,12 @@ class DatabaseSeeder extends Seeder
         // Seed inventory and related data
         $this->call([
             InventorySeeder::class,
+        ]);
+
+        // Seed FIFO batches and layers
+        $this->call([
+            InventoryBatchSeeder::class,
+            InventoryLayerSeeder::class,
             StockMovementSeeder::class,
         ]);
 
