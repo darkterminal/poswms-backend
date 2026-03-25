@@ -32,7 +32,8 @@ class SearchUsersRequest extends FormRequest
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
             'page' => ['nullable', 'integer', 'min:1'],
             'sort_by' => ['nullable', 'in:name,email,created_at'],
-            'sort_order' => ['nullable', 'in:asc,desc'],
+            // Case-insensitive validation for sort_order (OWASP A03 - Input Validation)
+            'sort_order' => ['nullable', 'in:asc,desc,ASC,DESC,Asc,Desc'],
         ];
     }
 

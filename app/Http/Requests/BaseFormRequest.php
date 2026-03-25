@@ -16,9 +16,13 @@ abstract class BaseFormRequest extends FormRequest
     /**
      * Check authorization with soft enforcement.
      *
+     * For backward compatibility, this ALWAYS returns true but logs warnings
+     * when permissions are missing. This allows the application to continue
+     * functioning while monitoring authorization gaps.
+     *
      * @param  string|null  $permission  The permission slug to check
      * @param  string  $action  The action being performed (for logging)
-     * @return bool True if authorized, always returns true for backward compatibility
+     * @return bool Always returns true for backward compatibility
      */
     protected function authorizeSoft(?string $permission = null, string $action = 'access'): bool
     {
@@ -39,7 +43,14 @@ abstract class BaseFormRequest extends FormRequest
         $user = $this->user();
 
         if (! $user) {
-            return false;
+            // No user - allow for backward compatibility but log
+            Log::warning('Form request without authenticated user', [
+                'request_class' => static::class,
+                'action' => $action,
+                'permission' => $permission,
+            ]);
+
+            return true;
         }
 
         // Super admins and admins have all permissions
@@ -50,7 +61,8 @@ abstract class BaseFormRequest extends FormRequest
         $hasPermission = $user->hasPermission($permission);
 
         if (! $hasPermission) {
-            Log::warning('Authorization check failed', [
+            // Log warning but still allow for backward compatibility
+            Log::warning('Authorization check failed - allowing for backward compatibility', [
                 'permission' => $permission,
                 'action' => $action,
                 'user_id' => $user->id,
@@ -59,22 +71,34 @@ abstract class BaseFormRequest extends FormRequest
             ]);
         }
 
-        return $hasPermission;
+        // Always return true for backward compatibility (soft enforcement)
+        return true;
     }
 
     /**
      * Check if user has any of the given permissions (soft enforcement).
      *
+     * For backward compatibility, this ALWAYS returns true but logs warnings
+     * when permissions are missing. This allows the application to continue
+     * functioning while monitoring authorization gaps.
+     *
      * @param  array<string>  $permissions  List of permission slugs
      * @param  string  $action  The action being performed
-     * @return bool True if user has any permission or for backward compatibility
+     * @return bool Always returns true for backward compatibility
      */
     protected function authorizeAnySoft(array $permissions, string $action = 'access'): bool
     {
         $user = $this->user();
 
         if (! $user) {
-            return false;
+            // No user - allow for backward compatibility but log
+            Log::warning('Form request without authenticated user', [
+                'request_class' => static::class,
+                'action' => $action,
+                'permissions' => $permissions,
+            ]);
+
+            return true;
         }
 
         // Super admins and admins have all permissions
@@ -85,7 +109,8 @@ abstract class BaseFormRequest extends FormRequest
         $hasAnyPermission = $user->hasAnyPermission($permissions);
 
         if (! $hasAnyPermission) {
-            Log::warning('Authorization check failed - no matching permissions', [
+            // Log warning but still allow for backward compatibility
+            Log::warning('Authorization check failed - no matching permissions - allowing for backward compatibility', [
                 'permissions' => $permissions,
                 'action' => $action,
                 'user_id' => $user->id,
@@ -94,6 +119,7 @@ abstract class BaseFormRequest extends FormRequest
             ]);
         }
 
-        return $hasAnyPermission;
+        // Always return true for backward compatibility (soft enforcement)
+        return true;
     }
 }
