@@ -42,9 +42,7 @@ class AppServiceProvider extends ServiceProvider
                 (int) ($config['decay_rate_seconds'] / 60),
                 (int) $config['max_attempts']
             )->by($request->user()?->id ?? $request->ip())
-                ->response(function () {
-                    return $this->rateLimitResponse();
-                });
+                ->response(fn() => $this->rateLimitResponse());
         });
 
         // Admin rate limiter - higher limits for admin operations
@@ -56,9 +54,7 @@ class AppServiceProvider extends ServiceProvider
                 (int) ($config['decay_rate_seconds'] / 60),
                 (int) $config['max_attempts']
             )->by($request->user()?->id ?? $request->ip())
-                ->response(function () {
-                    return $this->rateLimitResponse();
-                });
+                ->response(fn() => $this->rateLimitResponse());
         });
 
         // Heavy operations (imports, exports, bulk operations) - DEPRECATED
@@ -71,9 +67,7 @@ class AppServiceProvider extends ServiceProvider
                 (int) ($config['decay_rate_seconds'] / 60),
                 (int) $config['max_attempts']
             )->by($request->user()?->id ?? $request->ip())
-                ->response(function () {
-                    return $this->rateLimitResponse();
-                });
+                ->response(fn() => $this->rateLimitResponse());
         });
 
         // Authentication endpoints - strict limits to prevent brute force
@@ -109,9 +103,7 @@ class AppServiceProvider extends ServiceProvider
                 (int) ($config['decay_rate_seconds'] / 60),
                 (int) $config['max_attempts']
             )->by($request->user()?->id ?? $request->ip())
-                ->response(function () {
-                    return $this->rateLimitResponse();
-                });
+                ->response(fn() => $this->rateLimitResponse());
         });
 
         // Webhook test - strict limits to prevent SSRF amplification
@@ -129,9 +121,7 @@ class AppServiceProvider extends ServiceProvider
                 (int) ($config['decay_rate_seconds'] / 60),
                 (int) $config['max_attempts']
             )->by($request->user()?->id ?? $request->ip())
-                ->response(function () {
-                    return $this->rateLimitResponse();
-                });
+                ->response(fn() => $this->rateLimitResponse());
         });
     }
 
