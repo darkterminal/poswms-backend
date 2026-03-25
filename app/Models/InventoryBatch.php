@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 
 class InventoryBatch extends Model
 {
     use HasFactory, ScopedByTenant;
 
+    /**
+     * The attributes that are mass assignable.
+     * Security: Explicitly defined to prevent mass assignment vulnerabilities (OWASP A04).
+     */
     protected $fillable = [
         'tenant_id',
         'product_id',
@@ -30,6 +35,14 @@ class InventoryBatch extends Model
         'metadata',
     ];
 
+    /**
+     * The attributes that should be hidden.
+     */
+    protected $hidden = [];
+
+    /**
+     * The attributes that should be cast.
+     */
     protected function casts(): array
     {
         return [
@@ -40,6 +53,83 @@ class InventoryBatch extends Model
             'remaining_quantity' => 'integer',
             'metadata' => 'array',
         ];
+    }
+
+    /**
+     * Boot the model - add security validations.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        // Validate and sanitize batch data before saving (OWASP A04, A08)
+        static::saving(function (self $batch) {
+            // Ensure quantity values are non-negative
+            if ($batch->initial_quantity < 0) {
+                Log::warning('Negative initial quantity detected in inventory batch', [
+                    'batch_id' => $batch->id,
+                    'product_id' => $batch->product_id,
+                    'tenant_id' => $batch->tenant_id,
+                ]);
+                $batch->initial_quantity = 0;
+            }
+
+            if ($batch->remaining_quantity < 0) {
+                Log::warning('Negative remaining quantity detected in inventory batch', [
+                    'batch_id' => $batch->id,
+                    'product_id' => $batch->product_id,
+                    'tenant_id' => $batch->tenant_id,
+                ]);
+                $batch->remaining_quantity = 0;
+            }
+
+            // Ensure unit_cost is non-negative (OWASP A04)
+            if ($batch->unit_cost < 0) {
+                Log::warning('Negative unit cost detected in inventory batch', [
+                    'batch_id' => $batch->id,
+                    'product_id' => $batch->product_id,
+                    'tenant_id' => $batch->tenant_id,
+                ]);
+                $batch->unit_cost = 0;
+            }
+
+            // Sanitize text fields to prevent XSS (OWASP A03)
+            if ($batch->batch_number) {
+                $batch->batch_number = strip_tags(trim($batch->batch_number));
+            }
+
+            if ($batch->lot_number) {
+                $batch->lot_number = strip_tags(trim($batch->lot_number));
+            }
+
+            if ($batch->notes) {
+                $batch->notes = strip_tags(trim($batch->notes));
+            }
+
+            // Validate status whitelist (OWASP A04)
+            $allowedStatuses = ['active', 'consumed', 'expired', 'cancelled'];
+            if ($batch->status && ! in_array($batch->status, $allowedStatuses)) {
+                Log::warning('Invalid batch status detected', [
+                    'batch_id' => $batch->id,
+                    'status' => $batch->status,
+                    'tenant_id' => $batch->tenant_id,
+                ]);
+                $batch->status = 'active';
+            }
+        });
+
+        // Log batch changes for audit trail (OWASP A09)
+        static::updated(function (self $batch) {
+            $changes = $batch->getChanges();
+            if (! empty($changes)) {
+                Log::info('Inventory batch updated', [
+                    'batch_id' => $batch->id,
+                    'product_id' => $batch->product_id,
+                    'tenant_id' => $batch->tenant_id,
+                    'changes' => $changes,
+                ]);
+            }
+        });
     }
 
     /**

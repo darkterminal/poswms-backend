@@ -8,11 +8,16 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 
 class InventoryLayer extends Model
 {
     use HasFactory, ScopedByTenant;
 
+    /**
+     * The attributes that are mass assignable.
+     * Security: Explicitly defined to prevent mass assignment vulnerabilities (OWASP A04).
+     */
     protected $fillable = [
         'tenant_id',
         'product_id',
@@ -29,6 +34,14 @@ class InventoryLayer extends Model
         'is_fifo_layer',
     ];
 
+    /**
+     * The attributes that should be hidden.
+     */
+    protected $hidden = [];
+
+    /**
+     * The attributes that should be cast.
+     */
     protected function casts(): array
     {
         return [
@@ -43,15 +56,75 @@ class InventoryLayer extends Model
     }
 
     /**
-     * Boot the model - auto-calculate total_cost.
+     * Boot the model - add security validations and auto-calculations.
      */
     protected static function boot(): void
     {
         parent::boot();
 
+        // Validate and sanitize FIFO layer data before saving (OWASP A04, A08)
         static::saving(function (self $layer) {
+            // Ensure quantity values are non-negative
+            if ($layer->quantity < 0) {
+                Log::warning('Negative quantity detected in inventory layer', [
+                    'layer_id' => $layer->id,
+                    'inventory_id' => $layer->inventory_id,
+                    'product_id' => $layer->product_id,
+                    'tenant_id' => $layer->tenant_id,
+                ]);
+                $layer->quantity = 0;
+            }
+
+            if ($layer->reserved < 0) {
+                Log::warning('Negative reserved quantity detected in inventory layer', [
+                    'layer_id' => $layer->id,
+                    'inventory_id' => $layer->inventory_id,
+                    'product_id' => $layer->product_id,
+                    'tenant_id' => $layer->tenant_id,
+                ]);
+                $layer->reserved = 0;
+            }
+
+            // Ensure unit_cost is non-negative (OWASP A04)
+            if ($layer->unit_cost < 0) {
+                Log::warning('Negative unit cost detected in inventory layer', [
+                    'layer_id' => $layer->id,
+                    'inventory_id' => $layer->inventory_id,
+                    'product_id' => $layer->product_id,
+                    'tenant_id' => $layer->tenant_id,
+                ]);
+                $layer->unit_cost = 0;
+            }
+
+            // Auto-calculate total_cost and available (data integrity - OWASP A08)
             $layer->total_cost = $layer->quantity * $layer->unit_cost;
             $layer->available = $layer->quantity - $layer->reserved;
+        });
+
+        // Log layer changes for audit trail (OWASP A09)
+        static::updated(function (self $layer) {
+            $changes = $layer->getChanges();
+            if (! empty($changes)) {
+                Log::info('Inventory layer updated', [
+                    'layer_id' => $layer->id,
+                    'inventory_id' => $layer->inventory_id,
+                    'product_id' => $layer->product_id,
+                    'tenant_id' => $layer->tenant_id,
+                    'changes' => $changes,
+                ]);
+            }
+        });
+
+        // Log layer creation (OWASP A09)
+        static::created(function (self $layer) {
+            Log::info('Inventory layer created', [
+                'layer_id' => $layer->id,
+                'inventory_id' => $layer->inventory_id,
+                'product_id' => $layer->product_id,
+                'tenant_id' => $layer->tenant_id,
+                'quantity' => $layer->quantity,
+                'unit_cost' => $layer->unit_cost,
+            ]);
         });
     }
 

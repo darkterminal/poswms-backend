@@ -6,11 +6,16 @@ use App\Models\Concerns\ScopedByTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Log;
 
 class ProductPriceLevel extends Model
 {
     use HasFactory, ScopedByTenant;
 
+    /**
+     * The attributes that are mass assignable.
+     * Security: Explicitly defined to prevent mass assignment vulnerabilities (OWASP A04).
+     */
     protected $fillable = [
         'tenant_id',
         'product_id',
@@ -23,6 +28,14 @@ class ProductPriceLevel extends Model
         'active',
     ];
 
+    /**
+     * The attributes that should be hidden.
+     */
+    protected $hidden = [];
+
+    /**
+     * The attributes that should be cast.
+     */
     protected function casts(): array
     {
         return [
@@ -32,6 +45,69 @@ class ProductPriceLevel extends Model
             'level_order' => 'integer',
             'active' => 'boolean',
         ];
+    }
+
+    /**
+     * Boot the model - add security validations.
+     */
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        // Validate price level data before saving (OWASP A04)
+        static::saving(function (self $priceLevel) {
+            // Ensure price and cost are non-negative
+            if ($priceLevel->price < 0) {
+                Log::warning('Negative price detected in price level', [
+                    'price_level_id' => $priceLevel->id,
+                    'product_id' => $priceLevel->product_id,
+                    'tenant_id' => $priceLevel->tenant_id,
+                ]);
+                $priceLevel->price = 0;
+            }
+
+            if ($priceLevel->cost < 0) {
+                Log::warning('Negative cost detected in price level', [
+                    'price_level_id' => $priceLevel->id,
+                    'product_id' => $priceLevel->product_id,
+                    'tenant_id' => $priceLevel->tenant_id,
+                ]);
+                $priceLevel->cost = 0;
+            }
+
+            // Validate unit_size is positive
+            if ($priceLevel->unit_size <= 0) {
+                Log::warning('Invalid unit_size in price level', [
+                    'price_level_id' => $priceLevel->id,
+                    'product_id' => $priceLevel->product_id,
+                    'tenant_id' => $priceLevel->tenant_id,
+                ]);
+                $priceLevel->unit_size = 1;
+            }
+
+            // Sanitize level_name to prevent XSS (OWASP A03)
+            if ($priceLevel->level_name) {
+                $priceLevel->level_name = strip_tags(trim($priceLevel->level_name));
+            }
+
+            // Sanitize barcode (OWASP A03)
+            if ($priceLevel->barcode) {
+                $priceLevel->barcode = strip_tags(trim($priceLevel->barcode));
+            }
+        });
+
+        // Log price level changes for audit (OWASP A09)
+        static::updated(function (self $priceLevel) {
+            $changes = $priceLevel->getChanges();
+            if (! empty($changes)) {
+                Log::info('Price level updated', [
+                    'price_level_id' => $priceLevel->id,
+                    'product_id' => $priceLevel->product_id,
+                    'tenant_id' => $priceLevel->tenant_id,
+                    'changes' => $changes,
+                ]);
+            }
+        });
     }
 
     public function tenant(): BelongsTo
