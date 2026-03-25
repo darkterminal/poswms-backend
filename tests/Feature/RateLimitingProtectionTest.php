@@ -28,6 +28,9 @@ class RateLimitingProtectionTest extends TestCase
     {
         parent::setUp();
 
+        // Clear cache to reset rate limit state
+        \Illuminate\Support\Facades\Cache::flush();
+
         // Create tenant first
         $tenant = \App\Models\Tenant::factory()->create();
 
