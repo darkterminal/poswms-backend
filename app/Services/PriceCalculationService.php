@@ -5,11 +5,13 @@ namespace App\Services;
 use App\Models\Customer;
 use App\Models\PricingRule;
 use App\Models\Product;
+use Illuminate\Support\Facades\Log;
 
 class PriceCalculationService
 {
     /**
      * Calculate the final price for a product considering all applicable rules.
+     * Security: Validates tenant ownership and sanitizes inputs (OWASP A01, A04).
      *
      * @param  Product  $product  The product to calculate price for
      * @param  int  $quantity  The quantity being purchased
@@ -21,6 +23,27 @@ class PriceCalculationService
         int $quantity = 1,
         ?Customer $customer = null
     ): array {
+        // Security: Validate quantity (OWASP A04)
+        if ($quantity <= 0) {
+            Log::warning('Invalid quantity for price calculation', [
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'tenant_id' => $product->tenant_id,
+            ]);
+            $quantity = 1;
+        }
+
+        // Security: Verify customer belongs to same tenant if provided (OWASP A01)
+        if ($customer !== null && $customer->tenant_id !== $product->tenant_id) {
+            Log::error('Customer tenant mismatch in price calculation', [
+                'customer_tenant_id' => $customer->tenant_id,
+                'product_tenant_id' => $product->tenant_id,
+                'product_id' => $product->id,
+                'customer_id' => $customer->id,
+            ]);
+            throw new \RuntimeException('Customer does not belong to the same tenant');
+        }
+
         $basePrice = (float) $product->price;
         $currentPrice = $basePrice;
         $rulesApplied = [];
@@ -65,8 +88,21 @@ class PriceCalculationService
             }
         }
 
-        // Ensure price doesn't go below zero
+        // Ensure price doesn't go below zero (OWASP A04)
         $finalPrice = max(0, $currentPrice);
+
+        // Security: Log price calculation for audit (OWASP A09)
+        Log::info('Price calculated', [
+            'product_id' => $product->id,
+            'product_sku' => $product->sku,
+            'tenant_id' => $product->tenant_id,
+            'quantity' => $quantity,
+            'base_price' => $basePrice,
+            'final_price' => $finalPrice,
+            'discount' => round($basePrice - $finalPrice, 2),
+            'rules_count' => count($rulesApplied),
+            'customer_id' => $customer?->id,
+        ]);
 
         return [
             'base_price' => $basePrice,
@@ -140,6 +176,7 @@ class PriceCalculationService
 
     /**
      * Calculate price for multiple products (e.g., shopping cart).
+     * Security: Validates all products belong to same tenant (OWASP A01).
      *
      * @param  array  $items  Array of ['product_id' => int, 'quantity' => int]
      * @param  Customer|null  $customer  The customer
@@ -153,12 +190,45 @@ class PriceCalculationService
         $calculatedItems = [];
 
         foreach ($items as $item) {
-            $product = Product::find($item['product_id']);
-            if (! $product) {
+            // Security: Validate item data (OWASP A04)
+            if (! isset($item['product_id']) || ! isset($item['quantity'])) {
+                Log::warning('Invalid cart item data', [
+                    'item' => $item,
+                    'tenant_id' => $customer?->tenant_id,
+                ]);
                 continue;
             }
 
+            $product = Product::find($item['product_id']);
+            if (! $product) {
+                Log::warning('Product not found in cart calculation', [
+                    'product_id' => $item['product_id'],
+                ]);
+                continue;
+            }
+
+            // Security: Verify all products belong to same tenant (OWASP A01)
+            if ($customer !== null && $product->tenant_id !== $customer->tenant_id) {
+                Log::error('Product tenant mismatch in cart calculation', [
+                    'product_tenant_id' => $product->tenant_id,
+                    'customer_tenant_id' => $customer->tenant_id,
+                    'product_id' => $product->id,
+                    'customer_id' => $customer->id,
+                ]);
+                throw new \RuntimeException('Product does not belong to the same tenant');
+            }
+
             $quantity = $item['quantity'] ?? 1;
+
+            // Security: Validate quantity (OWASP A04)
+            if ($quantity <= 0) {
+                Log::warning('Invalid quantity in cart calculation', [
+                    'product_id' => $product->id,
+                    'quantity' => $quantity,
+                ]);
+                $quantity = 1;
+            }
+
             $calculation = $this->calculatePrice($product, $quantity, $customer);
 
             $itemSubtotal = $calculation['base_price'] * $quantity;
@@ -181,6 +251,16 @@ class PriceCalculationService
                 'rules_applied' => $calculation['rules_applied'],
             ];
         }
+
+        // Security: Log cart calculation for audit (OWASP A09)
+        Log::info('Cart price calculated', [
+            'items_count' => count($calculatedItems),
+            'subtotal' => round($subtotal, 2),
+            'total' => round($total, 2),
+            'discount' => round($totalDiscount, 2),
+            'customer_id' => $customer?->id,
+            'tenant_id' => $customer?->tenant_id,
+        ]);
 
         return [
             'subtotal' => round($subtotal, 2),

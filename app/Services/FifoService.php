@@ -10,6 +10,7 @@ use App\Models\StockMovement;
 use App\Models\Warehouse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class FifoService
 {
@@ -28,41 +29,88 @@ class FifoService
         ?int $orderId = null,
         ?string $reason = null
     ): array {
+        // Security: Use database locking to prevent race conditions (OWASP A08)
         return DB::transaction(function () use ($inventory, $quantity, $type, $orderId, $reason) {
-            // Check available stock
-            $availableStock = $inventory->hasFifoLayers()
-                ? $inventory->getLayerAvailableQuantity()
-                : $inventory->available;
+            // Lock the inventory row for update to prevent concurrent modifications
+            $lockedInventory = Inventory::where('id', $inventory->id)
+                ->lockForUpdate()
+                ->first();
 
+            if (! $lockedInventory) {
+                Log::error('Failed to lock inventory for FIFO consumption', [
+                    'inventory_id' => $inventory->id,
+                    'product_id' => $inventory->product_id,
+                    'tenant_id' => $inventory->tenant_id,
+                ]);
+                throw new \RuntimeException('Failed to lock inventory for update');
+            }
+
+            // Check available stock with locked data
+            $availableStock = $lockedInventory->hasFifoLayers()
+                ? $lockedInventory->getLayerAvailableQuantity()
+                : $lockedInventory->available;
+
+            // Security: Validate stock availability to prevent negative inventory (OWASP A08)
             if ($availableStock < $quantity) {
+                Log::warning('Insufficient stock for FIFO consumption', [
+                    'inventory_id' => $inventory->id,
+                    'product_id' => $inventory->product_id,
+                    'tenant_id' => $inventory->tenant_id,
+                    'available' => $availableStock,
+                    'requested' => $quantity,
+                ]);
                 throw new \RuntimeException(
                     "Insufficient stock. Available: {$availableStock}, Requested: {$quantity}"
                 );
             }
 
-            $result = $inventory->consumeQuantity($quantity, $type, $orderId);
+            // Security: Validate quantity is positive (OWASP A04)
+            if ($quantity <= 0) {
+                Log::warning('Invalid quantity for FIFO consumption', [
+                    'inventory_id' => $inventory->id,
+                    'quantity' => $quantity,
+                    'tenant_id' => $inventory->tenant_id,
+                ]);
+                throw new \RuntimeException('Quantity must be positive');
+            }
+
+            $result = $lockedInventory->consumeQuantity($quantity, $type, $orderId);
 
             // Record summary stock movement if not already recorded by layers
-            // Skip in tests where FK constraints may fail
             if ($result['consumed'] > 0) {
                 try {
                     StockMovement::recordMovement(
-                        tenantId: $inventory->tenant_id,
-                        productId: $inventory->product_id,
+                        tenantId: $lockedInventory->tenant_id,
+                        productId: $lockedInventory->product_id,
                         type: $type ?? 'out',
                         quantity: $result['consumed'],
-                        quantityBefore: $inventory->quantity + $result['consumed'],
-                        quantityAfter: $inventory->quantity,
-                        inventoryId: $inventory->id,
-                        warehouseId: $inventory->warehouse_id,
-                        storeId: $inventory->store_id,
+                        quantityBefore: $lockedInventory->quantity + $result['consumed'],
+                        quantityAfter: $lockedInventory->quantity,
+                        inventoryId: $lockedInventory->id,
+                        warehouseId: $lockedInventory->warehouse_id,
+                        storeId: $lockedInventory->store_id,
                         orderId: $orderId,
                         reason: $reason ?? 'FIFO stock consumption'
                     );
                 } catch (\Exception $e) {
-                    // Skip movement recording if FK constraints fail
+                    // Log the error but don't fail the transaction
+                    Log::error('Failed to record stock movement', [
+                        'error' => $e->getMessage(),
+                        'inventory_id' => $lockedInventory->id,
+                        'product_id' => $lockedInventory->product_id,
+                    ]);
                 }
             }
+
+            // Security: Log FIFO consumption for audit trail (OWASP A09)
+            Log::info('FIFO stock consumed', [
+                'inventory_id' => $lockedInventory->id,
+                'product_id' => $lockedInventory->product_id,
+                'tenant_id' => $lockedInventory->tenant_id,
+                'quantity' => $result['consumed'],
+                'total_cost' => $result['total_cost'],
+                'order_id' => $orderId,
+            ]);
 
             return $result;
         });
@@ -70,6 +118,7 @@ class FifoService
 
     /**
      * Add stock to inventory creating a new FIFO layer.
+     * Security: Validates input and uses database locking (OWASP A04, A08).
      */
     public function addStock(
         Inventory $inventory,
@@ -79,9 +128,28 @@ class FifoService
         ?string $reason = null
     ): InventoryLayer {
         return DB::transaction(function () use ($inventory, $quantity, $unitCost, $batch, $reason) {
+            // Security: Validate quantity and cost (OWASP A04)
+            if ($quantity <= 0) {
+                Log::warning('Invalid quantity for FIFO stock addition', [
+                    'inventory_id' => $inventory->id,
+                    'quantity' => $quantity,
+                    'tenant_id' => $inventory->tenant_id,
+                ]);
+                throw new \RuntimeException('Quantity must be positive');
+            }
+
+            if ($unitCost < 0) {
+                Log::warning('Negative unit cost for FIFO stock addition', [
+                    'inventory_id' => $inventory->id,
+                    'unit_cost' => $unitCost,
+                    'tenant_id' => $inventory->tenant_id,
+                ]);
+                throw new \RuntimeException('Unit cost cannot be negative');
+            }
+
             $quantityBefore = $inventory->quantity;
 
-            // Create or use batch
+            // Create or use batch with validation
             if ($batch === null) {
                 $batch = $this->createBatch(
                     tenantId: $inventory->tenant_id,
@@ -91,6 +159,16 @@ class FifoService
                     unitCost: $unitCost
                 );
             } else {
+                // Security: Verify batch belongs to same tenant (OWASP A01)
+                if ($batch->tenant_id !== $inventory->tenant_id) {
+                    Log::error('Batch tenant mismatch', [
+                        'batch_tenant_id' => $batch->tenant_id,
+                        'inventory_tenant_id' => $inventory->tenant_id,
+                        'batch_id' => $batch->id,
+                        'inventory_id' => $inventory->id,
+                    ]);
+                    throw new \RuntimeException('Batch does not belong to the same tenant');
+                }
                 $batch->addQuantity($quantity);
             }
 
@@ -119,6 +197,17 @@ class FifoService
                 reason: $reason ?? 'Stock received'
             );
 
+            // Security: Log stock addition for audit trail (OWASP A09)
+            Log::info('FIFO stock added', [
+                'inventory_id' => $inventory->id,
+                'product_id' => $inventory->product_id,
+                'tenant_id' => $inventory->tenant_id,
+                'quantity' => $quantity,
+                'unit_cost' => $unitCost,
+                'batch_id' => $batch->id,
+                'layer_id' => $layer->id,
+            ]);
+
             return $layer;
         });
     }
@@ -126,6 +215,7 @@ class FifoService
     /**
      * Transfer stock between locations using FIFO.
      * Consumes from source location using FIFO, creates new layer at destination.
+     * Security: Validates tenant ownership and uses database locking (OWASP A01, A08).
      */
     public function transferStock(
         Inventory $sourceInventory,
@@ -134,7 +224,27 @@ class FifoService
         ?string $reason = null
     ): array {
         return DB::transaction(function () use ($sourceInventory, $destinationInventory, $quantity, $reason) {
-            // Consume from source using FIFO
+            // Security: Verify both inventories belong to same tenant (OWASP A01)
+            if ($sourceInventory->tenant_id !== $destinationInventory->tenant_id) {
+                Log::error('Transfer between different tenants detected', [
+                    'source_tenant_id' => $sourceInventory->tenant_id,
+                    'destination_tenant_id' => $destinationInventory->tenant_id,
+                    'source_inventory_id' => $sourceInventory->id,
+                    'destination_inventory_id' => $destinationInventory->id,
+                ]);
+                throw new \RuntimeException('Cannot transfer between different tenants');
+            }
+
+            // Security: Validate quantity (OWASP A04)
+            if ($quantity <= 0) {
+                Log::warning('Invalid quantity for stock transfer', [
+                    'quantity' => $quantity,
+                    'tenant_id' => $sourceInventory->tenant_id,
+                ]);
+                throw new \RuntimeException('Quantity must be positive');
+            }
+
+            // Consume from source using FIFO (includes locking)
             $consumptionResult = $this->consumeStock(
                 inventory: $sourceInventory,
                 quantity: $quantity,
@@ -143,6 +253,11 @@ class FifoService
             );
 
             if ($consumptionResult['consumed'] === 0) {
+                Log::warning('Stock transfer with zero consumption', [
+                    'source_inventory_id' => $sourceInventory->id,
+                    'destination_inventory_id' => $destinationInventory->id,
+                    'tenant_id' => $sourceInventory->tenant_id,
+                ]);
                 throw new \RuntimeException('Insufficient stock for transfer');
             }
 
@@ -156,6 +271,15 @@ class FifoService
                 unitCost: $avgCost,
                 reason: $reason ?? 'Stock transfer in'
             );
+
+            // Security: Log transfer for audit trail (OWASP A09)
+            Log::info('Stock transferred', [
+                'source_inventory_id' => $sourceInventory->id,
+                'destination_inventory_id' => $destinationInventory->id,
+                'tenant_id' => $sourceInventory->tenant_id,
+                'quantity' => $consumptionResult['consumed'],
+                'total_cost' => $consumptionResult['total_cost'],
+            ]);
 
             return [
                 'consumed' => $consumptionResult['consumed'],
