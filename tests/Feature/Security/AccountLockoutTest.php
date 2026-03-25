@@ -90,7 +90,9 @@ class AccountLockoutTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonFragment('Account locked');
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error.message', 'The given data was invalid.')
+            ->assertJsonFragment(['email' => 'Too many failed attempts. Account locked. Try again in 5 minutes.']);
     }
 
     public function test_locked_account_cannot_login(): void
@@ -108,7 +110,9 @@ class AccountLockoutTest extends TestCase
         ]);
 
         $response->assertStatus(422)
-            ->assertJsonFragment('Account locked');
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error.message', 'The given data was invalid.')
+            ->assertJsonFragment(['email' => 'Too many failed attempts. Account locked. Try again in 5 minutes.']);
     }
 
     public function test_login_attempt_on_locked_account_is_logged(): void
