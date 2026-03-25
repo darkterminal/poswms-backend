@@ -412,11 +412,12 @@ GET    /api/v1/admin/audit-logs/by-user/{userId}
 
 | Limiter | Requests/Min | Applied To |
 |---------|--------------|------------|
-| auth | 10 | Login endpoints |
-| api | 60 | Standard endpoints |
-| api-admin | 120 | Admin endpoints |
-| api-webhook-test | 10 | Webhook test |
-| api-exports | 30 | Report exports |
+| `auth` | 10 | Login endpoints |
+| `api` | 60 | Standard tenant API endpoints |
+| `api-admin` | 120 | Admin-only tenant endpoints |
+| `api-webhook-test` | 10 | Webhook test endpoints |
+| `api-exports` | 30 | Report export endpoints |
+| `throttle:api-admin` (Super Admin) | 200 | Super Admin endpoints |
 
 ---
 

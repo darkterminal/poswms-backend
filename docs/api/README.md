@@ -169,9 +169,10 @@ API requests are protected by rate limiters to ensure fair usage and system stab
 |---------|-----------------|------------|
 | `auth` | 10 | Authentication endpoints (login) |
 | `api` | 60 | Standard API endpoints |
-| `api-admin` | 120 | Admin-only endpoints |
+| `api-admin` | 120 | Admin-only endpoints (tenant) |
 | `api-webhook-test` | 10 | Webhook test endpoints |
 | `api-exports` | 30 | Report export endpoints |
+| `throttle:api-admin` | 200 | Super Admin endpoints |
 
 When rate limited, you'll receive a `429 Too Many Requests` response:
 

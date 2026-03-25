@@ -714,6 +714,20 @@ Content-Type: application/json
 
 ---
 
+## Rate Limiting
+
+Super Admin endpoints have the following rate limits:
+
+| Endpoint Group | Rate Limit | Notes |
+|----------------|------------|-------|
+| `/api/v1/admin/auth/*` | 200 requests/minute | Authentication endpoints |
+| `/api/v1/admin/*` (general) | 200 requests/minute | Most admin endpoints |
+| `/api/v1/admin/settings/run-command` | 60 requests/minute | Command execution |
+
+Rate limits are higher than tenant API (60 requests/minute) to accommodate system-wide management operations.
+
+---
+
 ## System Dashboard
 
 ### System Overview

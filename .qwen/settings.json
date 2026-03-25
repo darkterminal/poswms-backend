@@ -8,5 +8,12 @@
       ]
     }
   },
-  "$version": 3
+  "$version": 3,
+  "permissions": {
+    "allow": [
+      "Bash(vendor/bin/pint *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
 }
