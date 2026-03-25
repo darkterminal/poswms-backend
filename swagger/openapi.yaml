@@ -1215,6 +1215,92 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /api/v1/tenants/{tenant_id}/inventory/transfer:
+    post:
+      tags:
+        - Inventory
+      summary: Transfer inventory between locations
+      description: Transfer stock from one location (warehouse or store) to another
+      operationId: transferInventory
+      x-permission: [inventory.edit]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryTransferRequest'
+      responses:
+        '200':
+          description: Inventory transferred successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryTransferResponse'
+        '400':
+          description: Invalid transfer request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Source or destination location not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Insufficient stock or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/inventory/product/{productId}/transferable:
+    get:
+      tags:
+        - Inventory
+      summary: Get transferable inventory for product
+      description: Get the available quantity that can be transferred for a specific product
+      operationId: getTransferableInventory
+      x-permission: [inventory.view]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: integer
+          description: Product ID to check transferable quantity
+        - in: query
+          name: warehouse_id
+          schema:
+            type: integer
+          description: Filter by specific warehouse
+        - in: query
+          name: store_id
+          schema:
+            type: integer
+          description: Filter by specific store
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Transferable inventory retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferableInventoryResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /api/v1/tenants/{tenant_id}/orders:
     get:
       tags:
@@ -2389,6 +2475,82 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/tenants/{tenant_id}/prices/calculate:
+    post:
+      tags:
+        - Pricing
+      summary: Calculate product price
+      description: Calculate the final price for a product applying pricing tiers and rules
+      operationId: calculatePrice
+      x-permission: [prices.view]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PriceCalculationRequest'
+      responses:
+        '200':
+          description: Price calculated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceCalculationResponse'
+        '404':
+          description: Product or customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /api/v1/tenants/{tenant_id}/prices/calculate-cart:
+    post:
+      tags:
+        - Pricing
+      summary: Calculate cart total
+      description: Calculate the total price for a cart of items applying pricing tiers and rules
+      operationId: calculateCart
+      x-permission: [prices.view]
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartCalculationRequest'
+      responses:
+        '200':
+          description: Cart total calculated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartCalculationResponse'
+        '404':
+          description: Product or customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
 
   /api/v1/tenants/{tenant_id}/roles:
     get:
@@ -7525,6 +7687,280 @@ components:
           description: End date/time for the rule
         active:
           type: boolean
+
+    # Price Calculation Schemas
+    PriceCalculationRequest:
+      type: object
+      required:
+        - product_id
+      properties:
+        product_id:
+          type: integer
+          description: Product ID to calculate price for
+        customer_id:
+          type: integer
+          nullable: true
+          description: Customer ID for customer-specific pricing
+        quantity:
+          type: integer
+          minimum: 1
+          default: 1
+          description: Quantity for quantity-based pricing
+
+    PriceCalculationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            product_id:
+              type: integer
+            product_name:
+              type: string
+            base_price:
+              type: number
+              format: decimal
+            customer_pricing:
+              type: object
+              nullable: true
+              properties:
+                pricing_tier_id:
+                  type: integer
+                pricing_tier_name:
+                  type: string
+                discount_applied:
+                  type: number
+                  format: decimal
+            quantity_pricing:
+              type: object
+              nullable: true
+              properties:
+                min_quantity:
+                  type: integer
+                max_quantity:
+                  type: integer
+                discount_applied:
+                  type: number
+                  format: decimal
+            final_unit_price:
+              type: number
+              format: decimal
+            quantity:
+              type: integer
+            total_price:
+              type: number
+              format: decimal
+            currency:
+              type: string
+              default: USD
+        message:
+          type: string
+
+    CartCalculationRequest:
+      type: object
+      required:
+        - items
+      properties:
+        customer_id:
+          type: integer
+          nullable: true
+          description: Customer ID for customer-specific pricing
+        items:
+          type: array
+          required: true
+          items:
+            type: object
+            required:
+              - product_id
+              - quantity
+            properties:
+              product_id:
+                type: integer
+              quantity:
+                type: integer
+                minimum: 1
+
+    CartCalculationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            customer_id:
+              type: integer
+              nullable: true
+            pricing_tier_applied:
+              type: object
+              nullable: true
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  product_id:
+                    type: integer
+                  product_name:
+                    type: string
+                  base_price:
+                    type: number
+                    format: decimal
+                  final_unit_price:
+                    type: number
+                    format: decimal
+                  quantity:
+                    type: integer
+                  line_total:
+                    type: number
+                    format: decimal
+            subtotal:
+              type: number
+              format: decimal
+            total_discount:
+              type: number
+              format: decimal
+            total:
+              type: number
+              format: decimal
+            currency:
+              type: string
+              default: USD
+        message:
+          type: string
+
+    # Inventory Transfer Schemas
+    InventoryTransferRequest:
+      type: object
+      required:
+        - product_id
+        - from_location_type
+        - from_location_id
+        - to_location_type
+        - to_location_id
+        - quantity
+      properties:
+        product_id:
+          type: integer
+          description: Product ID to transfer
+        from_location_type:
+          type: string
+          enum: [warehouse, store]
+          description: Source location type
+        from_location_id:
+          type: integer
+          description: Source location ID
+        to_location_type:
+          type: string
+          enum: [warehouse, store]
+          description: Destination location type
+        to_location_id:
+          type: integer
+          description: Destination location ID
+        quantity:
+          type: integer
+          minimum: 1
+          description: Quantity to transfer
+        notes:
+          type: string
+          nullable: true
+          description: Transfer notes
+
+    InventoryTransferResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            transfer:
+              type: object
+              properties:
+                id:
+                  type: integer
+                product_id:
+                  type: integer
+                product_name:
+                  type: string
+                from_location_type:
+                  type: string
+                from_location_id:
+                  type: integer
+                to_location_type:
+                  type: string
+                to_location_id:
+                  type: integer
+                quantity:
+                  type: integer
+                notes:
+                  type: string
+                  nullable: true
+                created_at:
+                  type: string
+                  format: date-time
+            source_inventory:
+              type: object
+              properties:
+                previous_quantity:
+                  type: integer
+                new_quantity:
+                  type: integer
+            destination_inventory:
+              type: object
+              properties:
+                previous_quantity:
+                  type: integer
+                new_quantity:
+                  type: integer
+        message:
+          type: string
+          example: Inventory transferred successfully
+
+    TransferableInventoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            product_id:
+              type: integer
+            product_name:
+              type: string
+            sku:
+              type: string
+            total_available:
+              type: integer
+              description: Total available quantity across all locations
+            by_location:
+              type: array
+              items:
+                type: object
+                properties:
+                  location_type:
+                    type: string
+                    enum: [warehouse, store]
+                  location_id:
+                    type: integer
+                  location_name:
+                    type: string
+                  quantity:
+                    type: integer
+                  available:
+                    type: integer
+                  reserved:
+                    type: integer
+        message:
+          type: string
 
     Role:
       type: object
