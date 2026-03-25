@@ -13,7 +13,8 @@
     "allow": [
       "Bash(vendor/bin/pint *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(mkdir *)"
     ]
   }
 }
