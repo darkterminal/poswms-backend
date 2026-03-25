@@ -66,15 +66,31 @@ class LoginAttemptService
      * Check if account is locked out.
      *
      * @param  string  $email  User email
+     * @param  User|null  $user  User model if found (for audit logging)
      * @return array{locked: bool, waitTime: int, remainingAttempts: int}
      */
-    public function checkLockout(string $email): array
+    public function checkLockout(string $email, ?User $user = null): array
     {
         $lockoutKey = $this->getLockoutKey($email);
         $lockoutUntil = Cache::get($lockoutKey . ':lockout_until');
 
         if ($lockoutUntil && now()->timestamp < $lockoutUntil) {
             $waitTime = $lockoutUntil - now()->timestamp;
+
+            // Log audit event for login attempt on locked account
+            if ($user) {
+                $this->securityLogger->log(
+                    eventType: 'auth.login_locked',
+                    description: 'Login attempt on locked account',
+                    context: [
+                        'email' => $email,
+                        'user_id' => $user->id,
+                        'wait_time' => $waitTime,
+                    ],
+                    tenantId: $user->tenant_id,
+                    userId: $user->id,
+                );
+            }
 
             return [
                 'locked' => true,

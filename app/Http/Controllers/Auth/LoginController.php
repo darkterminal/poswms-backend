@@ -34,16 +34,17 @@ class LoginController extends Controller
         $email = $request->email;
         $ipAddress = $request->ip();
 
+        // Find user first for audit logging
+        $user = User::where('email', $email)->first();
+
         // Check for account lockout (with progressive delay info)
-        $lockoutStatus = $this->loginAttemptService->checkLockout($email);
+        $lockoutStatus = $this->loginAttemptService->checkLockout($email, $user);
 
         if ($lockoutStatus['locked']) {
             throw ValidationException::withMessages([
                 'email' => ['Too many failed attempts. Account locked. Try again in ' . ceil($lockoutStatus['waitTime'] / 60) . ' minutes.'],
             ]);
         }
-
-        $user = User::where('email', $email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             // Record failed attempt with progressive delay
