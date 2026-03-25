@@ -5,6 +5,7 @@ namespace App\Exceptions;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -19,6 +20,11 @@ class ApiExceptionHandler extends ExceptionHandler
      */
     public function render($request, Throwable $e): JsonResponse|\Symfony\Component\HttpFoundation\Response
     {
+        // Handle rate limit exceeded (HttpResponseException from throttle middleware)
+        if ($e instanceof HttpResponseException) {
+            return $this->handleHttpResponseException($e);
+        }
+
         // Handle validation errors
         if ($e instanceof ValidationException) {
             return $this->handleValidationException($e);
@@ -70,6 +76,43 @@ class ApiExceptionHandler extends ExceptionHandler
                 'timestamp' => now()->toIso8601String(),
             ],
         ], $e->status);
+    }
+
+    /**
+     * Handle HTTP response exceptions (including rate limiting).
+     */
+    protected function handleHttpResponseException(HttpResponseException $e): JsonResponse
+    {
+        // Get the original response
+        $response = $e->getResponse();
+        $statusCode = $response->getStatusCode();
+        $originalContent = $response->getContent();
+
+        // If it's already a JSON response with proper structure, return it
+        if ($response->headers->get('Content-Type') === 'application/json') {
+            $decodedContent = json_decode($originalContent, true);
+            if ($decodedContent) {
+                return response()->json($decodedContent, $statusCode, $response->headers->all());
+            }
+        }
+
+        // For rate limiting (429), return standardized response
+        if ($statusCode === 429) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'rate_limit_exceeded',
+                    'message' => 'Too many requests. Please try again later.',
+                ],
+                'meta' => [
+                    'timestamp' => now()->toIso8601String(),
+                    'retry_after' => $response->headers->get('Retry-After', '60'),
+                ],
+            ], 429, ['Retry-After' => $response->headers->get('Retry-After', '60')]);
+        }
+
+        // For other HTTP responses, return the original
+        return response()->json(json_decode($originalContent, true) ?? ['error' => ['message' => 'HTTP error']], $statusCode, $response->headers->all());
     }
 
     /**
