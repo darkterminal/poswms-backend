@@ -6,9 +6,11 @@ use App\Models\Inventory;
 use App\Models\InventoryBatch;
 use App\Models\InventoryLayer;
 use Illuminate\Database\Seeder;
+use Random\Randomizer;
 
 class InventoryLayerSeeder extends Seeder
 {
+
     /**
      * Run the database seeds.
      */
@@ -30,14 +32,16 @@ class InventoryLayerSeeder extends Seeder
                 return;
             }
 
+            $randomizer = new Randomizer();
+
             // Create 2-4 FIFO layers per inventory
             $layerCount = random_int(2, 4);
-            $baseCost = $inventory->cost ?? random_float(5, 50);
+            $baseCost = $inventory->cost ?? $randomizer->getFloat(5, 50);
             $remainingQty = $inventory->quantity;
 
             for ($i = 0; $i < $layerCount && $remainingQty > 0; $i++) {
                 $quantity = min(random_int(20, 100), $remainingQty);
-                $unitCost = $baseCost + ($i * random_float(0.5, 3));
+                $unitCost = $baseCost + ($i * $randomizer->getFloat(0.5, 3));
                 $receivedDate = now()->subDays(($layerCount - $i) * 15);
 
                 // Create batch for this layer

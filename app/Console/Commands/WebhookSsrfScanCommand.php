@@ -110,7 +110,7 @@ class WebhookSsrfScanCommand extends Command
         if ($result['valid']) {
             $this->scanResults['safe']++;
 
-            if (!$this->option('json')) {
+            if (! $this->option('json')) {
                 $this->line("✅ <fg=green>SAFE</>: {$webhook->name} ({$webhook->url})");
             }
         } else {
@@ -124,7 +124,7 @@ class WebhookSsrfScanCommand extends Command
 
             $this->scanResults['details'][] = $riskDetails;
 
-            if (!$this->option('json')) {
+            if (! $this->option('json')) {
                 $this->error("⚠️  <fg=red>RISKY</>: {$webhook->name} ({$webhook->url})");
                 $this->error("    Reason: {$result['error']}");
             }
@@ -143,7 +143,7 @@ class WebhookSsrfScanCommand extends Command
                 $webhook->update(['active' => false]);
                 $this->scanResults['deactivated']++;
 
-                if (!$this->option('json')) {
+                if (! $this->option('json')) {
                     $this->warn('    🔒 Deactivated webhook');
                 }
 

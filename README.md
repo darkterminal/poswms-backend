@@ -48,6 +48,9 @@
 | Framework | Laravel 13.x |
 | PHP Version | 8.3 |
 | Database | SQLite (dev), PostgreSQL/MySQL (prod) |
+| Containerization | Docker + Docker Compose |
+| Web Server | Nginx |
+| Cache | Redis |
 | Authentication | Laravel Sanctum (Bearer tokens) |
 | Testing | PHPUnit 12.x |
 | Code Style | Laravel Pint |
@@ -55,6 +58,30 @@
 | CI/CD | GitHub Actions |
 
 ---
+
+## Quick Start with Docker
+
+The easiest way to run this application is using Docker:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd poswms-backend
+
+# Run the Docker setup script
+./docker-start.sh
+
+# Or manually:
+cp .env.docker .env
+docker-compose up -d --build
+docker-compose exec app php artisan migrate
+```
+
+**Access the API:** http://localhost:8080  
+**Health Check:** http://localhost:8080/api/health  
+**API Docs:** http://localhost:8080/docs/api
+
+For detailed Docker documentation, see [DOCKER.md](DOCKER.md).
 
 ## Quick Start
 

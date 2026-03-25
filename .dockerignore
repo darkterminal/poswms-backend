@@ -1,0 +1,77 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Environment files
+.env
+.env.local
+.env.*.local
+!.env.example
+!.env.development
+!.env.staging
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.phpunit.result.cache
+coverage/
+.phpunit.cache/
+
+# Logs
+*.log
+storage/logs/*
+!storage/logs/.gitignore
+
+# Node modules (for Docker build)
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Composer
+/vendor
+composer.lock
+
+# Build artifacts
+public/build
+public/hot
+public/mix-manifest.json
+
+# Docker
+Dockerfile.dev
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Documentation (not needed in production image)
+docs/
+!docs/.gitignore
+
+# Scripts
+scripts/
+
+# Markdown files
+*.md
+!README.md
+
+# Configuration files for development tools
+phpstan.neon
+pint.json
+.editorconfig
+
+# QWEN.md and AGENTS.md (development context)
+QWEN.md
+AGENTS.md
+
+# Boost configuration
+boost.json
+
+# Temporary files
+tmp/
+temp/
+.cache/

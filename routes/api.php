@@ -37,6 +37,20 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// Health check endpoint (no authentication required)
+Route::get('/health', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'API is healthy',
+        'data' => [
+            'status' => 'ok',
+            'timestamp' => now()->toIso8601String(),
+            'environment' => config('app.env'),
+            'version' => config('app.version', '1.0.0'),
+        ],
+    ]);
+})->name('api.health');
+
 // Public routes with auth rate limiting
 Route::middleware(['throttle:auth'])->group(function () {
     Route::post('/auth/login', [LoginController::class, 'login'])->name('auth.login');

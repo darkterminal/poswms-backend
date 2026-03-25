@@ -1,0 +1,72 @@
+# ==========================================
+# POS WMS Backend - Development Dockerfile
+# Laravel 13.x + PHP 8.3
+# Optimized for local development
+# ==========================================
+
+FROM php:8.3-cli
+
+WORKDIR /var/www/html
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    libzip-dev \
+    zip \
+    unzip \
+    nodejs \
+    npm \
+    sqlite3 \
+    libsqlite3-dev \
+    # PostgreSQL support
+    libpq-dev \
+    # MySQL/MariaDB support
+    default-mysql-client \
+    && docker-php-ext-configure gd --with-webp \
+    && docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    pdo_pgsql \
+    pdo_sqlite \
+    mbstring \
+    exif \
+    pcntl \
+    bcmath \
+    gd \
+    intl \
+    zip \
+    opcache \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Create system user
+RUN useradd -G www-data,root -u 1000 -d /home/appuser appuser \
+    && mkdir -p /home/appuser/.composer \
+    && chown -R appuser:appuser /home/appuser \
+    && chown -R appuser:appuser /var/www/html
+
+# Copy application files
+COPY --chown=appuser:appuser . .
+
+# Install dependencies
+RUN composer install --no-interaction --no-plugins --no-scripts \
+    && npm install \
+    && npm run build \
+    && chown -R appuser:appuser /var/www/html/storage /var/www/html/bootstrap/cache
+
+# Expose port
+EXPOSE 8000
+
+# Switch to non-root user
+USER appuser
+
+# Default command for development
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

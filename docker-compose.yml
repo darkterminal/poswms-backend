@@ -1,0 +1,191 @@
+# ==========================================
+# POS WMS Backend - Docker Compose
+# Multi-environment configuration
+# ==========================================
+
+services:
+  # ------------------------------------------
+  # Application Service (Production)
+  # ------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: poswms-api
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_KEY=${APP_KEY}
+      - DB_CONNECTION=${DB_CONNECTION:-sqlite}
+      - DB_HOST=db
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_DATABASE=${DB_DATABASE:-poswms}
+      - DB_USERNAME=${DB_USERNAME:-poswms}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      # Persist SQLite database (if using SQLite)
+      - sqlite_data:/var/www/html/database
+      # Persist application storage
+      - storage_data:/var/www/html/storage
+      # Persist logs
+      - logs_data:/var/www/html/storage/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - poswms-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # ------------------------------------------
+  # Database Service (PostgreSQL)
+  # ------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: poswms-db
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT_EXTERNAL:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-poswms}
+      POSTGRES_USER: ${DB_USERNAME:-poswms}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-poswms} -d ${DB_DATABASE:-poswms}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - poswms-network
+
+  # ------------------------------------------
+  # Redis Service (Cache & Sessions)
+  # ------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: poswms-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT_EXTERNAL:-6379}:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - poswms-network
+
+  # ------------------------------------------
+  # Development Service (Alternative)
+  # ------------------------------------------
+  # Uncomment to use development setup instead of production
+  # app-dev:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.dev
+  #   container_name: poswms-api-dev
+  #   restart: unless-stopped
+  #   ports:
+  #     - "${APP_PORT:-8080}:8000"
+  #   environment:
+  #     - APP_ENV=local
+  #     - APP_DEBUG=true
+  #     - APP_KEY=${APP_KEY}
+  #   volumes:
+  #     - ./:/var/www/html
+  #     - sqlite_data:/var/www/html/database
+  #     - storage_data:/var/www/html/storage
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   networks:
+  #     - poswms-network
+  #   command: php artisan serve --host=0.0.0.0 --port=8000
+
+  # ------------------------------------------
+  # Queue Worker (Optional - for background jobs)
+  # ------------------------------------------
+  # queue-worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: production
+  #   container_name: poswms-queue-worker
+  #   restart: unless-stopped
+  #   environment:
+  #     - APP_ENV=${APP_ENV:-production}
+  #     - APP_KEY=${APP_KEY}
+  #     - DB_CONNECTION=${DB_CONNECTION:-pgsql}
+  #     - DB_HOST=db
+  #     - QUEUE_CONNECTION=database
+  #   volumes:
+  #     - storage_data:/var/www/html/storage
+  #     - logs_data:/var/www/html/storage/logs
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   networks:
+  #     - poswms-network
+  #   command: php artisan queue:work --tries=3 --timeout=0
+
+  # ------------------------------------------
+  # Scheduler (Optional - for cron jobs)
+  # ------------------------------------------
+  # scheduler:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #     target: production
+  #   container_name: poswms-scheduler
+  #   restart: unless-stopped
+  #   environment:
+  #     - APP_ENV=${APP_ENV:-production}
+  #     - APP_KEY=${APP_KEY}
+  #     - DB_CONNECTION=${DB_CONNECTION:-pgsql}
+  #     - DB_HOST=db
+  #   volumes:
+  #     - storage_data:/var/www/html/storage
+  #     - logs_data:/var/www/html/storage/logs
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   networks:
+  #     - poswms-network
+  #   command: php artisan schedule:work
+
+# ==========================================
+# Volumes
+# ==========================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  sqlite_data:
+    driver: local
+  storage_data:
+    driver: local
+  logs_data:
+    driver: local
+
+# ==========================================
+# Networks
+# ==========================================
+networks:
+  poswms-network:
+    driver: bridge
