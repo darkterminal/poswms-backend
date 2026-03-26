@@ -30,10 +30,10 @@ info:
     url: https://opensource.org/licenses/MIT
 
 servers:
-  - url: https://api.example.com
-    description: Production server
   - url: http://localhost:8000
     description: Development server
+  - url: https://api.example.com
+    description: Production server
 
 tags:
   - name: Authentication
@@ -80,14 +80,8 @@ paths:
               properties:
                 email:
                   type: string
-                  format: email
-                  examples:
-                    - value: user@example.com
                 password:
                   type: string
-                  format: password
-                  examples:
-                    - value: password123
               required:
                 - email
                 - password
