@@ -16,7 +16,15 @@
       "Bash(git commit *)",
       "Bash(mkdir *)",
       "Bash(chmod *)",
-      "Bash(php *)"
+      "Bash(php *)",
+      "Bash(curl *)",
+      "Bash(jq *)",
+      "Bash(git checkout *)",
+      "Bash(git push *)",
+      "Bash(touch *)",
+      "Bash(sqlite3 *)",
+      "Bash(ls *)",
+      "Bash(rm *)"
     ]
   }
 }
