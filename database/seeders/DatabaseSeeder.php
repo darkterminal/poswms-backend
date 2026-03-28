@@ -17,6 +17,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Seed super admin first (global, no tenant dependency)
+        $this->call([
+            SuperAdminSeeder::class,
+        ]);
+
         // Seed reference data first (no tenant dependency)
         $this->call([
             CountrySeeder::class,
