@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Concerns\ValidatesSorting;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ListTenantsRequest;
 use App\Models\Tenant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class TenantController extends Controller
     /**
      * Display a listing of tenants.
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListTenantsRequest $request): JsonResponse
     {
         $query = Tenant::query();
 
@@ -33,6 +34,31 @@ class TenantController extends Controller
         // Status filter
         if ($status = $request->query('status')) {
             $query->where('status', $status);
+        }
+
+        // Plan filter
+        if ($plan = $request->query('plan')) {
+            $query->where('subscription_plan', $plan);
+        }
+
+        // Trial expiring filter
+        if ($trialExpiring = $request->query('trial_expiring')) {
+            $this->applyTrialExpiringFilter($query, $trialExpiring);
+        }
+
+        // Subscription status filter
+        if ($subscriptionStatus = $request->query('subscription_status')) {
+            $this->applySubscriptionStatusFilter($query, $subscriptionStatus);
+        }
+
+        // Date from filter
+        if ($dateFrom = $request->query('date_from')) {
+            $query->whereDate('created_at', '>=', $dateFrom);
+        }
+
+        // Date to filter
+        if ($dateTo = $request->query('date_to')) {
+            $query->whereDate('created_at', '<=', $dateTo);
         }
 
         // Sort - validated against whitelist to prevent SQL injection
@@ -381,5 +407,47 @@ class TenantController extends Controller
             ],
             'message' => 'Tenant converted from trial to paid subscription successfully',
         ], 200);
+    }
+
+    /**
+     * Apply trial expiring filter to query.
+     */
+    private function applyTrialExpiringFilter($query, string $timeframe): void
+    {
+        match ($timeframe) {
+            '24hours' => $query->whereNotNull('trial_ends_at')
+                ->whereBetween('trial_ends_at', [now(), now()->addHours(24)]),
+            '7days' => $query->whereNotNull('trial_ends_at')
+                ->whereBetween('trial_ends_at', [now(), now()->addDays(7)]),
+            '30days' => $query->whereNotNull('trial_ends_at')
+                ->whereBetween('trial_ends_at', [now(), now()->addDays(30)]),
+            'expired' => $query->whereNotNull('trial_ends_at')
+                ->where('trial_ends_at', '<', now()),
+            default => null,
+        };
+    }
+
+    /**
+     * Apply subscription status filter to query.
+     */
+    private function applySubscriptionStatusFilter($query, string $status): void
+    {
+        match ($status) {
+            'active' => $query->whereNotNull('subscription_ends_at')
+                ->where('subscription_ends_at', '>', now())
+                ->whereNotNull('subscription_plan'),
+            'expiring' => $query->whereNotNull('subscription_ends_at')
+                ->whereBetween('subscription_ends_at', [now(), now()->addDays(30)]),
+            'expired' => $query->whereNotNull('subscription_ends_at')
+                ->where('subscription_ends_at', '<', now()),
+            'none' => $query->where(function ($q) {
+                $q->whereNull('subscription_ends_at')
+                    ->orWhereNull('subscription_plan');
+            })->where(function ($q) {
+                $q->whereNull('trial_ends_at')
+                    ->orWhere('trial_ends_at', '>', now());
+            }),
+            default => null,
+        };
     }
 }
