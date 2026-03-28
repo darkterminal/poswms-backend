@@ -30,6 +30,7 @@ class Tenant extends Model
         'timezone',
         'currency',
         'status',
+        'subscription_plan',
         'settings',
         'trial_ends_at',
         'subscription_ends_at',
