@@ -24,3 +24,4 @@ Homestead.yaml
 Thumbs.db
 tests/api/.rest-client-config.php
 database/testing.sqlite
+.env.testing
