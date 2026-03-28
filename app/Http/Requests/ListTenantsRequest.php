@@ -33,6 +33,7 @@ class ListTenantsRequest extends FormRequest
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
             // sort_by and sort_direction are handled by ValidatesSorting trait
+            // Allowed sort fields: name, slug, company_name, email, status, subscription_plan, trial_ends_at, subscription_ends_at, created_at, updated_at
         ];
     }
 

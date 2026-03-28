@@ -62,7 +62,7 @@ class TenantController extends Controller
         }
 
         // Sort - validated against whitelist to prevent SQL injection
-        $allowedSortFields = ['name', 'slug', 'company_name', 'email', 'status', 'created_at', 'updated_at'];
+        $allowedSortFields = ['name', 'slug', 'company_name', 'email', 'status', 'subscription_plan', 'trial_ends_at', 'subscription_ends_at', 'created_at', 'updated_at'];
         $sortParams = $this->getValidatedSortParams(
             $request,
             'created_at',
