@@ -5049,7 +5049,7 @@ paths:
           schema:
             type: string
             enum: [active, expiring, expired, none]
-          description: Filter by subscription status (active: has active subscription, expiring: expires in 30 days, expired: already expired, none: no subscription)
+          description: "Filter by subscription status (active: has active subscription, expiring: expires in 30 days, expired: already expired, none: no subscription)"
         - in: query
           name: date_from
           schema:
@@ -5067,7 +5067,7 @@ paths:
           schema:
             type: string
             default: created_at
-          description: Sort field
+          description: Sort field (allowed: name, slug, company_name, email, status, subscription_plan, trial_ends_at, subscription_ends_at, created_at, updated_at)
         - in: query
           name: sort_direction
           schema:
