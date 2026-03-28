@@ -236,3 +236,6 @@ The application follows RESTful API design principles as documented in `API_DESI
 - `docs/TRACKING_GUIDE.md` - Guide for using the progress tracking system
 - `docs/progress.json` - Machine-readable progress data
 - `docs/session-logs/` - Individual development session logs
+
+## Qwen Added Memories
+- always use APP_ENV=testing to when running the tets
