@@ -5025,13 +5025,43 @@ paths:
           name: search
           schema:
             type: string
-          description: Search by name or slug
+          description: Search by name, slug, company name, or email
         - in: query
           name: status
           schema:
             type: string
             enum: [active, suspended, archived]
           description: Filter by status
+        - in: query
+          name: plan
+          schema:
+            type: string
+            enum: [starter, professional, enterprise]
+          description: Filter by subscription plan
+        - in: query
+          name: trial_expiring
+          schema:
+            type: string
+            enum: [24hours, 7days, 30days, expired]
+          description: Filter by trial expiry timeframe
+        - in: query
+          name: subscription_status
+          schema:
+            type: string
+            enum: [active, expiring, expired, none]
+          description: Filter by subscription status (active: has active subscription, expiring: expires in 30 days, expired: already expired, none: no subscription)
+        - in: query
+          name: date_from
+          schema:
+            type: string
+            format: date
+          description: Filter by created date from (YYYY-MM-DD)
+        - in: query
+          name: date_to
+          schema:
+            type: string
+            format: date
+          description: Filter by created date to (YYYY-MM-DD)
         - in: query
           name: sort_by
           schema:
