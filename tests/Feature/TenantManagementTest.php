@@ -381,4 +381,466 @@ class TenantManagementTest extends TestCase
         // $response->assertStatus(422);
         // $this->assertApiValidationErrors($response, 'email');
     }
+
+    /**
+     * Test filtering tenants by subscription plan.
+     */
+    public function test_can_filter_tenants_by_plan(): void
+    {
+        Tenant::factory()->create(['subscription_plan' => 'starter', 'name' => 'Starter Tenant']);
+        Tenant::factory()->create(['subscription_plan' => 'professional', 'name' => 'Professional Tenant']);
+        Tenant::factory()->create(['subscription_plan' => 'enterprise', 'name' => 'Enterprise Tenant']);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?plan=enterprise');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.tenants.0.name', 'Enterprise Tenant');
+    }
+
+    /**
+     * Test filtering tenants by trial expiring - 24 hours.
+     */
+    public function test_can_filter_tenants_by_trial_expiring_24hours(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'trial_ends_at' => now()->addHours(2),
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'trial_ends_at' => now()->addDays(5),
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'trial_ends_at' => now()->subDay(),
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?trial_expiring=24hours');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.tenants.0.name', 'Tenant A');
+    }
+
+    /**
+     * Test filtering tenants by trial expiring - 7 days.
+     */
+    public function test_can_filter_tenants_by_trial_expiring_7days(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'trial_ends_at' => now()->addHours(2),
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'trial_ends_at' => now()->addDays(5),
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'trial_ends_at' => now()->addDays(15),
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?trial_expiring=7days');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 2);
+    }
+
+    /**
+     * Test filtering tenants by trial expiring - 30 days.
+     */
+    public function test_can_filter_tenants_by_trial_expiring_30days(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'trial_ends_at' => now()->addHours(2),
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'trial_ends_at' => now()->addDays(15),
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'trial_ends_at' => now()->addDays(45),
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?trial_expiring=30days');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 2);
+    }
+
+    /**
+     * Test filtering tenants by expired trial.
+     */
+    public function test_can_filter_tenants_by_expired_trial(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'trial_ends_at' => now()->addHours(2),
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'trial_ends_at' => now()->subDays(5),
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'trial_ends_at' => null,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?trial_expiring=expired');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.tenants.0.name', 'Tenant B');
+    }
+
+    /**
+     * Test filtering tenants by active subscription status.
+     */
+    public function test_can_filter_tenants_by_active_subscription(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'subscription_plan' => 'professional',
+            'subscription_ends_at' => now()->addDays(60),
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'subscription_plan' => 'starter',
+            'subscription_ends_at' => now()->addDays(15),
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'subscription_plan' => null,
+            'subscription_ends_at' => now()->subDay(),
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?subscription_status=active');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 2);
+    }
+
+    /**
+     * Test filtering tenants by expiring subscription status.
+     */
+    public function test_can_filter_tenants_by_expiring_subscription(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'subscription_plan' => 'professional',
+            'subscription_ends_at' => now()->addDays(60),
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'subscription_plan' => 'starter',
+            'subscription_ends_at' => now()->addDays(15),
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'subscription_plan' => 'enterprise',
+            'subscription_ends_at' => now()->subDay(),
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?subscription_status=expiring');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.tenants.0.name', 'Tenant B');
+    }
+
+    /**
+     * Test filtering tenants by expired subscription status.
+     */
+    public function test_can_filter_tenants_by_expired_subscription(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'subscription_plan' => 'professional',
+            'subscription_ends_at' => now()->addDays(60),
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'subscription_plan' => 'starter',
+            'subscription_ends_at' => now()->subDay(),
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'subscription_plan' => null,
+            'subscription_ends_at' => null,
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?subscription_status=expired');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.tenants.0.name', 'Tenant B');
+    }
+
+    /**
+     * Test filtering tenants by no subscription status.
+     */
+    public function test_can_filter_tenants_by_no_subscription(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'subscription_plan' => 'professional',
+            'subscription_ends_at' => now()->addDays(60),
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'subscription_plan' => null,
+            'subscription_ends_at' => null,
+            'trial_ends_at' => now()->addDays(10),
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'subscription_plan' => 'starter',
+            'subscription_ends_at' => now()->subDay(),
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?subscription_status=none');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.tenants.0.name', 'Tenant B');
+    }
+
+    /**
+     * Test filtering tenants by date from.
+     */
+    public function test_can_filter_tenants_by_date_from(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'created_at' => '2025-02-15 10:00:00',
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'created_at' => '2025-03-15 10:00:00',
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'created_at' => '2025-04-15 10:00:00',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?date_from=2025-03-01');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 2);
+    }
+
+    /**
+     * Test filtering tenants by date to.
+     */
+    public function test_can_filter_tenants_by_date_to(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'created_at' => '2025-02-15 10:00:00',
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'created_at' => '2025-03-15 10:00:00',
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'created_at' => '2025-04-15 10:00:00',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?date_to=2025-03-31');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 2);
+    }
+
+    /**
+     * Test filtering tenants by date range.
+     */
+    public function test_can_filter_tenants_by_date_range(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'created_at' => '2025-02-15 10:00:00',
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'created_at' => '2025-03-15 10:00:00',
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'created_at' => '2025-04-15 10:00:00',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?date_from=2025-03-01&date_to=2025-03-31');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.tenants.0.name', 'Tenant B');
+    }
+
+    /**
+     * Test filtering tenants with combined filters.
+     */
+    public function test_can_filter_tenants_with_combined_filters(): void
+    {
+        $tenantA = Tenant::factory()->create([
+            'name' => 'Tenant A',
+            'status' => 'active',
+            'subscription_plan' => 'enterprise',
+            'trial_ends_at' => now()->addDays(5),
+            'created_at' => '2025-03-01 10:00:00',
+        ]);
+        $tenantB = Tenant::factory()->create([
+            'name' => 'Tenant B',
+            'status' => 'active',
+            'subscription_plan' => 'starter',
+            'trial_ends_at' => now()->addDays(5),
+            'created_at' => '2025-03-01 10:00:00',
+        ]);
+        $tenantC = Tenant::factory()->create([
+            'name' => 'Tenant C',
+            'status' => 'suspended',
+            'subscription_plan' => 'enterprise',
+            'trial_ends_at' => now()->addDays(5),
+            'created_at' => '2025-03-01 10:00:00',
+        ]);
+        $tenantD = Tenant::factory()->create([
+            'name' => 'Tenant D',
+            'status' => 'active',
+            'subscription_plan' => 'enterprise',
+            'trial_ends_at' => now()->addDays(50),
+            'created_at' => '2025-03-01 10:00:00',
+        ]);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?status=active&plan=enterprise&trial_expiring=7days');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.pagination.total', 1)
+            ->assertJsonPath('data.tenants.0.name', 'Tenant A');
+    }
+
+    /**
+     * Test validation for invalid plan parameter.
+     */
+    public function test_invalid_plan_parameter_returns_validation_error(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?plan=invalid');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false);
+    }
+
+    /**
+     * Test validation for invalid trial_expiring parameter.
+     */
+    public function test_invalid_trial_expiring_parameter_returns_validation_error(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?trial_expiring=invalid');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false);
+    }
+
+    /**
+     * Test validation for invalid subscription_status parameter.
+     */
+    public function test_invalid_subscription_status_parameter_returns_validation_error(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?subscription_status=invalid');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false);
+    }
+
+    /**
+     * Test validation for invalid date_from parameter.
+     */
+    public function test_invalid_date_from_parameter_returns_validation_error(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?date_from=invalid');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false);
+    }
+
+    /**
+     * Test validation for invalid date_to parameter.
+     */
+    public function test_invalid_date_to_parameter_returns_validation_error(): void
+    {
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?date_to=invalid');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false);
+    }
+
+    /**
+     * Test empty results when filters don't match any tenants.
+     */
+    public function test_empty_results_when_filters_dont_match(): void
+    {
+        Tenant::factory()->create(['subscription_plan' => 'starter']);
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->getJson('/api/v1/admin/tenants?plan=enterprise');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.tenants', [])
+            ->assertJsonPath('data.pagination.total', 0)
+            ->assertJsonPath('data.pagination.current_page', 1);
+    }
 }
