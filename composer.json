@@ -52,6 +52,30 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "test:isolated": [
+            "@php artisan config:clear --ansi",
+            "@putenv DB_CONNECTION=sqlite",
+            "@putenv DB_DATABASE=database/testing.sqlite",
+            "@php artisan test"
+        ],
+        "test:unit": [
+            "@php artisan config:clear --ansi",
+            "@putenv DB_CONNECTION=sqlite",
+            "@putenv DB_DATABASE=database/testing.sqlite",
+            "@php artisan test --testsuite=Unit"
+        ],
+        "test:feature": [
+            "@php artisan config:clear --ansi",
+            "@putenv DB_CONNECTION=sqlite",
+            "@putenv DB_DATABASE=database/testing.sqlite",
+            "@php artisan test --testsuite=Feature"
+        ],
+        "test:coverage": [
+            "@php artisan config:clear --ansi",
+            "@putenv DB_CONNECTION=sqlite",
+            "@putenv DB_DATABASE=database/testing.sqlite",
+            "@php artisan test --coverage"
+        ],
         "session": "./scripts/session-check.sh",
         "session:start": "./scripts/session-check.sh start",
         "session:end": "./scripts/session-check.sh end",
