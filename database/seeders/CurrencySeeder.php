@@ -20,24 +20,31 @@ class CurrencySeeder extends Seeder
         }
 
         $currencies = [
+            // Southeast Asian Currencies (Priority)
+            ['code' => 'IDR', 'name' => 'Indonesian Rupiah', 'symbol' => 'Rp', 'precision' => 0, 'active' => true],
+            ['code' => 'SGD', 'name' => 'Singapore Dollar', 'symbol' => 'S$', 'precision' => 2, 'active' => true],
+            ['code' => 'MYR', 'name' => 'Malaysian Ringgit', 'symbol' => 'RM', 'precision' => 2, 'active' => true],
+            ['code' => 'THB', 'name' => 'Thai Baht', 'symbol' => '฿', 'precision' => 2, 'active' => true],
+            ['code' => 'PHP', 'name' => 'Philippine Peso', 'symbol' => '₱', 'precision' => 2, 'active' => true],
+            ['code' => 'VND', 'name' => 'Vietnamese Dong', 'symbol' => '₫', 'precision' => 0, 'active' => true],
+
+            // Major International Currencies
             ['code' => 'USD', 'name' => 'US Dollar', 'symbol' => '$', 'precision' => 2, 'active' => true],
             ['code' => 'EUR', 'name' => 'Euro', 'symbol' => '€', 'precision' => 2, 'active' => true],
             ['code' => 'GBP', 'name' => 'British Pound', 'symbol' => '£', 'precision' => 2, 'active' => true],
             ['code' => 'JPY', 'name' => 'Japanese Yen', 'symbol' => '¥', 'precision' => 0, 'active' => true],
-            ['code' => 'CAD', 'name' => 'Canadian Dollar', 'symbol' => 'C$', 'precision' => 2, 'active' => true],
-            ['code' => 'AUD', 'name' => 'Australian Dollar', 'symbol' => 'A$', 'precision' => 2, 'active' => true],
-            ['code' => 'CHF', 'name' => 'Swiss Franc', 'symbol' => 'CHF', 'precision' => 2, 'active' => true],
             ['code' => 'CNY', 'name' => 'Chinese Yuan', 'symbol' => '¥', 'precision' => 2, 'active' => true],
+            ['code' => 'AUD', 'name' => 'Australian Dollar', 'symbol' => 'A$', 'precision' => 2, 'active' => true],
+
+            // Other Asian Currencies
             ['code' => 'INR', 'name' => 'Indian Rupee', 'symbol' => '₹', 'precision' => 2, 'active' => true],
-            ['code' => 'SGD', 'name' => 'Singapore Dollar', 'symbol' => 'S$', 'precision' => 2, 'active' => true],
+            ['code' => 'KRW', 'name' => 'South Korean Won', 'symbol' => '₩', 'precision' => 0, 'active' => true],
             ['code' => 'HKD', 'name' => 'Hong Kong Dollar', 'symbol' => 'HK$', 'precision' => 2, 'active' => true],
+
+            // Other Major Currencies
+            ['code' => 'CAD', 'name' => 'Canadian Dollar', 'symbol' => 'C$', 'precision' => 2, 'active' => true],
+            ['code' => 'CHF', 'name' => 'Swiss Franc', 'symbol' => 'CHF', 'precision' => 2, 'active' => true],
             ['code' => 'NZD', 'name' => 'New Zealand Dollar', 'symbol' => 'NZ$', 'precision' => 2, 'active' => true],
-            ['code' => 'SEK', 'name' => 'Swedish Krona', 'symbol' => 'kr', 'precision' => 2, 'active' => true],
-            ['code' => 'NOK', 'name' => 'Norwegian Krone', 'symbol' => 'kr', 'precision' => 2, 'active' => true],
-            ['code' => 'DKK', 'name' => 'Danish Krone', 'symbol' => 'kr', 'precision' => 2, 'active' => true],
-            ['code' => 'ZAR', 'name' => 'South African Rand', 'symbol' => 'R', 'precision' => 2, 'active' => true],
-            ['code' => 'BRL', 'name' => 'Brazilian Real', 'symbol' => 'R$', 'precision' => 2, 'active' => true],
-            ['code' => 'MXN', 'name' => 'Mexican Peso', 'symbol' => '$', 'precision' => 2, 'active' => true],
             ['code' => 'AED', 'name' => 'UAE Dirham', 'symbol' => 'د.إ', 'precision' => 2, 'active' => true],
             ['code' => 'SAR', 'name' => 'Saudi Riyal', 'symbol' => '﷼', 'precision' => 2, 'active' => true],
         ];
@@ -84,8 +91,8 @@ class CurrencySeeder extends Seeder
                 }
             }
 
-            // Set default currency based on tenant settings
-            $defaultCurrency = $tenant->currency ?? 'USD';
+            // Set default currency based on tenant settings (default to IDR for Indonesian tenants)
+            $defaultCurrency = $tenant->currency ?? 'IDR';
             // First, unset all defaults for this tenant
             Currency::where('tenant_id', $tenant->id)->update(['is_default' => false]);
 

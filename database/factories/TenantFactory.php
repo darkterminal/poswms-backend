@@ -17,19 +17,32 @@ class TenantFactory extends Factory
      */
     public function definition(): array
     {
+        $indonesianCities = [
+            ['city' => 'Jakarta', 'state' => 'DKI Jakarta', 'postal_code' => '10110'],
+            ['city' => 'Bandung', 'state' => 'Jawa Barat', 'postal_code' => '40111'],
+            ['city' => 'Surabaya', 'state' => 'Jawa Timur', 'postal_code' => '60111'],
+            ['city' => 'Yogyakarta', 'state' => 'DI Yogyakarta', 'postal_code' => '55111'],
+            ['city' => 'Semarang', 'state' => 'Jawa Tengah', 'postal_code' => '50111'],
+            ['city' => 'Medan', 'state' => 'Sumatera Utara', 'postal_code' => '20111'],
+            ['city' => 'Makassar', 'state' => 'Sulawesi Selatan', 'postal_code' => '90111'],
+            ['city' => 'Denpasar', 'state' => 'Bali', 'postal_code' => '80111'],
+        ];
+
+        $location = fake()->randomElement($indonesianCities);
+
         return [
             'name' => fake()->company(),
             'slug' => fake()->unique()->slug(),
             'company_name' => fake()->company(),
             'email' => fake()->unique()->companyEmail(),
-            'phone' => fake()->phoneNumber(),
+            'phone' => '+62-' . fake()->numerify('###-####'),
             'address' => fake()->address(),
-            'city' => fake()->city(),
-            'state' => fake()->state(),
-            'country' => fake()->country(),
-            'postal_code' => fake()->postcode(),
-            'timezone' => fake()->randomElement(['UTC', 'America/New_York', 'America/Chicago', 'America/Los_Angeles']),
-            'currency' => fake()->randomElement(['USD', 'EUR', 'GBP']),
+            'city' => $location['city'],
+            'state' => $location['state'],
+            'country' => 'Indonesia',
+            'postal_code' => $location['postal_code'],
+            'timezone' => fake()->randomElement(['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura']),
+            'currency' => 'IDR',
             'status' => 'active',
             'settings' => ['theme' => 'light', 'notifications' => true],
             'trial_ends_at' => fake()->optional(0.8)->dateTimeBetween('+1 week', '+4 weeks'),

@@ -59,10 +59,15 @@ class OrderSeeder extends Seeder
                     'status' => $status,
                     'type' => 'sale',
                     'subtotal' => $subtotal,
-                    'tax' => $subtotal * 0.08,
-                    'discount' => 0,
-                    'shipping' => fake()->randomElement([0, 5.99, 9.99, 14.99]),
+                    'tax' => $subtotal * 0.11, // Indonesia PPN 11%
+                    'discount' => fake()->randomElement([0, 5000, 10000, 25000, 50000]),
+                    'shipping' => fake()->randomElement([0, 15000, 25000, 50000]),
                     'notes' => fake()->optional(0.3)->sentence(),
+                    'shipping_address' => $customer->address,
+                    'shipping_city' => $customer->city,
+                    'shipping_state' => $customer->state,
+                    'shipping_country' => 'Indonesia',
+                    'shipping_postal_code' => $customer->postal_code,
                 ]);
 
                 // Create order items
@@ -75,9 +80,9 @@ class OrderSeeder extends Seeder
                         'product_id' => $product->id,
                         'quantity' => $qty,
                         'unit_price' => $unitPrice,
-                        'tax' => $unitPrice * $qty * 0.08,
+                        'tax' => $unitPrice * $qty * 0.11,
                         'discount' => 0,
-                        'total' => $unitPrice * $qty * 1.08,
+                        'total' => $unitPrice * $qty * 1.11,
                     ]);
                 }
             }
@@ -104,11 +109,16 @@ class OrderSeeder extends Seeder
                     'status' => 'fulfilled',
                     'type' => 'sale',
                     'subtotal' => $subtotal,
-                    'tax' => $subtotal * 0.08,
-                    'discount' => 0,
+                    'tax' => $subtotal * 0.11,
+                    'discount' => fake()->randomElement([0, 5000, 10000, 25000]),
                     'shipping' => 0,
                     'fulfilled_at' => now()->subDays(fake()->numberBetween(1, 30)),
-                    'notes' => 'Completed order',
+                    'notes' => 'Pesanan selesai',
+                    'shipping_address' => $customer->address,
+                    'shipping_city' => $customer->city,
+                    'shipping_state' => $customer->state,
+                    'shipping_country' => 'Indonesia',
+                    'shipping_postal_code' => $customer->postal_code,
                 ]);
 
                 // Create order items
@@ -121,9 +131,9 @@ class OrderSeeder extends Seeder
                         'product_id' => $product->id,
                         'quantity' => $qty,
                         'unit_price' => $unitPrice,
-                        'tax' => $unitPrice * $qty * 0.08,
+                        'tax' => $unitPrice * $qty * 0.11,
                         'discount' => 0,
-                        'total' => $unitPrice * $qty * 1.08,
+                        'total' => $unitPrice * $qty * 1.11,
                     ]);
                 }
             }

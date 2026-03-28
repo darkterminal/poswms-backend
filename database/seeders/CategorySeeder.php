@@ -20,23 +20,23 @@ class CategorySeeder extends Seeder
             return;
         }
 
-        // Common product categories
+        // Common product categories (Indonesian)
         $parentCategories = [
-            ['name' => 'Electronics', 'description' => 'Electronic devices and accessories'],
-            ['name' => 'Clothing', 'description' => 'Apparel and fashion items'],
-            ['name' => 'Home & Garden', 'description' => 'Home improvement and garden supplies'],
-            ['name' => 'Sports & Outdoors', 'description' => 'Sports equipment and outdoor gear'],
-            ['name' => 'Office Supplies', 'description' => 'Office and school supplies'],
-            ['name' => 'Food & Beverages', 'description' => 'Consumable food and drink items'],
+            ['name' => 'Elektronik', 'description' => 'Perangkat elektronik dan aksesoris'],
+            ['name' => 'Pakaian & Fashion', 'description' => 'Pakaian dan aksesoris fashion'],
+            ['name' => 'Rumah & Taman', 'description' => 'Perlengkapan rumah dan taman'],
+            ['name' => 'Olahraga & Outdoor', 'description' => 'Peralatan olahraga dan aktivitas outdoor'],
+            ['name' => 'Alat Tulis Kantor', 'description' => 'Perlengkapan kantor dan sekolah'],
+            ['name' => 'Makanan & Minuman', 'description' => 'Produk makanan dan minuman'],
         ];
 
         $subCategories = [
-            'Electronics' => ['Computers', 'Smartphones', 'Audio', 'Cameras', 'Accessories'],
-            'Clothing' => ['Men', 'Women', 'Kids', 'Shoes', 'Accessories'],
-            'Home & Garden' => ['Furniture', 'Decor', 'Kitchen', 'Garden Tools', 'Lighting'],
-            'Sports & Outdoors' => ['Fitness', 'Camping', 'Cycling', 'Team Sports', 'Water Sports'],
-            'Office Supplies' => ['Paper', 'Pens', 'Desk Accessories', 'Electronics', 'Storage'],
-            'Food & Beverages' => ['Snacks', 'Beverages', 'Canned Goods', 'Condiments', 'Specialty'],
+            'Elektronik' => ['Komputer', 'Smartphone', 'Audio', 'Kamera', 'Aksesoris'],
+            'Pakaian & Fashion' => ['Pria', 'Wanita', 'Anak', 'Sepatu', 'Aksesoris'],
+            'Rumah & Taman' => ['Furniture', 'Dekorasi', 'Dapur', 'Alat Taman', 'Pencahayaan'],
+            'Olahraga & Outdoor' => ['Fitness', 'Camping', 'Sepeda', 'Olahraga Tim', 'Olahraga Air'],
+            'Alat Tulis Kantor' => ['Kertas', 'Pena', 'Aksesoris Meja', 'Elektronik', 'Penyimpanan'],
+            'Makanan & Minuman' => ['Snack', 'Minuman', 'Makanan Kaleng', 'Bumbu', 'Sembako'],
         ];
 
         foreach ($tenants as $tenant) {
