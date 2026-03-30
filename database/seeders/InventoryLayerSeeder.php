@@ -10,7 +10,6 @@ use Random\Randomizer;
 
 class InventoryLayerSeeder extends Seeder
 {
-
     /**
      * Run the database seeds.
      */
@@ -32,7 +31,7 @@ class InventoryLayerSeeder extends Seeder
                 return;
             }
 
-            $randomizer = new Randomizer();
+            $randomizer = new Randomizer;
 
             // Create 2-4 FIFO layers per inventory
             $layerCount = random_int(2, 4);
