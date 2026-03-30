@@ -88,6 +88,9 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::get('/dashboard/revenue', [SystemDashboardController::class, 'revenue'])->name('admin.dashboard.revenue');
     Route::get('/dashboard/usage', [SystemDashboardController::class, 'usage'])->name('admin.dashboard.usage');
     Route::get('/dashboard/alerts', [SystemDashboardController::class, 'alerts'])->name('admin.dashboard.alerts');
+    Route::get('/dashboard/tenant-trends', [SystemDashboardController::class, 'tenantTrends'])->name('admin.dashboard.tenant-trends');
+    Route::get('/dashboard/top-products', [SystemDashboardController::class, 'topProducts'])->name('admin.dashboard.top-products');
+    Route::get('/dashboard/customer-analytics', [SystemDashboardController::class, 'customerAnalytics'])->name('admin.dashboard.customer-analytics');
 
     // User Management
     Route::get('/users', [UserController::class, 'index'])->name('admin.users.index');

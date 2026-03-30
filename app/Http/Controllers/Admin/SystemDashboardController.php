@@ -95,6 +95,202 @@ class SystemDashboardController extends Controller
     }
 
     /**
+     * Get tenant trends over time.
+     */
+    public function tenantTrends(Request $request): JsonResponse
+    {
+        $period = $request->query('period', '30d');
+        $days = match ($period) {
+            '7d' => 7,
+            '30d' => 30,
+            '90d' => 90,
+            'all' => 365,
+            default => 30,
+        };
+
+        $trends = Tenant::selectRaw('DATE(created_at) as date, COUNT(*) as count')
+            ->where('created_at', '>=', now()->subDays($days))
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(fn($item) => [
+                'date' => $item->date,
+                'count' => $item->count,
+            ])
+            ->toArray();
+
+        // Calculate growth percentage
+        if (count($trends) >= 2) {
+            $firstHalf = array_slice($trends, 0, floor(count($trends) / 2));
+            $secondHalf = array_slice($trends, floor(count($trends) / 2));
+            
+            $firstTotal = array_sum(array_column($firstHalf, 'count'));
+            $secondTotal = array_sum(array_column($secondHalf, 'count'));
+            
+            $growthPercentage = $firstTotal > 0 
+                ? (($secondTotal - $firstTotal) / $firstTotal) * 100 
+                : 0;
+        } else {
+            $growthPercentage = 0;
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'trends' => $trends,
+                'growth_percentage' => round($growthPercentage, 2),
+                'period' => $period,
+            ],
+            'message' => 'Tenant trends retrieved successfully',
+        ], 200);
+    }
+
+    /**
+     * Get top products across all tenants.
+     */
+    public function topProducts(Request $request): JsonResponse
+    {
+        $limit = $request->query('limit', 10);
+        $period = $request->query('period', '30d');
+        $sortBy = $request->query('sort_by', 'quantity');
+        $dateRange = $this->getDateRange($period);
+
+        $query = DB::table('order_items')
+            ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('tenants', 'orders.tenant_id', '=', 'tenants.id')
+            ->whereIn('orders.status', ['fulfilled', 'confirmed'])
+            ->selectRaw('
+                products.id,
+                products.name,
+                products.sku,
+                tenants.id as tenant_id,
+                tenants.name as tenant_name,
+                SUM(order_items.quantity) as total_sold,
+                SUM(order_items.total) as total_revenue
+            ');
+
+        if ($dateRange['start']) {
+            $query->where('orders.created_at', '>=', $dateRange['start']);
+        }
+
+        if ($dateRange['end']) {
+            $query->where('orders.created_at', '<=', $dateRange['end']);
+        }
+
+        $orderByField = $sortBy === 'revenue' ? 'total_revenue' : 'total_sold';
+        
+        $topProducts = $query
+            ->groupBy('products.id', 'products.name', 'products.sku', 'tenants.id', 'tenants.name')
+            ->orderByDesc($orderByField)
+            ->limit($limit)
+            ->get()
+            ->map(fn($item) => [
+                'productId' => $item->id,
+                'productName' => $item->name,
+                'productSku' => $item->sku,
+                'tenantId' => $item->tenant_id,
+                'tenantName' => $item->tenant_name,
+                'totalSold' => $item->total_sold,
+                'totalRevenue' => round($item->total_revenue, 2),
+            ])
+            ->toArray();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'products' => $topProducts,
+                'period' => $period,
+                'sort_by' => $sortBy,
+            ],
+            'message' => 'Top products retrieved successfully',
+        ], 200);
+    }
+
+    /**
+     * Get customer analytics across all tenants.
+     */
+    public function customerAnalytics(Request $request): JsonResponse
+    {
+        $period = $request->query('period', '30d');
+        $limit = $request->query('limit', 10);
+        $dateRange = $this->getDateRange($period);
+
+        // Total customers
+        $totalCustomers = DB::table('customers')->count();
+
+        // New customers in period
+        $newCustomersQuery = DB::table('customers');
+        if ($dateRange['start']) {
+            $newCustomersQuery->where('created_at', '>=', $dateRange['start']);
+        }
+        if ($dateRange['end']) {
+            $newCustomersQuery->where('created_at', '<=', $dateRange['end']);
+        }
+        $newCustomers = $newCustomersQuery->count();
+
+        // Active customers (customers with orders in period)
+        $activeCustomersQuery = DB::table('customers')
+            ->join('orders', 'customers.id', '=', 'orders.customer_id')
+            ->whereIn('orders.status', ['fulfilled', 'confirmed']);
+        
+        if ($dateRange['start']) {
+            $activeCustomersQuery->where('orders.created_at', '>=', $dateRange['start']);
+        }
+        if ($dateRange['end']) {
+            $activeCustomersQuery->where('orders.created_at', '<=', $dateRange['end']);
+        }
+        
+        $activeCustomers = $activeCustomersQuery->distinct('customers.id')->count('customers.id');
+
+        // Top customers by revenue
+        $topCustomersQuery = DB::table('customers')
+            ->join('orders', 'customers.id', '=', 'orders.customer_id')
+            ->join('tenants', 'orders.tenant_id', '=', 'tenants.id')
+            ->whereIn('orders.status', ['fulfilled', 'confirmed'])
+            ->selectRaw('
+                customers.id,
+                customers.name,
+                customers.email,
+                COUNT(orders.id) as total_orders,
+                SUM(orders.total) as total_revenue
+            ');
+
+        if ($dateRange['start']) {
+            $topCustomersQuery->where('orders.created_at', '>=', $dateRange['start']);
+        }
+        if ($dateRange['end']) {
+            $topCustomersQuery->where('orders.created_at', '<=', $dateRange['end']);
+        }
+
+        $topCustomers = $topCustomersQuery
+            ->groupBy('customers.id', 'customers.name', 'customers.email')
+            ->orderByDesc('total_revenue')
+            ->limit($limit)
+            ->get()
+            ->map(fn($item) => [
+                'customerId' => $item->id,
+                'customerName' => $item->name,
+                'customerEmail' => null, // Email is encrypted, skip for now
+                'totalOrders' => $item->total_orders,
+                'totalRevenue' => round($item->total_revenue, 2),
+            ])
+            ->toArray();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'totalCustomers' => $totalCustomers,
+                'newCustomers' => $newCustomers,
+                'activeCustomers' => $activeCustomers,
+                'topCustomers' => $topCustomers,
+                'period' => $period,
+            ],
+            'message' => 'Customer analytics retrieved successfully',
+        ], 200);
+    }
+
+    /**
      * Get tenant metrics.
      */
     private function getTenantMetrics(): array

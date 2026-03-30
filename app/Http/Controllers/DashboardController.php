@@ -17,8 +17,9 @@ class DashboardController extends Controller
     /**
      * Get unified dashboard metrics for tenant admin.
      */
-    public function index(Request $request, int $tenantId): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $tenantId = (int) $request->route('tenant_id');
         $period = $request->query('period', 'today');
 
         $data = $this->cacheService->rememberDashboardMetrics($tenantId, $period, function () use ($tenantId, $period) {
