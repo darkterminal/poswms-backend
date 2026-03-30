@@ -138,6 +138,77 @@ class TenantManagementTest extends TestCase
     }
 
     /**
+     * Test super admin can create a new tenant with subscription plan.
+     */
+    public function test_super_admin_can_create_tenant_with_subscription_plan(): void
+    {
+        $tenantData = [
+            'name' => 'Enterprise Tenant',
+            'slug' => 'enterprise-tenant',
+            'company_name' => 'Enterprise Corp',
+            'email' => 'enterprise@tenant.com',
+            'subscription_plan' => 'enterprise',
+            'status' => 'active',
+        ];
+
+        $response = $this->withHeaders([
+            'Authorization' => 'Bearer ' . $this->superAdminToken(),
+        ])->postJson('/api/v1/admin/tenants', $tenantData);
+
+        $response->assertStatus(201)
+            ->assertJson([
+                'success' => true,
+            ])
+            ->assertJsonStructure([
+                'data' => ['tenant' => ['id', 'name', 'slug', 'email', 'subscription_plan']],
+                'message',
+            ])
+            ->assertJsonPath('data.tenant.name', 'Enterprise Tenant')
+            ->assertJsonPath('data.tenant.subscription_plan', 'enterprise');
+
+        // Verify tenant was created with correct subscription plan
+        $this->assertDatabaseHas('tenants', [
+            'name' => 'Enterprise Tenant',
+            'slug' => 'enterprise-tenant',
+            'subscription_plan' => 'enterprise',
+        ]);
+
+        // Verify subscription plan can be retrieved via model
+        $tenant = Tenant::where('slug', 'enterprise-tenant')->first();
+        $this->assertNotNull($tenant);
+        $this->assertEquals('enterprise', $tenant->subscription_plan);
+    }
+
+    /**
+     * Test super admin can create tenant with different subscription plans.
+     */
+    public function test_super_admin_can_create_tenants_with_different_plans(): void
+    {
+        $plans = ['starter', 'professional', 'enterprise'];
+
+        foreach ($plans as $index => $plan) {
+            $tenantData = [
+                'name' => ucfirst($plan) . ' Tenant',
+                'slug' => $plan . '-tenant-' . $index,
+                'email' => $plan . '@tenant.com',
+                'subscription_plan' => $plan,
+            ];
+
+            $response = $this->withHeaders([
+                'Authorization' => 'Bearer ' . $this->superAdminToken(),
+            ])->postJson('/api/v1/admin/tenants', $tenantData);
+
+            $response->assertStatus(201)
+                ->assertJsonPath('data.tenant.subscription_plan', $plan);
+
+            $this->assertDatabaseHas('tenants', [
+                'slug' => $plan . '-tenant-' . $index,
+                'subscription_plan' => $plan,
+            ]);
+        }
+    }
+
+    /**
      * Test super admin can view a specific tenant.
      */
     public function test_super_admin_can_view_tenant(): void
