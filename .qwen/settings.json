@@ -24,7 +24,8 @@
       "Bash(touch *)",
       "Bash(sqlite3 *)",
       "Bash(ls *)",
-      "Bash(rm *)"
+      "Bash(rm *)",
+      "Bash(grep *)"
     ]
   }
 }
