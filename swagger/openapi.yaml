@@ -3,24 +3,44 @@ info:
   title: POS WMS Backend API
   description: |
     Point of Sale & Warehouse Management System API
-    
+
     ## Authentication
     This API uses Bearer token authentication with Laravel Sanctum. Include the token in the Authorization header:
     ```
     Authorization: Bearer {your-token}
     ```
-    
+
     ## Authorization
     Some endpoints require specific user roles. These are marked with the `x-role` extension:
     - `x-role: [admin]` - Requires user to have the 'admin' role
     - `x-role: [admin, manager]` - Requires user to have either 'admin' OR 'manager' role
-    
+
     Similarly, endpoints requiring specific permissions are marked with `x-permission`:
     - `x-permission: [products.create, products.edit]` - Requires user to have at least one of the specified permissions
-    
+
     ## Multi-Tenancy
     Most endpoints are scoped to a tenant. The `tenant_id` path parameter identifies the tenant context.
     Users must have access to the specified tenant to perform operations.
+
+    ## Rate Limiting
+    API requests are rate limited to ensure fair usage. Default limits:
+    - **Authenticated requests**: 60 requests per minute
+    - **Unauthenticated requests**: 30 requests per minute
+    
+    Rate limit headers are included in responses:
+    - `X-RateLimit-Limit`: Maximum requests allowed
+    - `X-RateLimit-Remaining`: Requests remaining
+    - `Retry-After`: Seconds to wait before retrying (when rate limited)
+
+    ## Error Handling
+    All errors follow a consistent format with HTTP status codes:
+    - `400 Bad Request`: Invalid request syntax or parameters
+    - `401 Unauthorized`: Missing or invalid authentication
+    - `403 Forbidden`: Insufficient permissions
+    - `404 Not Found`: Resource not found
+    - `422 Unprocessable Entity`: Validation errors
+    - `429 Too Many Requests`: Rate limit exceeded
+    - `500 Internal Server Error`: Server error
   version: 1.0.0
   contact:
     name: API Support
@@ -28,12 +48,20 @@ info:
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
+  x-logo:
+    url: https://via.placeholder.com/150x50.png?text=POS+WMS
+
+externalDocs:
+  description: Find more info here
+  url: https://docs.example.com
 
 servers:
   - url: http://localhost:8000
     description: Development server
   - url: https://api.example.com
     description: Production server
+  - url: https://staging-api.example.com
+    description: Staging server
 
 tags:
   - name: Authentication
@@ -63,7 +91,75 @@ tags:
   - name: Super Admin
     description: Super admin tenant management, system dashboard, and cross-tenant operations
 
+x-tagGroups:
+  - name: Core
+    tags:
+      - Authentication
+      - Stores
+      - Warehouses
+      - Products
+      - Categories
+  - name: Operations
+    tags:
+      - Inventory
+      - Orders
+      - Customers
+      - Pricing
+  - name: Administration
+    tags:
+      - Roles & Permissions
+      - Reports & Dashboard
+      - Webhooks
+      - Super Admin
+
 paths:
+  /api/v1/health:
+    get:
+      tags:
+        - Super Admin
+      summary: Health check
+      description: Check API health status. This endpoint does not require authentication.
+      operationId: healthCheck
+      responses:
+        '200':
+          description: API is healthy
+          headers:
+            X-RateLimit-Limit:
+              $ref: '#/components/headers/RateLimitLimit'
+            X-RateLimit-Remaining:
+              $ref: '#/components/headers/RateLimitRemaining'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    examples:
+                      - value: true
+                  message:
+                    type: string
+                    examples:
+                      - value: "API is healthy"
+                  data:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        examples:
+                          - value: "ok"
+                      timestamp:
+                        type: string
+                        format: date-time
+                      environment:
+                        type: string
+                        examples:
+                          - value: "local"
+                      version:
+                        type: string
+                        examples:
+                          - value: "1.0.0"
+
   /api/v1/auth/login:
     post:
       tags:
@@ -5067,7 +5163,7 @@ paths:
           schema:
             type: string
             default: created_at
-          description: Sort field (allowed: name, slug, company_name, email, status, subscription_plan, trial_ends_at, subscription_ends_at, created_at, updated_at)
+          description: "Sort field (allowed: name, slug, company_name, email, status, subscription_plan, trial_ends_at, subscription_ends_at, created_at, updated_at)"
         - in: query
           name: sort_direction
           schema:
@@ -5169,7 +5265,7 @@ paths:
                 subscription_plan:
                   type: string
                   enum: [starter, professional, enterprise]
-                  default: starter
+                  description: Subscription plan for the tenant
                 trial_ends_at:
                   type: string
                   format: date-time
@@ -5292,6 +5388,10 @@ paths:
                 status:
                   type: string
                   enum: [active, suspended, inactive]
+                subscription_plan:
+                  type: string
+                  enum: [starter, professional, enterprise]
+                  description: Subscription plan for the tenant
                 settings:
                   type: object
                 trial_ends_at:
@@ -6390,12 +6490,53 @@ components:
         type: integer
       description: Tenant identifier
 
+  headers:
+    RateLimitLimit:
+      description: The maximum number of requests allowed per time window
+      schema:
+        type: integer
+      example: 60
+    RateLimitRemaining:
+      description: The number of requests remaining in the current time window
+      schema:
+        type: integer
+      example: 45
+    RateLimitReset:
+      description: The time at which the rate limit window resets (Unix timestamp)
+      schema:
+        type: integer
+      example: 1704067200
+    RetryAfter:
+      description: The number of seconds to wait before retrying (only present when rate limited)
+      schema:
+        type: integer
+      example: 60
+    PaginationTotal:
+      description: Total number of items available
+      schema:
+        type: integer
+      example: 100
+    PaginationPerPage:
+      description: Number of items per page
+      schema:
+        type: integer
+      example: 15
+    PaginationCurrentPage:
+      description: Current page number
+      schema:
+        type: integer
+      example: 1
+    PaginationLastPage:
+      description: Last page number
+      schema:
+        type: integer
+      example: 7
+
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT
-      description: Bearer token authentication using Laravel Sanctum
+      description: Bearer token authentication using Laravel Sanctum. Token should be obtained via /api/v1/auth/login endpoint.
 
   schemas:
     SuccessResponse:
@@ -6407,6 +6548,8 @@ components:
             - value: true
         message:
           type: string
+          examples:
+            - value: "Operation completed successfully"
 
     ErrorResponse:
       type: object
@@ -6420,17 +6563,206 @@ components:
           properties:
             code:
               type: string
+              examples:
+                - value: "UNAUTHORIZED"
             message:
               type: string
+              examples:
+                - value: "Invalid credentials provided"
             details:
               type: object
               additionalProperties: true
+              examples:
+                - value: {"field": "value"}
         meta:
           type: object
           properties:
             timestamp:
               type: string
               format: date-time
+              examples:
+                - value: "2024-01-01T00:00:00Z"
+            path:
+              type: string
+              examples:
+                - value: "/api/v1/tenants/1/products"
+            request_id:
+              type: string
+              examples:
+                - value: "abc123-def456"
+
+    UnauthorizedError:
+      description: Authentication information was missing or invalid
+      type: object
+      properties:
+        success:
+          type: boolean
+          examples:
+            - value: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              examples:
+                - value: "UNAUTHORIZED"
+            message:
+              type: string
+              examples:
+                - value: "Authentication required"
+        meta:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+
+    ForbiddenError:
+      description: User does not have permission to access this resource
+      type: object
+      properties:
+        success:
+          type: boolean
+          examples:
+            - value: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              examples:
+                - value: "FORBIDDEN"
+            message:
+              type: string
+              examples:
+                - value: "You do not have permission to access this resource"
+        meta:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+
+    NotFoundError:
+      description: The specified resource was not found
+      type: object
+      properties:
+        success:
+          type: boolean
+          examples:
+            - value: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              examples:
+                - value: "NOT_FOUND"
+            message:
+              type: string
+              examples:
+                - value: "Resource not found"
+        meta:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+
+    ValidationError:
+      type: object
+      description: Laravel validation error response
+      properties:
+        success:
+          type: boolean
+          examples:
+            - value: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              examples:
+                - value: "VALIDATION_ERROR"
+            message:
+              type: string
+              examples:
+                - value: "The given data was invalid."
+        errors:
+          type: object
+          description: Field-specific validation errors
+          additionalProperties:
+            type: array
+            items:
+              type: string
+            description: Array of error messages for the field
+          examples:
+            - value:
+                email:
+                  - "The email field is required."
+                password:
+                  - "The password must be at least 8 characters."
+
+    RateLimitError:
+      description: Too many requests have been made in a short time period
+      type: object
+      properties:
+        success:
+          type: boolean
+          examples:
+            - value: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              examples:
+                - value: "TOO_MANY_REQUESTS"
+            message:
+              type: string
+              examples:
+                - value: "Rate limit exceeded. Please try again later."
+        meta:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            retry_after:
+              type: integer
+              description: Seconds to wait before retrying
+              examples:
+                - value: 60
+
+    ServerError:
+      description: An unexpected error occurred on the server
+      type: object
+      properties:
+        success:
+          type: boolean
+          examples:
+            - value: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              examples:
+                - value: "INTERNAL_SERVER_ERROR"
+            message:
+              type: string
+              examples:
+                - value: "An unexpected error occurred. Please try again later."
+        meta:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            request_id:
+              type: string
+              description: Unique identifier for this request (useful for support)
+
 
     User:
       type: object
@@ -6522,45 +6854,78 @@ components:
       properties:
         id:
           type: integer
+          examples:
+            - value: 1
         tenant_id:
           type: integer
+          examples:
+            - value: 1
         name:
           type: string
           maxLength: 255
+          examples:
+            - value: "Downtown Store"
         code:
           type: string
           maxLength: 100
+          examples:
+            - value: "DT-001"
         address:
           type: string
+          examples:
+            - value: "123 Main Street"
         city:
           type: string
           maxLength: 255
+          examples:
+            - value: "New York"
         state:
           type: string
           maxLength: 255
+          examples:
+            - value: "NY"
         country:
           type: string
           maxLength: 255
+          examples:
+            - value: "United States"
         postal_code:
           type: string
           maxLength: 50
+          examples:
+            - value: "10001"
         phone:
           type: string
           maxLength: 50
+          examples:
+            - value: "+1-555-123-4567"
         email:
           type: string
           format: email
+          examples:
+            - value: "downtown@example.com"
         settings:
           type: object
           additionalProperties: true
+          examples:
+            - value:
+                timezone: "America/New_York"
+                currency: "USD"
+                tax_rate: 8.5
         active:
           type: boolean
+          examples:
+            - value: true
         created_at:
           type: string
           format: date-time
+          examples:
+            - value: "2024-01-01T00:00:00Z"
         updated_at:
           type: string
           format: date-time
+          examples:
+            - value: "2024-01-15T12:30:00Z"
 
     CreateStoreRequest:
       type: object
@@ -6641,51 +7006,88 @@ components:
       properties:
         id:
           type: integer
+          examples:
+            - value: 1
         tenant_id:
           type: integer
+          examples:
+            - value: 1
         name:
           type: string
           maxLength: 255
+          examples:
+            - value: "Central Distribution Center"
         code:
           type: string
           maxLength: 100
+          examples:
+            - value: "CDC-001"
         address:
           type: string
+          examples:
+            - value: "456 Industrial Parkway"
         city:
           type: string
           maxLength: 255
+          examples:
+            - value: "Newark"
         state:
           type: string
           maxLength: 255
+          examples:
+            - value: "NJ"
         country:
           type: string
           maxLength: 255
+          examples:
+            - value: "United States"
         postal_code:
           type: string
           maxLength: 50
+          examples:
+            - value: "07101"
         phone:
           type: string
           maxLength: 50
+          examples:
+            - value: "+1-555-987-6543"
         email:
           type: string
           format: email
+          examples:
+            - value: "warehouse@example.com"
         latitude:
           type: number
           format: float
+          examples:
+            - value: 40.7357
         longitude:
           type: number
           format: float
+          examples:
+            - value: -74.1724
         settings:
           type: object
           additionalProperties: true
+          examples:
+            - value:
+                timezone: "America/New_York"
+                capacity: 10000
+                loading_docks: 8
         active:
           type: boolean
+          examples:
+            - value: true
         created_at:
           type: string
           format: date-time
+          examples:
+            - value: "2024-01-01T00:00:00Z"
         updated_at:
           type: string
           format: date-time
+          examples:
+            - value: "2024-01-15T12:30:00Z"
 
     CreateWarehouseRequest:
       type: object
@@ -6778,60 +7180,105 @@ components:
       properties:
         id:
           type: integer
+          examples:
+            - value: 1
         tenant_id:
           type: integer
+          examples:
+            - value: 1
         category_id:
           type: integer
+          examples:
+            - value: 5
         name:
           type: string
           maxLength: 255
+          examples:
+            - value: "Wireless Bluetooth Headphones"
         sku:
           type: string
           maxLength: 100
+          examples:
+            - value: "WBH-001"
         barcode:
           type: string
           maxLength: 100
+          examples:
+            - value: "1234567890123"
         description:
           type: string
+          examples:
+            - value: "High-quality wireless headphones with noise cancellation"
         price:
           type: number
           format: decimal
+          examples:
+            - value: 99.99
         cost:
           type: number
           format: decimal
+          examples:
+            - value: 45.00
         tax_rate:
           type: number
           format: decimal
+          examples:
+            - value: 10.0
         unit:
           type: string
           maxLength: 50
+          examples:
+            - value: "piece"
         min_stock:
           type: integer
           minimum: 0
+          examples:
+            - value: 10
         max_stock:
           type: integer
           minimum: 0
+          examples:
+            - value: 1000
         image:
           type: string
           format: uri
+          examples:
+            - value: "https://example.com/images/product.jpg"
         images:
           type: array
           items:
             type: string
             format: uri
+          examples:
+            - value:
+                - "https://example.com/images/product-1.jpg"
+                - "https://example.com/images/product-2.jpg"
         attributes:
           type: object
           additionalProperties: true
+          examples:
+            - value:
+                color: "Black"
+                weight: "250g"
+                warranty: "2 years"
         track_inventory:
           type: boolean
+          examples:
+            - value: true
         active:
           type: boolean
+          examples:
+            - value: true
         created_at:
           type: string
           format: date-time
+          examples:
+            - value: "2024-01-01T00:00:00Z"
         updated_at:
           type: string
           format: date-time
+          examples:
+            - value: "2024-01-15T12:30:00Z"
 
     CreateProductRequest:
       type: object
@@ -7339,8 +7786,9 @@ components:
           type: string
           maxLength: 100
         address:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
         city:
           type: string
           maxLength: 255
@@ -7362,9 +7810,10 @@ components:
           type: number
           format: decimal
         settings:
-          type: object
+          type:
+            - object
+            - "null"
           additionalProperties: true
-          nullable: true
         active:
           type: boolean
         created_at:
@@ -7395,8 +7844,9 @@ components:
           type: string
           maxLength: 100
         address:
-          type: string
-          nullable: true
+          type:
+            - string
+            - "null"
         city:
           type: string
           maxLength: 255
@@ -7422,9 +7872,10 @@ components:
           minimum: 0
           default: 0
         settings:
-          type: object
+          type:
+            - object
+            - "null"
           additionalProperties: true
-          nullable: true
         active:
           type: boolean
           default: true
@@ -8738,11 +9189,33 @@ components:
           type: integer
         name:
           type: string
+        slug:
+          type: string
+          description: Unique URL-friendly identifier
         domain:
           type: string
         email:
           type: string
           format: email
+        company_name:
+          type: string
+        phone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country:
+          type: string
+        postal_code:
+          type: string
+        timezone:
+          type: string
+        currency:
+          type: string
+          description: 3-letter ISO currency code
         status:
           type: string
           enum: [active, suspended, archived]
@@ -8757,6 +9230,82 @@ components:
           format: date-time
         settings:
           type: object
+          description: Tenant configuration settings
+          properties:
+            # Appearance
+            theme:
+              type: string
+              enum: [light, dark, system]
+              default: system
+              description: Application color theme
+            sidebar_collapsed:
+              type: boolean
+              default: false
+              description: Start with sidebar collapsed
+            # Notifications
+            email_notifications:
+              type: boolean
+              default: true
+              description: Send email updates
+            low_stock_notifications:
+              type: boolean
+              default: true
+              description: Notify when stock is low
+            order_notifications:
+              type: boolean
+              default: true
+              description: New order notifications
+            # Inventory
+            low_stock_threshold:
+              type: integer
+              minimum: 1
+              maximum: 1000
+              default: 20
+              description: Alert when stock falls below this level
+            track_inventory:
+              type: boolean
+              default: true
+              description: Enable stock tracking
+            allow_negative_stock:
+              type: boolean
+              default: false
+              description: Sell beyond available stock
+            # Sales
+            enable_receipt_printing:
+              type: boolean
+              default: true
+              description: Auto-print receipts
+            default_tax_rate:
+              type: number
+              minimum: 0
+              maximum: 100
+              default: 0
+              description: Tax rate applied to all sales
+            enable_discounts:
+              type: boolean
+              default: true
+              description: Allow discount application
+            # POS
+            pos_mode:
+              type: string
+              enum: [quick, standard, detailed]
+              default: standard
+              description: Point of sale interface mode
+            enable_barcodes:
+              type: boolean
+              default: true
+              description: Enable barcode support
+            # Advanced
+            data_retention_days:
+              type: integer
+              minimum: 30
+              maximum: 3650
+              default: 365
+              description: Keep data for this many days
+            enable_audit_log:
+              type: boolean
+              default: true
+              description: Track all user actions
         created_at:
           type: string
           format: date-time
@@ -8891,3 +9440,66 @@ components:
           type: integer
         total:
           type: integer
+
+    PaginationLinks:
+      type: object
+      description: Pagination links for navigation
+      properties:
+        first:
+          type: string
+          format: uri
+          description: URL to the first page
+        last:
+          type: string
+          format: uri
+          description: URL to the last page
+        prev:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to the previous page (null if on first page)
+        next:
+          type: string
+          format: uri
+          nullable: true
+          description: URL to the next page (null if on last page)
+
+    PaginatedResponse:
+      type: object
+      description: Generic paginated response wrapper
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+        meta:
+          type: object
+          properties:
+            current_page:
+              type: integer
+            from:
+              type: integer
+            last_page:
+              type: integer
+            path:
+              type: string
+            per_page:
+              type: integer
+            to:
+              type: integer
+            total:
+              type: integer
+            links:
+              $ref: '#/components/schemas/PaginationLinks'
+
+    Timestamps:
+      type: object
+      properties:
+        created_at:
+          type: string
+          format: date-time
+          description: ISO 8601 formatted date-time when the resource was created
+        updated_at:
+          type: string
+          format: date-time
+          description: ISO 8601 formatted date-time when the resource was last updated
