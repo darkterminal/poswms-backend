@@ -154,6 +154,242 @@ class UserController extends Controller
     }
 
     /**
+     * Store a newly created user.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'password' => ['required', 'string', 'min:8'],
+            'tenant_id' => ['nullable', 'exists:tenants,id'],
+            'store_id' => ['nullable', 'exists:stores,id'],
+            'warehouse_id' => ['nullable', 'exists:warehouses,id'],
+            'roles' => ['nullable', 'array'],
+            'roles.*' => ['string', 'exists:roles,id'],
+            'is_super_admin' => ['boolean'],
+            'is_active' => ['boolean'],
+        ]);
+
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => bcrypt($validated['password']),
+            'tenant_id' => $validated['tenant_id'] ?? null,
+            'store_id' => $validated['store_id'] ?? null,
+            'warehouse_id' => $validated['warehouse_id'] ?? null,
+            'is_super_admin' => $validated['is_super_admin'] ?? false,
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
+
+        // Assign roles if provided
+        if (! empty($validated['roles'])) {
+            $user->roles()->attach($validated['roles']);
+        }
+
+        $user->load(['tenant', 'store', 'warehouse', 'roles']);
+
+        // Security audit logging
+        $this->securityLogger->logAsync(
+            eventType: 'user.created',
+            description: "User '{$user->name}' was created",
+            context: [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_name' => $user->name,
+                'is_super_admin' => $user->is_super_admin,
+            ],
+            tenantId: $user->tenant_id,
+            userId: $request->user()?->id,
+            request: $request,
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'is_super_admin' => $user->is_super_admin,
+                'is_active' => $user->is_active,
+                'tenant' => $user->tenant ? [
+                    'id' => $user->tenant->id,
+                    'name' => $user->tenant->name,
+                    'slug' => $user->tenant->slug,
+                    'status' => $user->tenant->status,
+                ] : null,
+                'store' => $user->store ? [
+                    'id' => $user->store->id,
+                    'name' => $user->store->name,
+                ] : null,
+                'warehouse' => $user->warehouse ? [
+                    'id' => $user->warehouse->id,
+                    'name' => $user->warehouse->name,
+                ] : null,
+                'roles' => $user->roles->map(fn($role) => [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'slug' => $role->slug,
+                ]),
+                'created_at' => $user->created_at->toIso8601String(),
+                'updated_at' => $user->updated_at->toIso8601String(),
+            ],
+            'message' => 'User created successfully',
+        ]);
+    }
+
+    /**
+     * Update the specified user.
+     */
+    public function update(Request $request, User $user): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'email' => ['sometimes', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'password' => ['sometimes', 'string', 'min:8'],
+            'tenant_id' => ['nullable', 'exists:tenants,id'],
+            'store_id' => ['nullable', 'exists:stores,id'],
+            'warehouse_id' => ['nullable', 'exists:warehouses,id'],
+            'roles' => ['nullable', 'array'],
+            'roles.*' => ['string', 'exists:roles,id'],
+            'is_super_admin' => ['boolean'],
+            'is_active' => ['boolean'],
+        ]);
+
+        // Update user attributes
+        if (isset($validated['name'])) {
+            $user->name = $validated['name'];
+        }
+
+        if (isset($validated['email'])) {
+            $user->email = $validated['email'];
+        }
+
+        if (isset($validated['password'])) {
+            $user->password = bcrypt($validated['password']);
+        }
+
+        if (isset($validated['tenant_id'])) {
+            $user->tenant_id = $validated['tenant_id'];
+        }
+
+        if (isset($validated['store_id'])) {
+            $user->store_id = $validated['store_id'];
+        }
+
+        if (isset($validated['warehouse_id'])) {
+            $user->warehouse_id = $validated['warehouse_id'];
+        }
+
+        if (isset($validated['is_super_admin'])) {
+            $user->is_super_admin = $validated['is_super_admin'];
+        }
+
+        if (isset($validated['is_active'])) {
+            $user->is_active = $validated['is_active'];
+        }
+
+        $user->save();
+
+        // Sync roles if provided
+        if (isset($validated['roles'])) {
+            $user->roles()->sync($validated['roles']);
+        }
+
+        $user->load(['tenant', 'store', 'warehouse', 'roles']);
+
+        // Security audit logging
+        $this->securityLogger->logAsync(
+            eventType: 'user.updated',
+            description: "User '{$user->name}' was updated",
+            context: [
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_name' => $user->name,
+                'changes' => array_keys($validated),
+            ],
+            tenantId: $user->tenant_id,
+            userId: $request->user()?->id,
+            request: $request,
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'is_super_admin' => $user->is_super_admin,
+                'is_active' => $user->is_active,
+                'tenant' => $user->tenant ? [
+                    'id' => $user->tenant->id,
+                    'name' => $user->tenant->name,
+                    'slug' => $user->tenant->slug,
+                    'status' => $user->tenant->status,
+                ] : null,
+                'store' => $user->store ? [
+                    'id' => $user->store->id,
+                    'name' => $user->store->name,
+                ] : null,
+                'warehouse' => $user->warehouse ? [
+                    'id' => $user->warehouse->id,
+                    'name' => $user->warehouse->name,
+                ] : null,
+                'roles' => $user->roles->map(fn($role) => [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'slug' => $role->slug,
+                ]),
+                'created_at' => $user->created_at->toIso8601String(),
+                'updated_at' => $user->updated_at->toIso8601String(),
+            ],
+            'message' => 'User updated successfully',
+        ]);
+    }
+
+    /**
+     * Remove the specified user.
+     */
+    public function destroy(Request $request, User $user): JsonResponse
+    {
+        $userName = $user->name;
+        $userEmail = $user->email;
+
+        // Prevent deleting yourself
+        if ($request->user()?->id === $user->id) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'INVALID_REQUEST',
+                    'message' => 'Cannot delete your own account',
+                ],
+            ], 422);
+        }
+
+        // Delete the user
+        $user->delete();
+
+        // Security audit logging
+        $this->securityLogger->logAsync(
+            eventType: 'user.deleted',
+            description: "User '{$userName}' was deleted",
+            context: [
+                'user_id' => $user->id,
+                'user_email' => $userEmail,
+                'user_name' => $userName,
+            ],
+            tenantId: $user->tenant_id,
+            userId: $request->user()?->id,
+            request: $request,
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User deleted successfully',
+        ]);
+    }
+
+    /**
      * Generate an impersonation token for the specified user.
      */
     public function impersonate(Request $request, User $user): JsonResponse

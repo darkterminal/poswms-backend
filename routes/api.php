@@ -94,7 +94,10 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
 
     // User Management
     Route::get('/users', [UserController::class, 'index'])->name('admin.users.index');
+    Route::post('/users', [UserController::class, 'store'])->name('admin.users.store');
     Route::get('/users/{user}', [UserController::class, 'show'])->name('admin.users.show');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
     Route::post('/users/{user}/impersonate', [UserController::class, 'impersonate'])->name('admin.users.impersonate');
     Route::post('/users/stop-impersonating', [UserController::class, 'stopImpersonating'])->name('admin.users.stopImpersonating');
     Route::get('/users/{user}/impersonation-sessions', [UserController::class, 'impersonationSessions'])->name('admin.users.impersonationSessions');
