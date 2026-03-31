@@ -105,6 +105,10 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
 
     // Role Management (Super Admin - Global View)
     Route::get('/roles/all', [RoleController::class, 'globalIndex'])->name('admin.roles.global-index');
+    Route::get('/roles/{role}', [RoleController::class, 'globalShow'])->name('admin.roles.global-show');
+    Route::post('/roles', [RoleController::class, 'globalStore'])->name('admin.roles.global-store');
+    Route::put('/roles/{role}', [RoleController::class, 'globalUpdate'])->name('admin.roles.global-update');
+    Route::delete('/roles/{role}', [RoleController::class, 'globalDestroy'])->name('admin.roles.global-destroy');
 
     // Global Audit Logs (Super Admin only)
     Route::get('/audit-logs', [AuditLogController::class, 'globalIndex'])->name('admin.audit-logs.index');

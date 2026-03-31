@@ -97,6 +97,140 @@ class RoleController extends Controller
     }
 
     /**
+     * Display the specified role (Super Admin - Global View).
+     */
+    public function globalShow(int $roleId): JsonResponse
+    {
+        $role = Role::with(['tenant', 'users'])
+            ->withCount('users')
+            ->findOrFail($roleId);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'role' => [
+                    'id' => $role->id,
+                    'tenant_id' => $role->tenant_id,
+                    'name' => $role->name,
+                    'slug' => $role->slug,
+                    'description' => $role->description,
+                    'permissions' => $role->permissions,
+                    'is_system' => $role->is_system,
+                    'users_count' => $role->users_count,
+                    'created_at' => $role->created_at->toIso8601String(),
+                    'updated_at' => $role->updated_at->toIso8601String(),
+                    'tenant' => $role->tenant ? [
+                        'id' => $role->tenant->id,
+                        'name' => $role->tenant->name,
+                        'slug' => $role->tenant->slug,
+                        'status' => $role->tenant->status,
+                    ] : null,
+                ],
+            ],
+            'message' => 'Role retrieved successfully',
+        ], 200);
+    }
+
+    /**
+     * Store a new role (Super Admin - Global View).
+     */
+    public function globalStore(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:roles,slug',
+            'description' => 'nullable|string',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string',
+            'tenant_id' => 'required|exists:tenants,id',
+            'is_system' => 'boolean',
+        ]);
+
+        $role = Role::create([
+            'tenant_id' => $validated['tenant_id'],
+            'name' => $validated['name'],
+            'slug' => $validated['slug'],
+            'description' => $validated['description'] ?? null,
+            'permissions' => $validated['permissions'] ?? [],
+            'is_system' => $validated['is_system'] ?? false,
+        ]);
+
+        $this->securityLogger->info('Role created', [
+            'role_id' => $role->id,
+            'role_name' => $role->name,
+            'tenant_id' => $role->tenant_id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'role' => $role,
+            ],
+            'message' => 'Role created successfully',
+        ], 201);
+    }
+
+    /**
+     * Update the specified role (Super Admin - Global View).
+     */
+    public function globalUpdate(Request $request, int $roleId): JsonResponse
+    {
+        $role = Role::findOrFail($roleId);
+
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'slug' => 'sometimes|required|string|max:255|unique:roles,slug,' . $roleId . ',id',
+            'description' => 'nullable|string',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'string',
+            'is_system' => 'boolean',
+        ]);
+
+        $role->update($validated);
+
+        $this->securityLogger->info('Role updated', [
+            'role_id' => $role->id,
+            'role_name' => $role->name,
+            'changes' => $validated,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'role' => $role,
+            ],
+            'message' => 'Role updated successfully',
+        ], 200);
+    }
+
+    /**
+     * Remove the specified role (Super Admin - Global View).
+     */
+    public function globalDestroy(int $roleId): JsonResponse
+    {
+        $role = Role::findOrFail($roleId);
+
+        if ($role->is_system) {
+            return response()->json([
+                'success' => false,
+                'error' => 'System roles cannot be deleted',
+            ], 403);
+        }
+
+        $role->delete();
+
+        $this->securityLogger->info('Role deleted', [
+            'role_id' => $roleId,
+            'role_name' => $role->name,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Role deleted successfully',
+        ], 200);
+    }
+
+    /**
      * Display a listing of roles for the tenant.
      */
     public function index(Request $request, int $tenant_id): JsonResponse
