@@ -13,14 +13,14 @@
 
 ### Technology Stack
 
-| Component | Technology |
-|-----------|------------|
-| Framework | Laravel 13.x |
-| PHP | 8.3 |
-| Database | SQLite (dev), PostgreSQL/MySQL (production) |
-| Testing | PHPUnit 12.x |
-| Code Formatter | Laravel Pint |
-| AI Tools | Laravel Boost v2 |
+| Component      | Technology                                  |
+| -------------- | ------------------------------------------- |
+| Framework      | Laravel 13.x                                |
+| PHP            | 8.3                                         |
+| Database       | SQLite (dev), PostgreSQL/MySQL (production) |
+| Testing        | PHPUnit 12.x                                |
+| Code Formatter | Laravel Pint                                |
+| AI Tools       | Laravel Boost v2                            |
 
 ## Building and Running
 
@@ -99,12 +99,14 @@ composer session:end      # After completing work
 ```
 
 **Pre-Work Checklist:**
+
 - [ ] Run `composer session:start`
 - [ ] Review task in `docs/DEVELOPMENT_ROADMAP.md`
 - [ ] Update `docs/progress.json`: task status → `in_progress`
 - [ ] Create/update session log in `docs/session-logs/`
 
 **Post-Work Checklist:**
+
 - [ ] Run code formatter: `vendor/bin/pint --format agent`
 - [ ] Run tests: `php artisan test --compact --filter=YourTest`
 - [ ] Update `docs/progress.json`: completed tasks → `completed`
@@ -113,6 +115,7 @@ composer session:end      # After completing work
 - [ ] Commit with task ID in message: `feat: description [Phase X.X]`
 
 **Tracking Files:**
+
 - `docs/DEVELOPMENT_ROADMAP.md` - Complete task specifications
 - `docs/PROGRESS_TRACKER.md` - Visual progress dashboard
 - `docs/progress.json` - Machine-readable progress data
@@ -120,6 +123,7 @@ composer session:end      # After completing work
 - `docs/TRACKING_GUIDE.md` - Detailed usage instructions
 
 **Useful Commands:**
+
 ```bash
 composer session:start    # Start new development session
 composer session          # Check progress
@@ -238,4 +242,5 @@ The application follows RESTful API design principles as documented in `API_DESI
 - `docs/session-logs/` - Individual development session logs
 
 ## Qwen Added Memories
-- always use APP_ENV=testing to when running the tets
+
+- always use APP_ENV=testing AND `database/testing.sqlite` database file when running the tets (THIS NON-NEGOTIATABLE)
