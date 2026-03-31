@@ -7,7 +7,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 
 /**
- * User Role Seeder
+ * User Role Seeder.
  *
  * Assigns appropriate roles to existing users based on their email/position.
  * This seeder should be run after RealisticDataSeeder to ensure all users
@@ -35,7 +35,7 @@ class UserRoleSeeder extends Seeder
     }
 
     /**
-     * Seed roles for Toko Sembako Jaya users
+     * Seed roles for Toko Sembako Jaya users.
      */
     private function seedTokoSembakoJaya(): void
     {
@@ -49,7 +49,7 @@ class UserRoleSeeder extends Seeder
     }
 
     /**
-     * Seed roles for Elektronik Nusantara users
+     * Seed roles for Elektronik Nusantara users.
      */
     private function seedElektronikNusantara(): void
     {
@@ -65,7 +65,7 @@ class UserRoleSeeder extends Seeder
     }
 
     /**
-     * Seed roles for PT Sumber Makmur Jaya users
+     * Seed roles for PT Sumber Makmur Jaya users.
      */
     private function seedSumberMakmurJaya(): void
     {
@@ -85,14 +85,15 @@ class UserRoleSeeder extends Seeder
     }
 
     /**
-     * Assign roles to users by email for a given tenant
+     * Assign roles to users by email for a given tenant.
      */
     private function assignRoles(string $tenantSlug, array $userRoleMap): void
     {
         $tenant = \App\Models\Tenant::where('slug', $tenantSlug)->first();
 
-        if (!$tenant) {
+        if (! $tenant) {
             $this->command->warn("  ⚠ Tenant '{$tenantSlug}' not found, skipping...");
+
             return;
         }
 
@@ -103,7 +104,7 @@ class UserRoleSeeder extends Seeder
         foreach ($userRoleMap as $email => $roleSlugs) {
             $user = User::where('email', $email)->first();
 
-            if (!$user) {
+            if (! $user) {
                 $this->command->warn("    ⚠ User '{$email}' not found, skipping...");
                 continue;
             }
@@ -116,7 +117,7 @@ class UserRoleSeeder extends Seeder
 
             foreach ($roleSlugs as $roleSlug) {
                 // Cache roles to avoid repeated queries
-                if (!isset($rolesCache[$roleSlug])) {
+                if (! isset($rolesCache[$roleSlug])) {
                     $role = Role::where('tenant_id', $tenant->id)
                         ->where('slug', $roleSlug)
                         ->first();
@@ -132,7 +133,7 @@ class UserRoleSeeder extends Seeder
                 $role = $rolesCache[$roleSlug];
 
                 // Attach role if not already assigned (include tenant_id in pivot)
-                if (!$user->roles->contains($role->id)) {
+                if (! $user->roles->contains($role->id)) {
                     $user->roles()->attach($role->id, ['tenant_id' => $tenant->id]);
                     echo "    ✓ Assigned '{$role->name}' to {$user->name}" . PHP_EOL;
                 }

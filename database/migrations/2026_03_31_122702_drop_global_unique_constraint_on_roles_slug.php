@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -14,13 +14,13 @@ return new class extends Migration
         // Drop the global unique constraint on slug
         // SQLite doesn't support dropping individual constraints,
         // so we need to recreate the table without the constraint
-        
+
         if (DB::getDriverName() === 'sqlite') {
             // For SQLite, we'll just leave it as-is since the composite unique index exists
             // The global unique constraint in SQLite is via an index that we can drop
             try {
                 DB::statement('DROP INDEX IF EXISTS roles_slug_unique');
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Ignore if index doesn't exist
             }
         } else {
@@ -29,7 +29,7 @@ return new class extends Migration
                 Schema::table('roles', function ($table) {
                     $table->dropUnique('roles_slug_unique');
                 });
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Ignore if constraint doesn't exist
             }
         }
@@ -38,7 +38,7 @@ return new class extends Migration
         if (DB::getDriverName() === 'sqlite') {
             try {
                 DB::statement('DROP INDEX IF EXISTS permissions_slug_unique');
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Ignore if index doesn't exist
             }
         } else {
@@ -46,7 +46,7 @@ return new class extends Migration
                 Schema::table('permissions', function ($table) {
                     $table->dropUnique('permissions_slug_unique');
                 });
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 // Ignore if constraint doesn't exist
             }
         }

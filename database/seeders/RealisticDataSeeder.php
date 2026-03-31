@@ -6,11 +6,9 @@ use App\Models\Category;
 use App\Models\Customer;
 use App\Models\Inventory;
 use App\Models\InventoryBatch;
-use App\Models\InventoryLayer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\StockMovement;
 use App\Models\Store;
 use App\Models\Tenant;
 use App\Models\User;
@@ -20,8 +18,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * Realistic Data Seeder
- * 
+ * Realistic Data Seeder.
+ *
  * Creates real-world business scenarios for each tenant tier:
  * - Starter: Small retail shop, single warehouse, limited products, basic operations
  * - Professional: Growing business, multiple stores, moderate inventory, active orders
@@ -49,7 +47,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Seed reference data (currencies, roles, permissions, pricing tiers)
+     * Seed reference data (currencies, roles, permissions, pricing tiers).
      */
     private function seedReferenceData(): void
     {
@@ -72,7 +70,7 @@ class RealisticDataSeeder extends Seeder
 
     /**
      * Seed a starter tier tenant - small retail shop
-     * Simulates: Toko Kelontong / Minimarket kecil
+     * Simulates: Toko Kelontong / Minimarket kecil.
      */
     private function seedStarterTenant(): void
     {
@@ -157,7 +155,7 @@ class RealisticDataSeeder extends Seeder
 
     /**
      * Seed a professional tier tenant - growing retail chain
-     * Simulates: Toko elektronik dengan beberapa cabang
+     * Simulates: Toko elektronik dengan beberapa cabang.
      */
     private function seedProfessionalTenant(): void
     {
@@ -271,7 +269,7 @@ class RealisticDataSeeder extends Seeder
 
     /**
      * Seed an enterprise tier tenant - large distribution company
-     * Simulates: Distributor nasional dengan operasi kompleks
+     * Simulates: Distributor nasional dengan operasi kompleks.
      */
     private function seedEnterpriseTenant(): void
     {
@@ -377,11 +375,11 @@ class RealisticDataSeeder extends Seeder
         // Create users for this tenant with full hierarchy
         $this->createTenantUsers($tenant, 'enterprise');
 
-        echo "    ✓ Created enterprise tenant with {$products->count()} products, {$customers->count()} customers, " . count($stores) . " stores, " . count($warehouses) . " warehouses\n";
+        echo "    ✓ Created enterprise tenant with {$products->count()} products, {$customers->count()} customers, " . count($stores) . ' stores, ' . count($warehouses) . " warehouses\n";
     }
 
     /**
-     * Create categories for sembako (grocery) products
+     * Create categories for sembako (grocery) products.
      */
     private function createSembakoCategories(Tenant $tenant): array
     {
@@ -427,7 +425,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create categories for electronics products
+     * Create categories for electronics products.
      */
     private function createElectronicsCategories(Tenant $tenant): array
     {
@@ -473,7 +471,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create comprehensive categories for enterprise
+     * Create comprehensive categories for enterprise.
      */
     private function createComprehensiveCategories(Tenant $tenant): array
     {
@@ -522,7 +520,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create sembako products for starter tenant
+     * Create sembako products for starter tenant.
      */
     private function createSembakoProducts(Tenant $tenant, array $categories, Warehouse $warehouse, int $count): \Illuminate\Support\Collection
     {
@@ -589,7 +587,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create electronics products for professional tenant
+     * Create electronics products for professional tenant.
      */
     private function createElectronicsProducts(Tenant $tenant, array $categories, Warehouse $warehouse, int $count): \Illuminate\Support\Collection
     {
@@ -673,7 +671,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create diverse products for enterprise tenant
+     * Create diverse products for enterprise tenant.
      */
     private function createDiverseProducts(Tenant $tenant, array $categories, Warehouse $warehouse, int $count): \Illuminate\Support\Collection
     {
@@ -735,7 +733,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create local customers for starter tenant
+     * Create local customers for starter tenant.
      */
     private function createLocalCustomers(Tenant $tenant, int $count): \Illuminate\Support\Collection
     {
@@ -779,7 +777,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create mixed B2B and B2C customers for professional tenant
+     * Create mixed B2B and B2C customers for professional tenant.
      */
     private function createMixedCustomers(Tenant $tenant, int $count): \Illuminate\Support\Collection
     {
@@ -836,7 +834,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create enterprise customers (wholesale + retail)
+     * Create enterprise customers (wholesale + retail).
      */
     private function createEnterpriseCustomers(Tenant $tenant, int $count): \Illuminate\Support\Collection
     {
@@ -901,7 +899,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create realistic retail orders
+     * Create realistic retail orders.
      */
     private function createRetailOrders(
         Tenant $tenant,
@@ -1001,7 +999,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create enterprise orders with complex scenarios
+     * Create enterprise orders with complex scenarios.
      */
     private function createEnterpriseOrders(
         Tenant $tenant,
@@ -1112,7 +1110,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Create users for tenant based on tier
+     * Create users for tenant based on tier.
      */
     private function createTenantUsers(Tenant $tenant, string $tier): void
     {
@@ -1160,7 +1158,7 @@ class RealisticDataSeeder extends Seeder
     }
 
     /**
-     * Get state for Indonesian city
+     * Get state for Indonesian city.
      */
     private function getStateForCity(string $city): string
     {

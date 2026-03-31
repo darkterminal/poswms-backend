@@ -49,7 +49,7 @@ class RoleController extends Controller
         // Sorting
         $allowedSortFields = ['name', 'slug', 'created_at', 'updated_at', 'is_system'];
         $sortBy = $request->get('sort_by', 'created_at');
-        if (!in_array($sortBy, $allowedSortFields)) {
+        if (! in_array($sortBy, $allowedSortFields)) {
             $sortBy = 'created_at';
         }
         $sortOrder = $request->get('sort_order', 'desc');

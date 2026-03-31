@@ -123,12 +123,12 @@ class SystemDashboardController extends Controller
         if (count($trends) >= 2) {
             $firstHalf = array_slice($trends, 0, floor(count($trends) / 2));
             $secondHalf = array_slice($trends, floor(count($trends) / 2));
-            
+
             $firstTotal = array_sum(array_column($firstHalf, 'count'));
             $secondTotal = array_sum(array_column($secondHalf, 'count'));
-            
-            $growthPercentage = $firstTotal > 0 
-                ? (($secondTotal - $firstTotal) / $firstTotal) * 100 
+
+            $growthPercentage = $firstTotal > 0
+                ? (($secondTotal - $firstTotal) / $firstTotal) * 100
                 : 0;
         } else {
             $growthPercentage = 0;
@@ -179,7 +179,7 @@ class SystemDashboardController extends Controller
         }
 
         $orderByField = $sortBy === 'revenue' ? 'total_revenue' : 'total_sold';
-        
+
         $topProducts = $query
             ->groupBy('products.id', 'products.name', 'products.sku', 'tenants.id', 'tenants.name')
             ->orderByDesc($orderByField)
@@ -233,14 +233,14 @@ class SystemDashboardController extends Controller
         $activeCustomersQuery = DB::table('customers')
             ->join('orders', 'customers.id', '=', 'orders.customer_id')
             ->whereIn('orders.status', ['fulfilled', 'confirmed']);
-        
+
         if ($dateRange['start']) {
             $activeCustomersQuery->where('orders.created_at', '>=', $dateRange['start']);
         }
         if ($dateRange['end']) {
             $activeCustomersQuery->where('orders.created_at', '<=', $dateRange['end']);
         }
-        
+
         $activeCustomers = $activeCustomersQuery->distinct('customers.id')->count('customers.id');
 
         // Top customers by revenue
