@@ -27,6 +27,16 @@ class DatabaseSeeder extends Seeder
             CountrySeeder::class,
         ]);
 
+        // Option 1: Seed with realistic business data (recommended for development/demo)
+        // This creates tier-specific tenants with realistic scenarios
+        // Note: RealisticDataSeeder handles currencies, roles, permissions, and pricing tiers internally
+        $this->call([
+            RealisticDataSeeder::class,
+        ]);
+
+        // Option 2: Seed with traditional approach (comment out if using RealisticDataSeeder)
+        // Uncomment the following blocks if you want to use the traditional seeding approach:
+        /*
         // Seed tenants
         $this->call([
             TenantSeeder::class,
@@ -76,6 +86,7 @@ class DatabaseSeeder extends Seeder
 
         // Create default admin user for first tenant
         $this->createAdminUser();
+        */
     }
 
     /**
