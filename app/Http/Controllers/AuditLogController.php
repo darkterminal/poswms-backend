@@ -65,11 +65,9 @@ class AuditLogController extends Controller
     /**
      * Display the specified audit log.
      */
-    public function show(Request $request): JsonResponse
+    public function show($auditLog): JsonResponse
     {
-        $auditLogId = $request->route('audit_log');
-
-        $auditLog = AuditLog::with(['user', 'tenant'])->findOrFail($auditLogId);
+        $auditLog = AuditLog::with(['user', 'tenant'])->findOrFail($auditLog);
 
         return response()->json([
             'success' => true,
