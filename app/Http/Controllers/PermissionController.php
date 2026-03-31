@@ -9,6 +9,22 @@ use Illuminate\Http\Request;
 class PermissionController extends Controller
 {
     /**
+     * Display a listing of permissions (Super Admin - Global View).
+     */
+    public function globalIndex(): JsonResponse
+    {
+        $permissions = Permission::orderBy('group')->orderBy('name')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'permissions' => $permissions,
+            ],
+            'message' => 'Permissions retrieved successfully',
+        ], 200);
+    }
+
+    /**
      * Display a listing of permissions for the tenant.
      */
     public function index(Request $request, int $tenant_id): JsonResponse
