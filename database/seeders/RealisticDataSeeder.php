@@ -42,6 +42,9 @@ class RealisticDataSeeder extends Seeder
             $this->seedStarterTenant();
             $this->seedProfessionalTenant();
             $this->seedEnterpriseTenant();
+
+            // Assign roles to users after all tenants and users are created
+            $this->command->call(UserRoleSeeder::class);
         });
     }
 

@@ -68,47 +68,38 @@ class RolePermissionSeeder extends Seeder
             ['name' => 'Manage Roles', 'slug' => 'roles.manage', 'group' => 'settings'],
         ];
 
-        // Create permissions - manually check existence due to schema unique constraint issue
+        // Create permissions - check existence for this specific tenant only
         foreach ($permissions as $permissionData) {
             $permission = Permission::where('tenant_id', $tenantId)
                 ->where('slug', $permissionData['slug'])
                 ->first();
 
             if ($permission) {
+                // Update existing permission for this tenant
                 $permission->update([
                     'name' => $permissionData['name'],
                     'group' => $permissionData['group'],
                     'description' => "Allows user to {$permissionData['name']}",
                 ]);
             } else {
-                // Check if slug exists globally
-                $existing = Permission::where('slug', $permissionData['slug'])->first();
-                if ($existing) {
-                    $existing->update([
-                        'tenant_id' => $tenantId,
-                        'name' => $permissionData['name'],
-                        'group' => $permissionData['group'],
-                        'description' => "Allows user to {$permissionData['name']}",
-                    ]);
-                } else {
-                    Permission::create([
-                        'tenant_id' => $tenantId,
-                        'name' => $permissionData['name'],
-                        'slug' => $permissionData['slug'],
-                        'group' => $permissionData['group'],
-                        'description' => "Allows user to {$permissionData['name']}",
-                    ]);
-                }
+                // Create new permission for this tenant
+                Permission::create([
+                    'tenant_id' => $tenantId,
+                    'name' => $permissionData['name'],
+                    'slug' => $permissionData['slug'],
+                    'group' => $permissionData['group'],
+                    'description' => "Allows user to {$permissionData['name']}",
+                ]);
             }
         }
 
         // Create default roles
         $roles = [
             [
-                'name' => 'Admin',
-                'slug' => 'admin',
-                'description' => 'Full system access',
-                'is_system' => true,
+                'name' => 'Tenant Admin',
+                'slug' => 'tenant_admin',
+                'description' => 'Full tenant access',
+                'is_system' => false,
                 'permissions' => ['*'], // All permissions
             ],
             [
@@ -117,11 +108,19 @@ class RolePermissionSeeder extends Seeder
                 'description' => 'Can manage daily operations',
                 'is_system' => false,
                 'permissions' => [
-                    'products.view', 'products.create', 'products.edit',
-                    'orders.view', 'orders.create', 'orders.edit', 'orders.fulfill',
-                    'inventory.view', 'inventory.manage',
-                    'customers.view', 'customers.manage',
-                    'reports.view', 'reports.export',
+                    'products.view',
+                    'products.create',
+                    'products.edit',
+                    'orders.view',
+                    'orders.create',
+                    'orders.edit',
+                    'orders.fulfill',
+                    'inventory.view',
+                    'inventory.manage',
+                    'customers.view',
+                    'customers.manage',
+                    'reports.view',
+                    'reports.export',
                 ],
             ],
             [
@@ -131,8 +130,11 @@ class RolePermissionSeeder extends Seeder
                 'is_system' => false,
                 'permissions' => [
                     'products.view',
-                    'orders.view', 'orders.fulfill',
-                    'inventory.view', 'inventory.manage', 'inventory.adjust',
+                    'orders.view',
+                    'orders.fulfill',
+                    'inventory.view',
+                    'inventory.manage',
+                    'inventory.adjust',
                 ],
             ],
             [
@@ -142,7 +144,8 @@ class RolePermissionSeeder extends Seeder
                 'is_system' => false,
                 'permissions' => [
                     'products.view',
-                    'orders.view', 'orders.create',
+                    'orders.view',
+                    'orders.create',
                     'customers.view',
                 ],
             ],
@@ -162,11 +165,13 @@ class RolePermissionSeeder extends Seeder
         ];
 
         foreach ($roles as $roleData) {
+            // Check if role already exists for this specific tenant
             $role = Role::where('tenant_id', $tenantId)
                 ->where('slug', $roleData['slug'])
                 ->first();
 
             if ($role) {
+                // Update existing role for this tenant
                 $role->update([
                     'name' => $roleData['name'],
                     'description' => $roleData['description'],
@@ -174,26 +179,15 @@ class RolePermissionSeeder extends Seeder
                     'permissions' => $roleData['permissions'],
                 ]);
             } else {
-                // Check if slug exists globally
-                $existing = Role::where('slug', $roleData['slug'])->first();
-                if ($existing) {
-                    $existing->update([
-                        'tenant_id' => $tenantId,
-                        'name' => $roleData['name'],
-                        'description' => $roleData['description'],
-                        'is_system' => $roleData['is_system'],
-                        'permissions' => $roleData['permissions'],
-                    ]);
-                } else {
-                    Role::create([
-                        'tenant_id' => $tenantId,
-                        'name' => $roleData['name'],
-                        'slug' => $roleData['slug'],
-                        'description' => $roleData['description'],
-                        'is_system' => $roleData['is_system'],
-                        'permissions' => $roleData['permissions'],
-                    ]);
-                }
+                // Create new role for this tenant (don't update existing global roles)
+                Role::create([
+                    'tenant_id' => $tenantId,
+                    'name' => $roleData['name'],
+                    'slug' => $roleData['slug'],
+                    'description' => $roleData['description'],
+                    'is_system' => $roleData['is_system'],
+                    'permissions' => $roleData['permissions'],
+                ]);
             }
         }
     }
