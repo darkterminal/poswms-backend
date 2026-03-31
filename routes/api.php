@@ -100,6 +100,9 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::get('/users/{user}/impersonation-sessions', [UserController::class, 'impersonationSessions'])->name('admin.users.impersonationSessions');
     Route::post('/users/{user}/revoke-impersonation', [UserController::class, 'revokeImpersonationTokens'])->name('admin.users.revokeImpersonation');
 
+    // Role Management (Super Admin - Global View)
+    Route::get('/roles/all', [RoleController::class, 'globalIndex'])->name('admin.roles.global-index');
+
     // Global Audit Logs (Super Admin only)
     Route::get('/audit-logs', [AuditLogController::class, 'globalIndex'])->name('admin.audit-logs.index');
     Route::get('/audit-logs/summary', [AuditLogController::class, 'globalSummary'])->name('admin.audit-logs.summary');

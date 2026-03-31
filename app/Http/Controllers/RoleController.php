@@ -18,6 +18,85 @@ class RoleController extends Controller
     ) {}
 
     /**
+     * Display a listing of roles across all tenants (Super Admin only).
+     */
+    public function globalIndex(Request $request): JsonResponse
+    {
+        $query = Role::query()
+            ->with(['tenant', 'users'])
+            ->withCount('users');
+
+        // Filter by tenant_id if provided
+        if ($request->filled('tenant_id')) {
+            $query->where('tenant_id', $request->tenant_id);
+        }
+
+        // Search filter
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('slug', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by is_system
+        if ($request->has('is_system')) {
+            $query->where('is_system', $request->boolean('is_system'));
+        }
+
+        // Sorting
+        $allowedSortFields = ['name', 'slug', 'created_at', 'updated_at', 'is_system'];
+        $sortBy = $request->get('sort_by', 'created_at');
+        if (!in_array($sortBy, $allowedSortFields)) {
+            $sortBy = 'created_at';
+        }
+        $sortOrder = $request->get('sort_order', 'desc');
+        $query->orderBy($sortBy, $sortOrder);
+
+        // Pagination
+        $perPage = $request->get('per_page', 15);
+        $roles = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'roles' => $roles->getCollection()->map(fn($role) => [
+                    'id' => $role->id,
+                    'name' => $role->name,
+                    'slug' => $role->slug,
+                    'description' => $role->description,
+                    'permissions' => $role->permissions,
+                    'is_system' => $role->is_system,
+                    'users_count' => $role->users_count,
+                    'created_at' => $role->created_at->toIso8601String(),
+                    'updated_at' => $role->updated_at->toIso8601String(),
+                    'tenant' => $role->tenant ? [
+                        'id' => $role->tenant->id,
+                        'name' => $role->tenant->name,
+                        'slug' => $role->tenant->slug,
+                        'status' => $role->tenant->status,
+                    ] : null,
+                ]),
+                'pagination' => [
+                    'current_page' => $roles->currentPage(),
+                    'last_page' => $roles->lastPage(),
+                    'per_page' => $roles->perPage(),
+                    'total' => $roles->total(),
+                    'from' => $roles->firstItem(),
+                    'to' => $roles->lastItem(),
+                ],
+            ],
+            'meta' => [
+                'filters_applied' => $request->only(['tenant_id', 'search', 'is_system']),
+                'sorting' => ['by' => $sortBy, 'order' => $sortOrder],
+            ],
+            'message' => 'Roles retrieved successfully across all tenants',
+        ], 200);
+    }
+
+    /**
      * Display a listing of roles for the tenant.
      */
     public function index(Request $request, int $tenant_id): JsonResponse
