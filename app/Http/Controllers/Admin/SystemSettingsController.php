@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
+use App\Services\SettingsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -12,49 +14,33 @@ use Illuminate\Support\Facades\Log;
 
 class SystemSettingsController extends Controller
 {
+    public function __construct(
+        protected SettingsService $settingsService
+    ) {}
+
     /**
      * Display system settings.
      */
     public function show(): JsonResponse
     {
-        $settings = [
-            'application' => [
-                'name' => Config::get('app.name'),
-                'url' => Config::get('app.url'),
-                'timezone' => Config::get('app.timezone'),
-                'locale' => Config::get('app.locale'),
-                'fallback_locale' => Config::get('app.fallback_locale'),
-                'debug' => Config::get('app.debug'),
-                'env' => Config::get('app.env'),
-            ],
-            'database' => [
-                'default' => Config::get('database.default'),
-                'connections' => array_keys(Config::get('database.connections')),
-            ],
-            'cache' => [
-                'default' => Config::get('cache.default'),
-                'prefix' => Config::get('cache.prefix'),
-            ],
-            'queue' => [
-                'default' => Config::get('queue.default'),
-                'connections' => array_keys(Config::get('queue.connections')),
-            ],
-            'mail' => [
-                'default' => Config::get('mail.default'),
-                'from_address' => Config::get('mail.from.address'),
-                'from_name' => Config::get('mail.from.name'),
-            ],
-            'services' => [
-                'sanctum' => [
-                    'enabled' => true,
-                    'expiration' => Config::get('sanctum.expiration'),
-                ],
-            ],
-            'features' => [
-                'rate_limiting' => true,
-                'audit_logging' => true,
-                'webhooks' => true,
-                'exports' => true,
+        // Get database settings with config fallbacks
+        $settings = $this->settingsService->getAll();
+
+        // Add runtime config that can't be stored in database
+        $settings['application'] = array_merge($settings['application'], [
+            'env' => Config::get('app.env'),
+            'fallback_locale' => Config::get('app.fallback_locale'),
+        ]);
+
+        $settings['database'] = [
+            'default' => Config::get('database.default'),
+            'connections' => array_keys(Config::get('database.connections')),
+        ];
+
+        $settings['services'] = [
+            'sanctum' => [
+                'enabled' => true,
+                'expiration' => Config::get('sanctum.expiration'),
             ],
         ];
 
@@ -94,34 +80,13 @@ class SystemSettingsController extends Controller
             'features.exports' => ['nullable', 'boolean'],
         ]);
 
-        $updated = [];
+        // Update settings in database
+        $updated = $this->settingsService->update($validated, $request->user()->id);
 
-        // Note: In production, these should be stored in a database-backed settings table
-        // For now, we'll log the changes and return success
-        if (isset($validated['application'])) {
-            $updated['application'] = $validated['application'];
-            Log::info('System settings updated: application', $validated['application']);
-        }
-
+        // Clear cache if cache settings changed
         if (isset($validated['cache'])) {
-            $updated['cache'] = $validated['cache'];
-            Log::info('System settings updated: cache', $validated['cache']);
-
-            // Clear cache if cache settings changed
-            if (isset($validated['cache']['default']) || isset($validated['cache']['prefix'])) {
-                Cache::flush();
-                $updated['cache_cleared'] = true;
-            }
-        }
-
-        if (isset($validated['queue'])) {
-            $updated['queue'] = $validated['queue'];
-            Log::info('System settings updated: queue', $validated['queue']);
-        }
-
-        if (isset($validated['features'])) {
-            $updated['features'] = $validated['features'];
-            Log::info('System settings updated: features', $validated['features']);
+            Cache::flush();
+            $updated['cache']['cache_cleared'] = true;
         }
 
         return response()->json([
@@ -129,7 +94,7 @@ class SystemSettingsController extends Controller
             'data' => [
                 'updated_settings' => $updated,
             ],
-            'message' => 'System settings updated successfully. Note: Changes are logged but require configuration file updates for persistence.',
+            'message' => 'System settings updated successfully. Changes have been persisted to the database.',
         ], 200);
     }
 
