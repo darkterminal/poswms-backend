@@ -125,6 +125,22 @@ class Tenant extends Model
     }
 
     /**
+     * Get the report templates belonging to this tenant.
+     */
+    public function reportTemplates(): HasMany
+    {
+        return $this->hasMany(ReportTemplate::class);
+    }
+
+    /**
+     * Get the saved reports belonging to this tenant.
+     */
+    public function savedReports(): HasMany
+    {
+        return $this->hasMany(SavedReport::class);
+    }
+
+    /**
      * Check if tenant is active.
      */
     public function isActive(): bool
