@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\SystemDashboardController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TenantController;
@@ -118,6 +119,16 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::get('/audit-logs/summary', [AuditLogController::class, 'globalSummary'])->name('admin.audit-logs.summary');
     Route::get('/audit-logs/by-user/{userId}', [AuditLogController::class, 'byUser'])->name('admin.audit-logs.byUser');
     Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('admin.audit-logs.show');
+
+    // Notification Management (Super Admin)
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('admin.notifications.index');
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount'])->name('admin.notifications.unreadCount');
+    Route::get('/notifications/stats', [NotificationController::class, 'stats'])->name('admin.notifications.stats');
+    Route::get('/notifications/{notification}', [NotificationController::class, 'show'])->name('admin.notifications.show');
+    Route::post('/notifications/{notification}/mark-as-read', [NotificationController::class, 'markAsRead'])->name('admin.notifications.markAsRead');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('admin.notifications.markAllAsRead');
+    Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('admin.notifications.destroy');
+    Route::post('/notifications/bulk-delete', [NotificationController::class, 'bulkDestroy'])->name('admin.notifications.bulkDestroy');
 
     // System Configuration
     Route::get('/settings', [SystemSettingsController::class, 'show'])->name('admin.settings.show');
