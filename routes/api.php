@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\ReportTemplateController;
+use App\Http\Controllers\Admin\SavedReportController;
 use App\Http\Controllers\Admin\SystemDashboardController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TenantController;
@@ -136,6 +138,24 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::post('/settings/clear-cache', [SystemSettingsController::class, 'clearCache'])->name('admin.settings.clearCache');
     Route::get('/settings/health', [SystemSettingsController::class, 'health'])->name('admin.settings.health');
     Route::post('/settings/run-command', [SystemSettingsController::class, 'runCommand'])->name('admin.settings.runCommand');
+
+    // Report Templates Management
+    Route::get('/reports/templates/types', [ReportTemplateController::class, 'types'])->name('admin.reports.templates.types');
+    Route::get('/reports/templates', [ReportTemplateController::class, 'index'])->name('admin.reports.templates.index');
+    Route::post('/reports/templates', [ReportTemplateController::class, 'store'])->name('admin.reports.templates.store');
+    Route::get('/reports/templates/{template}', [ReportTemplateController::class, 'show'])->name('admin.reports.templates.show');
+    Route::put('/reports/templates/{template}', [ReportTemplateController::class, 'update'])->name('admin.reports.templates.update');
+    Route::delete('/reports/templates/{template}', [ReportTemplateController::class, 'destroy'])->name('admin.reports.templates.destroy');
+    Route::post('/reports/templates/{template}/duplicate', [ReportTemplateController::class, 'duplicate'])->name('admin.reports.templates.duplicate');
+
+    // Saved Reports Management
+    Route::get('/reports/saved', [SavedReportController::class, 'index'])->name('admin.reports.saved.index');
+    Route::post('/reports/saved', [SavedReportController::class, 'store'])->name('admin.reports.saved.store');
+    Route::get('/reports/saved/stats', [SavedReportController::class, 'stats'])->name('admin.reports.saved.stats');
+    Route::get('/reports/saved/{saved_report}', [SavedReportController::class, 'show'])->name('admin.reports.saved.show');
+    Route::put('/reports/saved/{saved_report}', [SavedReportController::class, 'update'])->name('admin.reports.saved.update');
+    Route::delete('/reports/saved/{saved_report}', [SavedReportController::class, 'destroy'])->name('admin.reports.saved.destroy');
+    Route::get('/reports/saved/{saved_report}/download', [SavedReportController::class, 'download'])->name('admin.reports.saved.download');
 });
 
 // Protected routes (require Sanctum authentication and tenant scoping)
