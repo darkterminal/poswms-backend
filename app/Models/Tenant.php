@@ -141,6 +141,14 @@ class Tenant extends Model
     }
 
     /**
+     * Get the scheduled reports belonging to this tenant.
+     */
+    public function scheduledReports(): HasMany
+    {
+        return $this->hasMany(ScheduledReport::class);
+    }
+
+    /**
      * Check if tenant is active.
      */
     public function isActive(): bool
