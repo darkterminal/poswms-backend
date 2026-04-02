@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\ReportTemplateController;
 use App\Http\Controllers\Admin\SavedReportController;
+use App\Http\Controllers\Admin\ScheduledReportController;
 use App\Http\Controllers\Admin\SystemDashboardController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TenantController;
@@ -157,6 +158,15 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::put('/reports/saved/{saved_report}', [SavedReportController::class, 'update'])->name('admin.reports.saved.update');
     Route::delete('/reports/saved/{saved_report}', [SavedReportController::class, 'destroy'])->name('admin.reports.saved.destroy');
     Route::get('/reports/saved/{saved_report}/download', [SavedReportController::class, 'download'])->name('admin.reports.saved.download');
+
+    // Scheduled Reports Management
+    Route::get('/reports/schedules', [ScheduledReportController::class, 'index'])->name('admin.reports.schedules.index');
+    Route::post('/reports/schedules', [ScheduledReportController::class, 'store'])->name('admin.reports.schedules.store');
+    Route::get('/reports/schedules/{scheduledReport}', [ScheduledReportController::class, 'show'])->name('admin.reports.schedules.show');
+    Route::put('/reports/schedules/{scheduledReport}', [ScheduledReportController::class, 'update'])->name('admin.reports.schedules.update');
+    Route::delete('/reports/schedules/{scheduledReport}', [ScheduledReportController::class, 'destroy'])->name('admin.reports.schedules.destroy');
+    Route::post('/reports/schedules/{scheduledReport}/run', [ScheduledReportController::class, 'run'])->name('admin.reports.schedules.run');
+    Route::get('/reports/schedules/{scheduledReport}/history', [ScheduledReportController::class, 'history'])->name('admin.reports.schedules.history');
 
     // Analytics Endpoints
     Route::get('/analytics/sales/trend', [AnalyticsController::class, 'salesTrend'])->name('admin.analytics.sales.trend');
