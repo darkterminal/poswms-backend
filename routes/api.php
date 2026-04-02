@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\SystemDashboardController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SuperAdminAuthController;
@@ -156,6 +157,17 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::put('/reports/saved/{saved_report}', [SavedReportController::class, 'update'])->name('admin.reports.saved.update');
     Route::delete('/reports/saved/{saved_report}', [SavedReportController::class, 'destroy'])->name('admin.reports.saved.destroy');
     Route::get('/reports/saved/{saved_report}/download', [SavedReportController::class, 'download'])->name('admin.reports.saved.download');
+
+    // Analytics Endpoints
+    Route::get('/analytics/sales/trend', [AnalyticsController::class, 'salesTrend'])->name('admin.analytics.sales.trend');
+    Route::get('/analytics/orders/status-distribution', [AnalyticsController::class, 'orderStatusDistribution'])->name('admin.analytics.orders.status');
+    Route::get('/analytics/inventory/level-distribution', [AnalyticsController::class, 'inventoryLevelDistribution'])->name('admin.analytics.inventory.levels');
+    Route::get('/analytics/products/top', [AnalyticsController::class, 'topProducts'])->name('admin.analytics.products.top');
+    Route::get('/analytics/customers/segments', [AnalyticsController::class, 'customerSegments'])->name('admin.analytics.customers.segments');
+    Route::get('/analytics/tenants/comparison', [AnalyticsController::class, 'tenantComparison'])->name('admin.analytics.tenants.comparison');
+    Route::get('/analytics/activity/heatmap', [AnalyticsController::class, 'activityHeatmap'])->name('admin.analytics.activity.heatmap');
+    Route::get('/analytics/inventory/by-warehouse', [AnalyticsController::class, 'inventoryByWarehouse'])->name('admin.analytics.inventory.warehouse');
+    Route::get('/analytics/revenue/recurring', [AnalyticsController::class, 'recurringRevenue'])->name('admin.analytics.revenue.recurring');
 });
 
 // Protected routes (require Sanctum authentication and tenant scoping)
