@@ -49,6 +49,11 @@ class EnsureTenantIsScoped
 
         // Set tenant context for the authenticated user
         if ($request->user()) {
+            // Super admins can access any tenant
+            if ($request->user()->is_super_admin) {
+                return $next($request);
+            }
+
             // Ensure user belongs to this tenant
             if ($request->user()->tenant_id !== $tenant->id) {
                 return response()->json([
