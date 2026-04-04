@@ -25,6 +25,11 @@ class EnsureUserHasRole
             ], 401);
         }
 
+        // Super admins bypass role checks
+        if ($user->is_super_admin) {
+            return $next($request);
+        }
+
         if (! $user->hasAnyRole($roles)) {
             return response()->json([
                 'success' => false,
