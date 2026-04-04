@@ -149,6 +149,14 @@ class Tenant extends Model
     }
 
     /**
+     * Get the API keys belonging to this tenant.
+     */
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(ApiKey::class);
+    }
+
+    /**
      * Check if tenant is active.
      */
     public function isActive(): bool

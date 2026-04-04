@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\ReportTemplateController;
 use App\Http\Controllers\Admin\SavedReportController;
 use App\Http\Controllers\Admin\ScheduledReportController;
+use App\Http\Controllers\Admin\ApiKeyController;
 use App\Http\Controllers\Admin\SystemDashboardController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TenantController;
@@ -178,6 +179,15 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::get('/analytics/activity/heatmap', [AnalyticsController::class, 'activityHeatmap'])->name('admin.analytics.activity.heatmap');
     Route::get('/analytics/inventory/by-warehouse', [AnalyticsController::class, 'inventoryByWarehouse'])->name('admin.analytics.inventory.warehouse');
     Route::get('/analytics/revenue/recurring', [AnalyticsController::class, 'recurringRevenue'])->name('admin.analytics.revenue.recurring');
+
+    // API Key Management
+    Route::get('/tenants/{tenant}/api-keys', [ApiKeyController::class, 'index'])->name('admin.api-keys.index');
+    Route::post('/tenants/{tenant}/api-keys', [ApiKeyController::class, 'store'])->name('admin.api-keys.store');
+    Route::get('/tenants/{tenant}/api-keys/stats', [ApiKeyController::class, 'stats'])->name('admin.api-keys.stats');
+    Route::get('/tenants/{tenant}/api-keys/{apiKey}', [ApiKeyController::class, 'show'])->name('admin.api-keys.show');
+    Route::put('/tenants/{tenant}/api-keys/{apiKey}', [ApiKeyController::class, 'update'])->name('admin.api-keys.update');
+    Route::delete('/tenants/{tenant}/api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])->name('admin.api-keys.destroy');
+    Route::post('/tenants/{tenant}/api-keys/{apiKey}/regenerate', [ApiKeyController::class, 'regenerate'])->name('admin.api-keys.regenerate');
 });
 
 // Protected routes (require Sanctum authentication and tenant scoping)
