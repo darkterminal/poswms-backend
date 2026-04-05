@@ -45,6 +45,7 @@ class SystemSettingsTest extends TestCase
                             'locale',
                             'fallback_locale',
                             'debug',
+                            'default_currency',
                             'env',
                         ],
                         'database' => [
@@ -57,7 +58,6 @@ class SystemSettingsTest extends TestCase
                         ],
                         'queue' => [
                             'default',
-                            'connections',
                         ],
                         'mail' => [
                             'default',
@@ -380,5 +380,52 @@ class SystemSettingsTest extends TestCase
 
         $overallStatus = $response->json('data.status');
         $this->assertContains($overallStatus, ['healthy', 'warning', 'critical']);
+    }
+
+    public function test_update_default_currency(): void
+    {
+        $response = $this->actingAs($this->superAdmin)
+            ->putJson('/api/v1/admin/settings', [
+                'application' => [
+                    'default_currency' => 'EUR',
+                ],
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+            ]);
+
+        // Verify it was saved
+        $getResponse = $this->actingAs($this->superAdmin)
+            ->getJson('/api/v1/admin/settings');
+
+        $getResponse->assertStatus(200)
+            ->assertJsonPath('data.settings.application.default_currency', 'EUR');
+    }
+
+    public function test_update_default_currency_validation(): void
+    {
+        // Invalid currency (too short)
+        $response = $this->actingAs($this->superAdmin)
+            ->putJson('/api/v1/admin/settings', [
+                'application' => [
+                    'default_currency' => 'US',
+                ],
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'application.default_currency');
+
+        // Invalid currency (lowercase)
+        $response = $this->actingAs($this->superAdmin)
+            ->putJson('/api/v1/admin/settings', [
+                'application' => [
+                    'default_currency' => 'usd',
+                ],
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertApiValidationErrors($response, 'application.default_currency');
     }
 }

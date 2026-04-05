@@ -2,9 +2,11 @@
 
 namespace App\Models;
 
+use App\Models\Setting;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tenant extends Model
@@ -186,5 +188,36 @@ class Tenant extends Model
         }
 
         return $this->trial_ends_at->isFuture();
+    }
+
+    /**
+     * Resolve the effective currency for this tenant.
+     * Falls back to system default currency if tenant currency is not set.
+     */
+    public function resolveCurrency(): string
+    {
+        $currency = trim($this->currency ?? '');
+
+        if ($currency !== '') {
+            return $currency;
+        }
+
+        return Setting::get('application.default_currency', 'USD');
+    }
+
+    /**
+     * Get exchange rates scoped to this tenant.
+     */
+    public function exchangeRates(): HasMany
+    {
+        return $this->hasMany(CurrencyExchangeRate::class);
+    }
+
+    /**
+     * Get currencies configured for this tenant.
+     */
+    public function currencies(): HasMany
+    {
+        return $this->hasMany(Currency::class);
     }
 }

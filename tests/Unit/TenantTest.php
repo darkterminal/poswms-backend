@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Models\Setting;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Database\QueryException;
@@ -89,5 +90,28 @@ class TenantTest extends TestCase
         $tenant->delete();
 
         $this->assertSoftDeleted('tenants', ['id' => $tenant->id]);
+    }
+
+    public function test_tenant_uses_its_own_currency_when_set(): void
+    {
+        $tenant = Tenant::factory()->create(['currency' => 'IDR']);
+
+        $this->assertEquals('IDR', $tenant->resolveCurrency());
+    }
+
+    public function test_tenant_falls_back_to_system_default_currency(): void
+    {
+        Setting::set('application.default_currency', 'EUR');
+
+        $tenant = Tenant::factory()->create(['currency' => '']);
+
+        $this->assertEquals('EUR', $tenant->resolveCurrency());
+    }
+
+    public function test_tenant_falls_back_to_usd_when_no_system_default(): void
+    {
+        $tenant = Tenant::factory()->create(['currency' => '']);
+
+        $this->assertEquals('USD', $tenant->resolveCurrency());
     }
 }

@@ -40,7 +40,7 @@ class NotificationSeeder extends Seeder
                 'priority' => 'urgent',
                 'data' => ['advisory_id' => 'SEC-2026-001'],
             ],
-            
+
             // Tenant notifications
             [
                 'type' => 'tenant',
@@ -56,7 +56,7 @@ class NotificationSeeder extends Seeder
                 'priority' => 'high',
                 'data' => ['days_until_expiry' => 7],
             ],
-            
+
             // Order notifications
             [
                 'type' => 'order',
@@ -72,7 +72,7 @@ class NotificationSeeder extends Seeder
                 'priority' => 'high',
                 'data' => ['affected_tenants' => 3],
             ],
-            
+
             // Inventory notifications
             [
                 'type' => 'inventory',
@@ -88,7 +88,7 @@ class NotificationSeeder extends Seeder
                 'priority' => 'low',
                 'data' => ['tenants_synced' => 12],
             ],
-            
+
             // User notifications
             [
                 'type' => 'user',

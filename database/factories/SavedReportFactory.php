@@ -102,7 +102,7 @@ class SavedReportFactory extends Factory
      */
     public function withFile(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'file_path' => 'saved_reports/' . fake()->uuid() . '.' . $attributes['file_format'],
             'file_size' => fake()->numberBetween(1024, 1048576),
         ]);
@@ -113,7 +113,7 @@ class SavedReportFactory extends Factory
      */
     public function expired(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'expires_at' => fake()->dateTimeBetween('-1 month', '-1 day'),
         ]);
     }
@@ -123,7 +123,7 @@ class SavedReportFactory extends Factory
      */
     public function neverExpires(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'expires_at' => null,
         ]);
     }
@@ -133,7 +133,7 @@ class SavedReportFactory extends Factory
      */
     public function forTenant(int $tenantId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => $tenantId,
         ]);
     }

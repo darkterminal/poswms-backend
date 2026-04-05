@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMoney;
 use App\Models\Concerns\ScopedByTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,12 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory, ScopedByTenant, SoftDeletes;
+    use HasFactory, ScopedByTenant, SoftDeletes, HasMoney;
+
+    protected function moneyFields(): array
+    {
+        return ['price', 'cost'];
+    }
 
     protected $fillable = [
         'tenant_id', 'category_id', 'name', 'sku', 'barcode', 'description',

@@ -64,7 +64,9 @@ class SystemSettingsController extends Controller
             'application.url' => ['nullable', 'url'],
             'application.timezone' => ['nullable', 'timezone'],
             'application.locale' => ['nullable', 'string', 'max:10'],
+            'application.fallback_locale' => ['nullable', 'string', 'max:10'],
             'application.debug' => ['nullable', 'boolean'],
+            'application.default_currency' => ['nullable', 'string', 'size:3', 'regex:/^[A-Z]{3}$/'],
 
             'cache' => ['nullable', 'array'],
             'cache.default' => ['nullable', 'string'],

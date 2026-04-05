@@ -351,10 +351,10 @@ class SystemDashboardController extends Controller
             ->selectRaw('SUM(quantity * COALESCE(cost, 0)) as value')
             ->value('value') ?? 0;
 
-        // Total revenue (from fulfilled orders)
+        // Total revenue (from confirmed and fulfilled orders)
         $totalRevenue = DB::table('orders')
-            ->whereIn('status', ['fulfilled'])
-            ->sum('total');
+            ->whereIn('status', ['confirmed', 'fulfilled'])
+            ->sum('subtotal');
 
         return [
             'total_stores' => $totalStores,
@@ -421,7 +421,7 @@ class SystemDashboardController extends Controller
             $query->where('created_at', '<=', $dateRange['end']);
         }
 
-        $total = $query->sum('total');
+        $total = $query->sum('subtotal');
         $count = $query->count();
         $avgOrderValue = $count > 0 ? $total / $count : 0;
 

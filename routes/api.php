@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ReportTemplateController;
 use App\Http\Controllers\Admin\SavedReportController;
 use App\Http\Controllers\Admin\ScheduledReportController;
 use App\Http\Controllers\Admin\ApiKeyController;
+use App\Http\Controllers\Admin\CurrencyController;
 use App\Http\Controllers\Admin\SystemDashboardController;
 use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TenantController;
@@ -141,6 +142,16 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::post('/settings/clear-cache', [SystemSettingsController::class, 'clearCache'])->name('admin.settings.clearCache');
     Route::get('/settings/health', [SystemSettingsController::class, 'health'])->name('admin.settings.health');
     Route::post('/settings/run-command', [SystemSettingsController::class, 'runCommand'])->name('admin.settings.runCommand');
+
+    // Currency Management
+    Route::get('/currencies', [CurrencyController::class, 'index'])->name('admin.currencies.index');
+    Route::get('/currencies/rates', [CurrencyController::class, 'rates'])->name('admin.currencies.rates');
+    Route::post('/currencies/rates', [CurrencyController::class, 'updateRate'])->name('admin.currencies.rates.update');
+    Route::delete('/currencies/rates/{rateId}', [CurrencyController::class, 'deleteRate'])->name('admin.currencies.rates.delete');
+    Route::post('/currencies/sync-rates', [CurrencyController::class, 'syncRates'])->name('admin.currencies.syncRates');
+    Route::post('/currencies/convert', [CurrencyController::class, 'convert'])->name('admin.currencies.convert');
+    Route::get('/tenants/{tenant}/currency', [CurrencyController::class, 'tenantCurrency'])->name('admin.tenants.currency');
+    Route::put('/tenants/{tenant}/currency', [CurrencyController::class, 'updateTenantCurrency'])->name('admin.tenants.currency.update');
 
     // Report Templates Management
     Route::get('/reports/templates/types', [ReportTemplateController::class, 'types'])->name('admin.reports.templates.types');

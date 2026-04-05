@@ -38,7 +38,7 @@ class ScheduledReportExecutionFactory extends Factory
      */
     public function successful(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'success' => true,
             'error_message' => null,
             'file_path' => 'scheduled_reports/' . fake()->uuid() . '.' . $attributes['file_format'],
@@ -50,7 +50,7 @@ class ScheduledReportExecutionFactory extends Factory
      */
     public function failed(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'success' => false,
             'error_message' => fake()->sentence(),
             'records_count' => null,
@@ -64,7 +64,7 @@ class ScheduledReportExecutionFactory extends Factory
      */
     public function forScheduledReport(int $scheduledReportId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'scheduled_report_id' => $scheduledReportId,
         ]);
     }
@@ -74,7 +74,7 @@ class ScheduledReportExecutionFactory extends Factory
      */
     public function forTenant(int $tenantId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => $tenantId,
         ]);
     }

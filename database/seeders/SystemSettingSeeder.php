@@ -20,7 +20,7 @@ class SystemSettingSeeder extends Seeder
         $settingsService->initializeDefaults();
 
         $this->command->info('✓ System settings initialized successfully');
-        
+
         // Show count of settings created
         $count = Setting::count();
         $this->command->info("Total settings in database: {$count}");

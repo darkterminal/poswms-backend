@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMoney;
 use App\Models\Concerns\ScopedByTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,12 @@ use Illuminate\Support\Facades\Log;
 
 class ProductPriceLevel extends Model
 {
-    use HasFactory, ScopedByTenant;
+    use HasFactory, ScopedByTenant, HasMoney;
+
+    protected function moneyFields(): array
+    {
+        return ['price', 'cost'];
+    }
 
     /**
      * The attributes that are mass assignable.

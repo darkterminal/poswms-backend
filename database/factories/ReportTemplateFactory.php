@@ -83,7 +83,7 @@ class ReportTemplateFactory extends Factory
      */
     public function global(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => null,
             'is_global' => true,
         ]);
@@ -94,7 +94,7 @@ class ReportTemplateFactory extends Factory
      */
     public function forTenant(?int $tenantId = null): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => $tenantId ?? Tenant::factory(),
             'is_global' => false,
         ]);
@@ -105,7 +105,7 @@ class ReportTemplateFactory extends Factory
      */
     public function inactive(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'is_active' => false,
         ]);
     }

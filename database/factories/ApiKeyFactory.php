@@ -38,7 +38,7 @@ class ApiKeyFactory extends Factory
      */
     public function expiringIn30Days(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'expires_at' => now()->addDays(30),
         ]);
     }
@@ -48,7 +48,7 @@ class ApiKeyFactory extends Factory
      */
     public function expired(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'expires_at' => now()->subDays(1),
         ]);
     }
@@ -58,7 +58,7 @@ class ApiKeyFactory extends Factory
      */
     public function used(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'last_used_at' => now()->subHour(),
         ]);
     }
@@ -68,7 +68,7 @@ class ApiKeyFactory extends Factory
      */
     public function readOnly(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'abilities' => ['read'],
         ]);
     }
@@ -78,7 +78,7 @@ class ApiKeyFactory extends Factory
      */
     public function fullAccess(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'abilities' => [],
         ]);
     }

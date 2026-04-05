@@ -19,6 +19,7 @@ class SettingsService
             'locale' => ['value' => 'en', 'type' => 'string'],
             'fallback_locale' => ['value' => 'en', 'type' => 'string'],
             'debug' => ['value' => true, 'type' => 'boolean'],
+            'default_currency' => ['value' => 'USD', 'type' => 'string'],
         ],
         'database' => [
             'default' => ['value' => 'sqlite', 'type' => 'string'],

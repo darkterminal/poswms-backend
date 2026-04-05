@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained()->onDelete('cascade');
             $table->foreignId('template_id')->nullable()->constrained('report_templates')->onDelete('set null');
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
-            
+
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('type'); // sales, inventory, customer, custom
@@ -27,7 +27,7 @@ return new class extends Migration
             $table->integer('file_size')->nullable(); // File size in bytes
             $table->timestamp('generated_at');
             $table->timestamp('expires_at')->nullable(); // Auto-cleanup after this date
-            
+
             $table->timestamps();
             $table->softDeletes(); // Soft deletes
 

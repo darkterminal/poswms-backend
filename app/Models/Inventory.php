@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMoney;
 use App\Models\Concerns\ScopedByTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Inventory extends Model
 {
-    use HasFactory, ScopedByTenant;
+    use HasFactory, ScopedByTenant, HasMoney;
+
+    protected function moneyFields(): array
+    {
+        return ['cost'];
+    }
 
     protected $fillable = [
         'tenant_id', 'product_id', 'store_id', 'warehouse_id',

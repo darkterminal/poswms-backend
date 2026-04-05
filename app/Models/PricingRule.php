@@ -2,13 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMoney;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PricingRule extends Model
 {
-    use HasFactory;
+    use HasFactory, HasMoney;
+
+    protected function moneyFields(): array
+    {
+        return ['value'];
+    }
 
     protected $fillable = [
         'tenant_id', 'pricing_tier_id', 'product_id', 'category_id',

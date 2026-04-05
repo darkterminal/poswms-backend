@@ -23,7 +23,7 @@ return new class extends Migration
             $table->json('metadata')->nullable()->comment('Additional metadata (validation rules, options, etc.)');
             $table->timestamp('last_modified_at')->nullable()->comment('Last time this setting was modified');
             $table->foreignId('modified_by')->nullable()->constrained('users')->nullOnDelete()->comment('User who last modified this setting');
-            
+
             $table->index(['group', 'key']);
         });
     }

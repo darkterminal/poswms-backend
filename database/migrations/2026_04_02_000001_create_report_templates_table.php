@@ -16,15 +16,15 @@ return new class extends Migration
             $table->foreignId('tenant_id')->nullable()->constrained()->onDelete('cascade');
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('set null');
-            
+
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('type'); // sales, inventory, customer, custom
             $table->json('config'); // { filters, columns, grouping, sorting }
-            
+
             $table->boolean('is_global')->default(false); // Available to all tenants
             $table->boolean('is_active')->default(true);
-            
+
             $table->timestamps();
             $table->softDeletes(); // Soft deletes
 

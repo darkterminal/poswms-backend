@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('template_id')->nullable()->constrained('report_templates')->onDelete('set null');
             $table->foreignId('created_by')->constrained('users')->onDelete('cascade');
             $table->foreignId('updated_by')->nullable()->constrained('users')->onDelete('set null');
-            
+
             $table->string('name');
             $table->text('description')->nullable();
             $table->string('type'); // sales, inventory, customer, custom
@@ -30,7 +30,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->timestamp('last_run_at')->nullable();
             $table->timestamp('next_run_at')->nullable();
-            
+
             $table->timestamps();
             $table->softDeletes();
 

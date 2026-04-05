@@ -71,7 +71,7 @@ class ScheduledReportFactory extends Factory
      */
     public function active(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'is_active' => true,
         ]);
     }
@@ -81,7 +81,7 @@ class ScheduledReportFactory extends Factory
      */
     public function inactive(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'is_active' => false,
         ]);
     }
@@ -91,7 +91,7 @@ class ScheduledReportFactory extends Factory
      */
     public function daily(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'schedule_frequency' => 'daily',
             'schedule_day' => null,
         ]);
@@ -102,7 +102,7 @@ class ScheduledReportFactory extends Factory
      */
     public function weekly(int $dayOfWeek = 1): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'schedule_frequency' => 'weekly',
             'schedule_day' => $dayOfWeek,
         ]);
@@ -113,7 +113,7 @@ class ScheduledReportFactory extends Factory
      */
     public function monthly(int $dayOfMonth = 1): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'schedule_frequency' => 'monthly',
             'schedule_day' => $dayOfMonth,
         ]);
@@ -124,7 +124,7 @@ class ScheduledReportFactory extends Factory
      */
     public function executed(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'last_run_at' => now()->subDay(),
             'next_run_at' => now()->addDay(),
         ]);
@@ -135,7 +135,7 @@ class ScheduledReportFactory extends Factory
      */
     public function forTenant(int $tenantId): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn(array $attributes) => [
             'tenant_id' => $tenantId,
         ]);
     }

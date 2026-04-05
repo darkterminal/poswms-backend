@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMoney;
 use App\Models\Concerns\ScopedByTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,12 @@ use Illuminate\Support\Facades\Log;
 
 class InventoryBatch extends Model
 {
-    use HasFactory, ScopedByTenant;
+    use HasFactory, ScopedByTenant, HasMoney;
+
+    protected function moneyFields(): array
+    {
+        return ['unit_cost'];
+    }
 
     /**
      * The attributes that are mass assignable.
