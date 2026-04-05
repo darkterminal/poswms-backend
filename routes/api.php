@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\SystemSettingsController;
 use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AnalyticsController;
+use App\Http\Controllers\Admin\SubscriptionController;
+use App\Http\Controllers\Admin\PosProductController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SuperAdminAuthController;
@@ -90,6 +92,12 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::post('/tenants/{tenant}/subscription/cancel', [TenantController::class, 'cancelSubscription'])->name('admin.tenants.subscription.cancel');
     Route::post('/tenants/{tenant}/convert-to-paid', [TenantController::class, 'convertToPaid'])->name('admin.tenants.convertToPaid');
 
+    // Subscription Analytics & Management
+    Route::get('/subscriptions/stats', [SubscriptionController::class, 'stats'])->name('admin.subscriptions.stats');
+    Route::get('/subscriptions/expiring', [SubscriptionController::class, 'expiringSoon'])->name('admin.subscriptions.expiring');
+    Route::get('/subscriptions/{tenant}/history', [SubscriptionController::class, 'history'])->name('admin.subscriptions.history');
+    Route::get('/subscriptions/revenue', [SubscriptionController::class, 'revenue'])->name('admin.subscriptions.revenue');
+
     // System Dashboard
     Route::get('/dashboard', [SystemDashboardController::class, 'overview'])->name('admin.dashboard.overview');
     Route::get('/dashboard/revenue', [SystemDashboardController::class, 'revenue'])->name('admin.dashboard.revenue');
@@ -109,6 +117,11 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::post('/users/stop-impersonating', [UserController::class, 'stopImpersonating'])->name('admin.users.stopImpersonating');
     Route::get('/users/{user}/impersonation-sessions', [UserController::class, 'impersonationSessions'])->name('admin.users.impersonationSessions');
     Route::post('/users/{user}/revoke-impersonation', [UserController::class, 'revokeImpersonationTokens'])->name('admin.users.revokeImpersonation');
+
+    // POS Products Management
+    Route::get('/pos/products', [PosProductController::class, 'index'])->name('admin.pos.products.index');
+    Route::get('/pos/products/stats', [PosProductController::class, 'stats'])->name('admin.pos.products.stats');
+    Route::get('/pos/products/{product}', [PosProductController::class, 'show'])->name('admin.pos.products.show');
 
     // Role Management (Super Admin - Global View)
     Route::get('/roles/all', [RoleController::class, 'globalIndex'])->name('admin.roles.global-index');
