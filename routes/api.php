@@ -122,6 +122,8 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::get('/pos/products', [PosProductController::class, 'index'])->name('admin.pos.products.index');
     Route::get('/pos/products/stats', [PosProductController::class, 'stats'])->name('admin.pos.products.stats');
     Route::get('/pos/products/{product}', [PosProductController::class, 'show'])->name('admin.pos.products.show');
+    Route::get('/pos/products/export', [PosProductController::class, 'export'])->name('admin.pos.products.export');
+    Route::get('/pos/categories', [PosProductController::class, 'categories'])->name('admin.pos.categories');
 
     // Role Management (Super Admin - Global View)
     Route::get('/roles/all', [RoleController::class, 'globalIndex'])->name('admin.roles.global-index');

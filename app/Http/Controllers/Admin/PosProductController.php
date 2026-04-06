@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\Tenant;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +31,7 @@ class PosProductController extends Controller
         $page = $validated['page'] ?? 1;
         $perPage = $validated['per_page'] ?? 20;
 
-        $query = Product::with(['tenant', 'category'])
+        $query = Product::with(['tenant', 'category', 'priceLevels', 'inventories'])
             ->select('products.*');
 
         // Filter by tenant
@@ -79,6 +80,10 @@ class PosProductController extends Controller
                     'price' => $product->price,
                     'cost' => $product->cost,
                     'is_active' => $product->active,
+                    'price_levels' => $product->getAllPriceLevels(),
+                    'inventory_count' => $product->inventories->sum('quantity'),
+                    'min_stock' => $product->min_stock,
+                    'is_low_stock' => $product->isLowStock(),
                     'created_at' => $product->created_at->toIso8601String(),
                     'updated_at' => $product->updated_at->toIso8601String(),
                 ]),
@@ -157,10 +162,124 @@ class PosProductController extends Controller
                 'cost' => $product->cost,
                 'is_active' => $product->active,
                 'inventory_count' => $product->inventories->sum('quantity'),
+                'price_levels' => $product->getAllPriceLevels(),
                 'created_at' => $product->created_at->toIso8601String(),
                 'updated_at' => $product->updated_at->toIso8601String(),
             ],
             'message' => 'Product retrieved successfully',
         ], 200);
+    }
+
+    /**
+     * Get all categories for filtering products.
+     */
+    public function categories(): JsonResponse
+    {
+        $categories = Category::select('id', 'name')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'categories' => $categories,
+            ],
+            'message' => 'Categories retrieved successfully',
+        ], 200);
+    }
+
+    /**
+     * Export products to CSV.
+     */
+    public function export(Request $request)
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'tenant_id' => ['nullable', 'integer', 'exists:tenants,id'],
+            'category' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'string', 'in:active,inactive'],
+            'sort_by' => ['nullable', 'string', 'in:name,sku,price,created_at'],
+            'sort_direction' => ['nullable', 'string', 'in:asc,desc'],
+        ]);
+
+        $query = Product::with(['tenant', 'category', 'priceLevels'])
+            ->select('products.*');
+
+        // Apply same filters as index
+        if (!empty($validated['tenant_id'])) {
+            $query->where('tenant_id', $validated['tenant_id']);
+        }
+
+        if (!empty($validated['search'])) {
+            $search = $validated['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%");
+            });
+        }
+
+        if (!empty($validated['category'])) {
+            $query->whereHas('category', function ($q) use ($validated) {
+                $q->where('name', $validated['category']);
+            });
+        }
+
+        if (!empty($validated['status'])) {
+            $query->where('active', $validated['status'] === 'active');
+        }
+
+        $sortBy = $validated['sort_by'] ?? 'created_at';
+        $sortDirection = $validated['sort_direction'] ?? 'desc';
+        $query->orderBy($sortBy, $sortDirection);
+
+        $products = $query->get();
+
+        // Generate CSV
+        $filename = 'pos-products-' . date('Y-m-d') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($products) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV Headers
+            fputcsv($file, [
+                'ID',
+                'Tenant Name',
+                'Product Name',
+                'SKU',
+                'Category',
+                'Base Price',
+                'Base Cost',
+                'Status',
+                'Price Levels Count',
+                'Created At',
+                'Updated At',
+            ]);
+
+            // CSV Data
+            foreach ($products as $product) {
+                fputcsv($file, [
+                    $product->id,
+                    $product->tenant?->name,
+                    $product->name,
+                    $product->sku,
+                    $product->category?->name,
+                    $product->price,
+                    $product->cost,
+                    $product->active ? 'Active' : 'Inactive',
+                    $product->priceLevels->count(),
+                    $product->created_at->toIso8601String(),
+                    $product->updated_at->toIso8601String(),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }
