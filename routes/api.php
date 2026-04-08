@@ -13,6 +13,10 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\PosProductController;
+use App\Http\Controllers\Admin\AdminOrderController;
+use App\Http\Controllers\Admin\AdminInventoryController;
+use App\Http\Controllers\Admin\AdminWarehouseController;
+use App\Http\Controllers\Admin\ProductPriceLevelController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SuperAdminAuthController;
@@ -121,9 +125,47 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     // POS Products Management
     Route::get('/pos/products', [PosProductController::class, 'index'])->name('admin.pos.products.index');
     Route::get('/pos/products/stats', [PosProductController::class, 'stats'])->name('admin.pos.products.stats');
-    Route::get('/pos/products/{product}', [PosProductController::class, 'show'])->name('admin.pos.products.show');
     Route::get('/pos/products/export', [PosProductController::class, 'export'])->name('admin.pos.products.export');
+    Route::post('/pos/products', [PosProductController::class, 'store'])->name('admin.pos.products.store');
+    Route::get('/pos/products/{product}', [PosProductController::class, 'show'])->name('admin.pos.products.show');
+    Route::put('/pos/products/{product}', [PosProductController::class, 'update'])->name('admin.pos.products.update');
+    Route::delete('/pos/products/{product}', [PosProductController::class, 'destroy'])->name('admin.pos.products.destroy');
+    Route::post('/pos/products/{product}/toggle-status', [PosProductController::class, 'toggleStatus'])->name('admin.pos.products.toggle-status');
+    Route::get('/pos/products/{product}/stock-movements', [PosProductController::class, 'stockMovements'])->name('admin.pos.products.stock-movements');
+    Route::get('/pos/products/{product}/orders', [PosProductController::class, 'orders'])->name('admin.pos.products.orders');
     Route::get('/pos/categories', [PosProductController::class, 'categories'])->name('admin.pos.categories');
+
+    // Product Price Levels Management
+    Route::get('/pos/products/{product}/price-levels', [ProductPriceLevelController::class, 'index'])->name('admin.pos.products.price-levels.index');
+    Route::post('/pos/products/{product}/price-levels', [ProductPriceLevelController::class, 'store'])->name('admin.pos.products.price-levels.store');
+    Route::put('/pos/products/{product}/price-levels/{level}', [ProductPriceLevelController::class, 'update'])->name('admin.pos.products.price-levels.update');
+    Route::delete('/pos/products/{product}/price-levels/{level}', [ProductPriceLevelController::class, 'destroy'])->name('admin.pos.products.price-levels.destroy');
+    Route::post('/pos/products/{product}/price-levels/bulk-update', [ProductPriceLevelController::class, 'bulkUpdate'])->name('admin.pos.products.price-levels.bulk-update');
+
+    // POS Orders Management
+    Route::get('/pos/orders', [AdminOrderController::class, 'index'])->name('admin.pos.orders.index');
+    Route::get('/pos/orders/stats', [AdminOrderController::class, 'stats'])->name('admin.pos.orders.stats');
+    Route::get('/pos/orders/export', [AdminOrderController::class, 'export'])->name('admin.pos.orders.export');
+    Route::get('/pos/orders/{order}', [AdminOrderController::class, 'show'])->name('admin.pos.orders.show');
+    Route::post('/pos/orders/{order}/confirm', [AdminOrderController::class, 'confirm'])->name('admin.pos.orders.confirm');
+    Route::post('/pos/orders/{order}/fulfill', [AdminOrderController::class, 'fulfill'])->name('admin.pos.orders.fulfill');
+    Route::post('/pos/orders/{order}/cancel', [AdminOrderController::class, 'cancel'])->name('admin.pos.orders.cancel');
+
+    // WMS Warehouse Management
+    Route::get('/wms/warehouses', [AdminWarehouseController::class, 'index'])->name('admin.wms.warehouses.index');
+    Route::get('/wms/warehouses/stats', [AdminWarehouseController::class, 'stats'])->name('admin.wms.warehouses.stats');
+    Route::post('/wms/warehouses', [AdminWarehouseController::class, 'store'])->name('admin.wms.warehouses.store');
+    Route::get('/wms/warehouses/export', [AdminWarehouseController::class, 'export'])->name('admin.wms.warehouses.export');
+    Route::get('/wms/warehouses/{warehouse}', [AdminWarehouseController::class, 'show'])->name('admin.wms.warehouses.show');
+    Route::put('/wms/warehouses/{warehouse}', [AdminWarehouseController::class, 'update'])->name('admin.wms.warehouses.update');
+    Route::post('/wms/warehouses/{warehouse}/toggle-status', [AdminWarehouseController::class, 'toggleStatus'])->name('admin.wms.warehouses.toggle-status');
+    Route::delete('/wms/warehouses/{warehouse}', [AdminWarehouseController::class, 'destroy'])->name('admin.wms.warehouses.destroy');
+
+    // POS Inventory Management
+    Route::get('/pos/inventory', [AdminInventoryController::class, 'index'])->name('admin.pos.inventory.index');
+    Route::get('/pos/inventory/stats', [AdminInventoryController::class, 'stats'])->name('admin.pos.inventory.stats');
+    Route::get('/pos/inventory/export', [AdminInventoryController::class, 'export'])->name('admin.pos.inventory.export');
+    Route::get('/pos/inventory/{inventory}', [AdminInventoryController::class, 'show'])->name('admin.pos.inventory.show');
 
     // Role Management (Super Admin - Global View)
     Route::get('/roles/all', [RoleController::class, 'globalIndex'])->name('admin.roles.global-index');
