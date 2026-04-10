@@ -43,6 +43,19 @@ class Order extends Model
     }
 
     /**
+     * The "booted" method of the model.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function ($order) {
+            // Calculate total if not explicitly set or if items changed
+            if ($order->isDirty(['subtotal', 'tax', 'discount', 'shipping']) || $order->total == 0) {
+                $order->total = $order->subtotal + $order->tax + $order->shipping - $order->discount;
+            }
+        });
+    }
+
+    /**
      * Scope to filter by tenant.
      */
     public function scopeForTenant(Builder $query, int $tenantId): Builder
@@ -97,14 +110,6 @@ class Order extends Model
     public function scopeCancelled(Builder $query): Builder
     {
         return $query->where('status', 'cancelled');
-    }
-
-    /**
-     * Get the order's total.
-     */
-    public function getTotalAttribute(): float
-    {
-        return $this->subtotal + $this->tax + $this->shipping - $this->discount;
     }
 
     public function tenant(): BelongsTo

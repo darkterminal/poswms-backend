@@ -51,8 +51,13 @@ class RolePermissionSeeder extends Seeder
 
             // Inventory
             ['name' => 'View Inventory', 'slug' => 'inventory.view', 'group' => 'inventory'],
-            ['name' => 'Manage Inventory', 'slug' => 'inventory.manage', 'group' => 'inventory'],
+            ['name' => 'Create Inventory', 'slug' => 'inventory.create', 'group' => 'inventory'],
+            ['name' => 'Update Inventory', 'slug' => 'inventory.update', 'group' => 'inventory'],
+            ['name' => 'Delete Inventory', 'slug' => 'inventory.delete', 'group' => 'inventory'],
             ['name' => 'Adjust Stock', 'slug' => 'inventory.adjust', 'group' => 'inventory'],
+            ['name' => 'Transfer Stock', 'slug' => 'inventory.transfer', 'group' => 'inventory'],
+            ['name' => 'View Inventory Reports', 'slug' => 'inventory.reports.view', 'group' => 'inventory'],
+            ['name' => 'Manage Inventory Counts', 'slug' => 'inventory.counts.manage', 'group' => 'inventory'],
 
             // Customers
             ['name' => 'View Customers', 'slug' => 'customers.view', 'group' => 'customers'],
@@ -116,11 +121,15 @@ class RolePermissionSeeder extends Seeder
                     'orders.edit',
                     'orders.fulfill',
                     'inventory.view',
-                    'inventory.manage',
+                    'inventory.create',
+                    'inventory.update',
+                    'inventory.adjust',
+                    'inventory.transfer',
                     'customers.view',
                     'customers.manage',
                     'reports.view',
                     'reports.export',
+                    'inventory.reports.view',
                 ],
             ],
             [
@@ -133,8 +142,12 @@ class RolePermissionSeeder extends Seeder
                     'orders.view',
                     'orders.fulfill',
                     'inventory.view',
-                    'inventory.manage',
+                    'inventory.create',
+                    'inventory.update',
                     'inventory.adjust',
+                    'inventory.transfer',
+                    'inventory.counts.manage',
+                    'inventory.reports.view',
                 ],
             ],
             [
@@ -147,6 +160,7 @@ class RolePermissionSeeder extends Seeder
                     'orders.view',
                     'orders.create',
                     'customers.view',
+                    'inventory.view',
                 ],
             ],
             [
@@ -158,6 +172,7 @@ class RolePermissionSeeder extends Seeder
                     'products.view',
                     'orders.view',
                     'inventory.view',
+                    'inventory.reports.view',
                     'customers.view',
                     'reports.view',
                 ],
