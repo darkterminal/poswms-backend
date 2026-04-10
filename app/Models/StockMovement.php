@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasMoney;
+use App\Models\Concerns\ScopedByTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class StockMovement extends Model
 {
-    use HasFactory, HasMoney;
+    use HasFactory, HasMoney, ScopedByTenant;
 
     protected function moneyFields(): array
     {
