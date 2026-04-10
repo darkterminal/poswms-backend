@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\InventoryTransferRequest;
 use App\Services\StockTransferService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,32 +16,9 @@ class InventoryTransferController extends Controller
     /**
      * Transfer stock between locations.
      */
-    public function transfer(Request $request): JsonResponse
+    public function transfer(InventoryTransferRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'quantity' => 'required|integer|min:1',
-            'from_warehouse_id' => 'nullable|exists:warehouses,id',
-            'from_store_id' => 'nullable|exists:stores,id',
-            'to_warehouse_id' => 'nullable|exists:warehouses,id',
-            'to_store_id' => 'nullable|exists:stores,id',
-            'reason' => 'nullable|string|max:255',
-        ]);
-
-        // Ensure at least one source and one destination
-        if (empty($validated['from_warehouse_id']) && empty($validated['from_store_id'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Source location (warehouse or store) is required',
-            ], 422);
-        }
-
-        if (empty($validated['to_warehouse_id']) && empty($validated['to_store_id'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Destination location (warehouse or store) is required',
-            ], 422);
-        }
+        $validated = $request->validated();
 
         try {
             $result = $this->transferService->transfer(
