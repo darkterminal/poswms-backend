@@ -20,11 +20,17 @@ use App\Http\Controllers\Admin\ProductPriceLevelController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\SuperAdminAuthController;
+use App\Http\Controllers\BatchManagementController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InventoryAlertConfigController;
 use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\InventoryCountController;
 use App\Http\Controllers\InventoryReportController;
+use App\Http\Controllers\InventoryValuationController;
+use App\Http\Controllers\StockAdjustmentController;
+use App\Http\Controllers\StockMovementController;
 use App\Http\Controllers\InventoryTransferController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PermissionController;
@@ -36,6 +42,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\StoreController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\WarehouseZoneController;
 use App\Http\Controllers\WebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -166,6 +173,16 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::get('/pos/inventory/stats', [AdminInventoryController::class, 'stats'])->name('admin.pos.inventory.stats');
     Route::get('/pos/inventory/export', [AdminInventoryController::class, 'export'])->name('admin.pos.inventory.export');
     Route::get('/pos/inventory/{inventory}', [AdminInventoryController::class, 'show'])->name('admin.pos.inventory.show');
+
+    // Stock movements (cross-tenant)
+    Route::get('/pos/movements', [StockMovementController::class, 'index'])->name('admin.pos.movements.index');
+    Route::get('/pos/movements/stats', [StockMovementController::class, 'stats'])->name('admin.pos.movements.stats');
+    Route::get('/pos/movements/export', [StockMovementController::class, 'export'])->name('admin.pos.movements.export');
+
+    // Batch management (cross-tenant)
+    Route::get('/pos/batches', [BatchManagementController::class, 'index'])->name('admin.pos.batches.index');
+    Route::get('/pos/batches/stats', [BatchManagementController::class, 'stats'])->name('admin.pos.batches.stats');
+    Route::get('/pos/batches/export', [BatchManagementController::class, 'export'])->name('admin.pos.batches.export');
 
     // Role Management (Super Admin - Global View)
     Route::get('/roles/all', [RoleController::class, 'globalIndex'])->name('admin.roles.global-index');
@@ -360,11 +377,65 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
     Route::post('/inventory/transfer', [InventoryTransferController::class, 'transfer']);
     Route::get('/inventory/product/{productId}/transferable', [InventoryTransferController::class, 'getTransferableInventory']);
 
+    // Stock adjustments
+    Route::post('/inventory/adjust', [StockAdjustmentController::class, 'adjust']);
+    Route::get('/inventory/{inventoryId}/adjustments', [StockAdjustmentController::class, 'history']);
+
+    // Stock movements
+    Route::get('/movements', [StockMovementController::class, 'index']);
+    Route::get('/movements/stats', [StockMovementController::class, 'stats']);
+    Route::get('/movements/{movementId}', [StockMovementController::class, 'show']);
+    Route::get('/movements/export', [StockMovementController::class, 'export']);
+
+    // Batch management
+    Route::get('/batches', [BatchManagementController::class, 'index']);
+    Route::get('/batches/stats', [BatchManagementController::class, 'stats']);
+    Route::get('/batches/expiring', [BatchManagementController::class, 'expiringBatches']);
+    Route::get('/batches/{batchId}', [BatchManagementController::class, 'show']);
+    Route::post('/batches/{batchId}/expire', [BatchManagementController::class, 'expire']);
+    Route::get('/batches/export', [BatchManagementController::class, 'export']);
+
+    // Inventory counts
+    Route::get('/counts', [InventoryCountController::class, 'index']);
+    Route::post('/counts', [InventoryCountController::class, 'store']);
+    Route::get('/counts/{countId}', [InventoryCountController::class, 'show']);
+    Route::post('/counts/{countId}/start', [InventoryCountController::class, 'start']);
+    Route::post('/counts/{countId}/items/{itemId}', [InventoryCountController::class, 'recordItem']);
+    Route::post('/counts/{countId}/complete', [InventoryCountController::class, 'complete']);
+    Route::post('/counts/{countId}/approve', [InventoryCountController::class, 'approve']);
+    Route::post('/counts/{countId}/cancel', [InventoryCountController::class, 'cancel']);
+    Route::delete('/counts/{countId}', [InventoryCountController::class, 'destroy']);
+
+    // Inventory valuation
+    Route::get('/reports/inventory/valuation', [InventoryValuationController::class, 'valuation']);
+    Route::get('/reports/inventory/valuation/export', [InventoryValuationController::class, 'exportValuation']);
+    Route::get('/reports/inventory/cogs', [InventoryValuationController::class, 'cogs']);
+    Route::get('/reports/inventory/weighted-average', [InventoryValuationController::class, 'weightedAverageCost']);
+    Route::get('/reports/inventory/value-trends', [InventoryValuationController::class, 'valueTrends']);
+    Route::post('/reports/inventory/reconcile', [InventoryValuationController::class, 'reconcile']);
+
     // Inventory reports
     Route::get('/reports/inventory/low-stock', [InventoryReportController::class, 'lowStock']);
     Route::get('/reports/inventory', [InventoryReportController::class, 'report']);
     Route::get('/reports/inventory/stock-levels', [InventoryReportController::class, 'stockLevels']);
     Route::get('/reports/inventory/movements', [InventoryReportController::class, 'movements']);
+
+    // Inventory alert configurations
+    Route::get('/inventory/alert-configs', [InventoryAlertConfigController::class, 'index']);
+    Route::post('/inventory/alert-configs', [InventoryAlertConfigController::class, 'store']);
+    Route::get('/inventory/alert-configs/{configId}', [InventoryAlertConfigController::class, 'show']);
+    Route::put('/inventory/alert-configs/{configId}', [InventoryAlertConfigController::class, 'update']);
+    Route::delete('/inventory/alert-configs/{configId}', [InventoryAlertConfigController::class, 'destroy']);
+    Route::post('/inventory/alert-configs/{configId}/add-recipient', [InventoryAlertConfigController::class, 'addRecipient']);
+    Route::post('/inventory/alert-configs/{configId}/remove-recipient', [InventoryAlertConfigController::class, 'removeRecipient']);
+
+    // Warehouse zones
+    Route::get('/warehouses/{warehouseId}/zones', [WarehouseZoneController::class, 'index']);
+    Route::post('/warehouses/{warehouseId}/zones', [WarehouseZoneController::class, 'store']);
+    Route::get('/warehouses/{warehouseId}/zones/stats', [WarehouseZoneController::class, 'stats']);
+    Route::get('/warehouses/{warehouseId}/zones/{zoneId}', [WarehouseZoneController::class, 'show']);
+    Route::put('/warehouses/{warehouseId}/zones/{zoneId}', [WarehouseZoneController::class, 'update']);
+    Route::delete('/warehouses/{warehouseId}/zones/{zoneId}', [WarehouseZoneController::class, 'destroy']);
 
     // Sales reports
     Route::get('/reports/sales/revenue', [SalesReportController::class, 'revenue']);
