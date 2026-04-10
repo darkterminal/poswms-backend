@@ -127,7 +127,7 @@ class StockTransferService
     ): array {
         $reference = 'TRF-' . uniqid();
 
-        // Use FifoService for transfer
+        // Use FifoService for transfer - it already records stock movements
         $transferResult = $this->fifoService->transferStock(
             sourceInventory: $sourceInventory,
             destinationInventory: $destinationInventory,
@@ -135,10 +135,28 @@ class StockTransferService
             reason: $reason ?? 'Stock transfer'
         );
 
-        // Record additional stock movements with reference
-        StockMovement::where('tenant_id', $sourceInventory->tenant_id)
-            ->where('reference', $reference)
-            ->update(['reference' => $reference]);
+        // Update the movements created by FifoService with our transfer reference
+        // Source movements (type='transfer' or 'out')
+        if (isset($transferResult['source_layers'])) {
+            $sourceLayerIds = collect($transferResult['source_layers'])->pluck('layer_id')->filter()->toArray();
+            if (!empty($sourceLayerIds)) {
+                StockMovement::whereIn('layer_id', $sourceLayerIds)
+                    ->whereNull('reference')
+                    ->orWhere('reference', 'like', 'FIFO-%')
+                    ->latest()
+                    ->limit(count($sourceLayerIds))
+                    ->update(['reference' => $reference]);
+            }
+        }
+
+        // Destination movement (the layer just created)
+        if (isset($transferResult['destination_layer_id'])) {
+            StockMovement::where('layer_id', $transferResult['destination_layer_id'])
+                ->whereNull('reference')
+                ->latest()
+                ->limit(1)
+                ->update(['reference' => $reference]);
+        }
 
         return [
             'success' => true,
