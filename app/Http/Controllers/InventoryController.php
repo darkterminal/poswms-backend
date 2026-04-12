@@ -82,11 +82,45 @@ class InventoryController extends Controller
         $inventoryId = $request->route('inventoryId');
 
         $inventory = Inventory::where('tenant_id', $tenantId)
+            ->with(['product', 'warehouse', 'store'])
             ->findOrFail($inventoryId);
+
+        // Build FIFO layers data
+        $fifoLayers = null;
+        $layers = $inventory->layers()->with('batch')->orderBy('id')->get();
+        if ($layers->isNotEmpty()) {
+            $totalQuantity = $layers->sum('quantity');
+            $totalAvailable = $layers->sum('available');
+            $totalReserved = $layers->sum('reserved');
+            $totalValue = $layers->sum(fn ($l) => $l->quantity * $l->unit_cost);
+            $weightedAvgCost = $totalQuantity > 0 ? $totalValue / $totalQuantity : 0;
+
+            $fifoLayers = [
+                'total_quantity' => $totalQuantity,
+                'total_available' => $totalAvailable,
+                'total_reserved' => $totalReserved,
+                'total_value' => round($totalValue, 2),
+                'weighted_average_cost' => round($weightedAvgCost, 2),
+                'layers' => $layers->map(fn ($l) => [
+                    'layer_id' => $l->id,
+                    'quantity' => $l->quantity,
+                    'available' => $l->available,
+                    'reserved' => $l->reserved,
+                    'unit_cost' => $l->unit_cost,
+                    'total_cost' => round($l->quantity * $l->unit_cost, 2),
+                    'batch_number' => $l->batch?->batch_number,
+                    'received_date' => $l->batch?->received_date?->toDateString(),
+                    'expiry_date' => $l->batch?->expiry_date?->toDateString(),
+                ])->toArray(),
+            ];
+        }
+
+        $result = $inventory->toArray();
+        $result['fifo_layers'] = $fifoLayers;
 
         return response()->json([
             'success' => true,
-            'data' => ['inventory' => $inventory],
+            'data' => ['inventory' => $result],
         ]);
     }
 
