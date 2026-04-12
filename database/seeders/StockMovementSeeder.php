@@ -55,6 +55,10 @@ class StockMovementSeeder extends Seeder
                     }
                     $quantityAfter = $currentQuantity;
 
+                    // Generate realistic unit cost between $5.00 and $500.00
+                    $unitCost = fake()->randomFloat(4, 5.0, 500.0);
+                    $totalCost = $quantity * $unitCost;
+
                     StockMovement::create([
                         'tenant_id' => $tenant->id,
                         'inventory_id' => $inventory->id,
@@ -65,6 +69,8 @@ class StockMovementSeeder extends Seeder
                         'quantity' => in_array($movementType, ['out', 'sale', 'transfer']) ? -$quantity : $quantity,
                         'quantity_before' => $quantityBefore,
                         'quantity_after' => $quantityAfter,
+                        'unit_cost' => $unitCost,
+                        'total_cost' => $totalCost,
                         'reference' => fake()->optional()->uuid(),
                         'reason' => fake()->randomElement($reasons),
                     ]);
