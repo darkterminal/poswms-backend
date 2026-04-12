@@ -183,7 +183,10 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     // Batch management (cross-tenant)
     Route::get('/pos/batches', [BatchManagementController::class, 'index'])->name('admin.pos.batches.index');
     Route::get('/pos/batches/stats', [BatchManagementController::class, 'stats'])->name('admin.pos.batches.stats');
+    Route::get('/pos/batches/expiring', [BatchManagementController::class, 'expiringBatches'])->name('admin.pos.batches.expiring');
     Route::get('/pos/batches/export', [BatchManagementController::class, 'export'])->name('admin.pos.batches.export');
+    Route::get('/pos/batches/{batchId}', [BatchManagementController::class, 'show'])->name('admin.pos.batches.show');
+    Route::post('/pos/batches/{batchId}/expire', [BatchManagementController::class, 'expire'])->name('admin.pos.batches.expire');
 
     // Role Management (Super Admin - Global View)
     Route::get('/roles/all', [RoleController::class, 'globalIndex'])->name('admin.roles.global-index');
@@ -392,9 +395,9 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
     Route::get('/batches', [BatchManagementController::class, 'index']);
     Route::get('/batches/stats', [BatchManagementController::class, 'stats']);
     Route::get('/batches/expiring', [BatchManagementController::class, 'expiringBatches']);
+    Route::get('/batches/export', [BatchManagementController::class, 'export']);
     Route::get('/batches/{batchId}', [BatchManagementController::class, 'show']);
     Route::post('/batches/{batchId}/expire', [BatchManagementController::class, 'expire']);
-    Route::get('/batches/export', [BatchManagementController::class, 'export']);
 
     // Inventory counts
     Route::get('/counts', [InventoryCountController::class, 'index']);

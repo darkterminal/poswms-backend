@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\InventoryBatch;
+use App\Models\Scopes\TenantScope;
 use App\Services\FifoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,14 +33,15 @@ class BatchManagementController extends Controller
             'expiry_status' => ['nullable', 'string', 'in:expiring_soon,expired,all'],
             'days_until_expiry' => ['nullable', 'integer', 'min:1', 'max:365'],
             'search' => ['nullable', 'string', 'max:255'],
-            'sort_by' => ['nullable', 'string', 'in:received_date,expiry_date,remaining_quantity,unit_cost,created_at'],
+            'sort_by' => ['nullable', 'string', 'in:received_date,expiry_date,remaining_quantity,unit_cost,created_at,product_name'],
             'sort_direction' => ['nullable', 'string', 'in:asc,desc'],
         ]);
 
         $page = $validated['page'] ?? 1;
         $perPage = $validated['per_page'] ?? 20;
 
-        $query = InventoryBatch::with(['product', 'warehouse', 'supplier', 'layers']);
+        $query = InventoryBatch::withoutGlobalScope(TenantScope::class)
+            ->with(['product', 'warehouse', 'supplier', 'layers']);
 
         // Filter by tenant
         if ($tenantId) {
@@ -75,7 +77,7 @@ class BatchManagementController extends Controller
 
         // Search by batch/lot number
         if (!empty($validated['search'])) {
-            $search = $validated['search'];
+            $search = str_replace(['%', '_'], ['\%', '\_'], $validated['search']);
             $query->where(function ($q) use ($search) {
                 $q->where('batch_number', 'like', "%{$search}%")
                     ->orWhere('lot_number', 'like', "%{$search}%")
@@ -89,7 +91,15 @@ class BatchManagementController extends Controller
         // Sorting
         $sortBy = $validated['sort_by'] ?? 'created_at';
         $sortDirection = $validated['sort_direction'] ?? 'desc';
-        $query->orderBy($sortBy, $sortDirection);
+
+        if ($sortBy === 'product_name') {
+            $query->orderBy(
+                DB::raw('(SELECT name FROM products WHERE products.id = inventory_batches.product_id)'),
+                $sortDirection
+            );
+        } else {
+            $query->orderBy($sortBy, $sortDirection);
+        }
 
         $batches = $query->paginate($perPage, ['*'], 'page', $page);
 
@@ -145,7 +155,7 @@ class BatchManagementController extends Controller
     {
         $tenantId = $request->route('tenant_id');
 
-        $query = InventoryBatch::query();
+        $query = InventoryBatch::withoutGlobalScope(TenantScope::class);
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
         }
@@ -155,8 +165,8 @@ class BatchManagementController extends Controller
         $expiredBatches = (clone $query)->where('status', 'expired')->count();
         $expiringSoon = (clone $query)->expiringSoon(30)->count();
         $totalValue = (clone $query)->where('status', 'active')
-            ->get()
-            ->sum(fn($b) => $b->remaining_quantity * $b->unit_cost);
+            ->selectRaw('SUM(remaining_quantity * unit_cost) as total')
+            ->value('total') ?? 0;
 
         return response()->json([
             'success' => true,
@@ -178,7 +188,8 @@ class BatchManagementController extends Controller
     {
         $tenantId = $request->route('tenant_id');
 
-        $query = InventoryBatch::with(['product', 'warehouse', 'supplier', 'layers']);
+        $query = InventoryBatch::withoutGlobalScope(TenantScope::class)
+            ->with(['product', 'warehouse', 'supplier', 'layers']);
 
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
@@ -241,14 +252,22 @@ class BatchManagementController extends Controller
         $tenantId = $request->route('tenant_id');
         $days = $request->query('days', 30);
 
+        // For super admin, get expiring batches across all tenants or a specific tenant
         if (!$tenantId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tenant ID is required',
-            ], 400);
+            // Super admin: get expiring batches for a specific tenant if provided
+            $filterTenantId = $request->query('tenant_id');
+            if ($filterTenantId) {
+                $expiring = $this->fifoService->getExpiringBatches($filterTenantId, $days);
+            } else {
+                // Return summary across all tenants
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tenant ID is required for expiring batches',
+                ], 400);
+            }
+        } else {
+            $expiring = $this->fifoService->getExpiringBatches($tenantId, $days);
         }
-
-        $expiring = $this->fifoService->getExpiringBatches($tenantId, $days);
 
         return response()->json([
             'success' => true,
@@ -267,8 +286,13 @@ class BatchManagementController extends Controller
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $batch = InventoryBatch::where('tenant_id', $tenantId)
-            ->findOrFail($batchId);
+        // For super admin, don't filter by tenant_id
+        $query = InventoryBatch::withoutGlobalScope(TenantScope::class);
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $batch = $query->lockForUpdate()->findOrFail($batchId);
 
         if ($batch->status === 'expired') {
             return response()->json([
@@ -300,6 +324,7 @@ class BatchManagementController extends Controller
         $tenantId = $request->route('tenant_id');
 
         $validated = $request->validate([
+            'tenant_id' => ['nullable', 'integer', 'exists:tenants,id'],
             'product_id' => ['nullable', 'integer', 'exists:products,id'],
             'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
             'status' => ['nullable', 'string', 'in:active,consumed,expired,cancelled'],
@@ -307,10 +332,14 @@ class BatchManagementController extends Controller
             'search' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $query = InventoryBatch::with(['product', 'warehouse']);
+        $query = InventoryBatch::withoutGlobalScope(TenantScope::class)
+            ->with(['product', 'warehouse']);
 
+        // Filter by tenant: route param (tenant-scoped) or query param (super admin)
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
+        } elseif (!empty($validated['tenant_id'])) {
+            $query->where('tenant_id', $validated['tenant_id']);
         }
 
         if (!empty($validated['product_id'])) {
@@ -326,14 +355,14 @@ class BatchManagementController extends Controller
         }
 
         if (!empty($validated['search'])) {
-            $search = $validated['search'];
+            $search = str_replace(['%', '_'], ['\%', '\_'], $validated['search']);
             $query->where(function ($q) use ($search) {
                 $q->where('batch_number', 'like', "%{$search}%")
                     ->orWhere('lot_number', 'like', "%{$search}%");
             });
         }
 
-        $batches = $query->orderBy('created_at', 'desc')->get();
+        $batches = $query->orderBy('created_at', 'desc')->limit(10000)->get();
 
         $filename = 'inventory-batches-' . date('Y-m-d') . '.csv';
 

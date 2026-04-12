@@ -313,15 +313,15 @@ class FifoService
             'product_id' => $productId,
             'warehouse_id' => $warehouseId,
             'supplier_id' => $supplierId,
-            'batch_number' => $batchNumber ?? $this->generateBatchNumber($tenantId),
-            'lot_number' => $lotNumber,
+            'batch_number' => $batchNumber !== null ? strip_tags(trim($batchNumber)) : $this->generateBatchNumber($tenantId),
+            'lot_number' => $lotNumber !== null ? strip_tags(trim($lotNumber)) : null,
             'received_date' => $receivedDate ?? now(),
             'expiry_date' => $expiryDate,
             'unit_cost' => $unitCost,
             'initial_quantity' => $quantity,
             'remaining_quantity' => $quantity,
             'status' => 'active',
-            'notes' => $notes,
+            'notes' => $notes !== null ? strip_tags(trim($notes)) : null,
         ]);
     }
 
@@ -398,6 +398,8 @@ class FifoService
     public function expireBatch(InventoryBatch $batch, ?string $reason = null): void
     {
         DB::transaction(function () use ($batch, $reason) {
+            $remainingQty = $batch->remaining_quantity;
+
             $batch->status = 'expired';
             $batch->remaining_quantity = 0;
             $batch->save();
@@ -414,8 +416,8 @@ class FifoService
                 tenantId: $batch->tenant_id,
                 productId: $batch->product_id,
                 type: 'adjustment',
-                quantity: $batch->initial_quantity,
-                quantityBefore: $batch->initial_quantity,
+                quantity: $remainingQty,
+                quantityBefore: $remainingQty,
                 quantityAfter: 0,
                 warehouseId: $batch->warehouse_id,
                 reason: $reason ?? 'Batch expired'
@@ -493,7 +495,7 @@ class FifoService
     {
         $prefix = 'BATCH';
         $date = now()->format('Ymd');
-        $random = strtoupper(substr(uniqid(), -6));
+        $random = strtoupper(bin2hex(random_bytes(3)));
 
         return "{$prefix}-{$date}-{$random}";
     }

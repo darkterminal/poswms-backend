@@ -99,19 +99,6 @@ class InventoryBatch extends Model
                 $batch->unit_cost = 0;
             }
 
-            // Sanitize text fields to prevent XSS (OWASP A03)
-            if ($batch->batch_number) {
-                $batch->batch_number = strip_tags(trim($batch->batch_number));
-            }
-
-            if ($batch->lot_number) {
-                $batch->lot_number = strip_tags(trim($batch->lot_number));
-            }
-
-            if ($batch->notes) {
-                $batch->notes = strip_tags(trim($batch->notes));
-            }
-
             // Validate status whitelist (OWASP A04)
             $allowedStatuses = ['active', 'consumed', 'expired', 'cancelled'];
             if ($batch->status && ! in_array($batch->status, $allowedStatuses)) {
@@ -223,11 +210,13 @@ class InventoryBatch extends Model
             return false;
         }
 
-        return $this->expiry_date->diffInDays(now()) <= $days;
+        $daysUntil = now()->diffInDays($this->expiry_date, false);
+
+        return $daysUntil > 0 && $daysUntil <= $days;
     }
 
     /**
-     * Get days until expiry.
+     * Get days until expiry. Negative values indicate overdue/expired.
      */
     public function daysUntilExpiry(): ?int
     {
@@ -235,7 +224,7 @@ class InventoryBatch extends Model
             return null;
         }
 
-        return max(0, $this->expiry_date->diffInDays(now()));
+        return (int) now()->diffInDays($this->expiry_date, false);
     }
 
     /**
