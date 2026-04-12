@@ -26,7 +26,7 @@ class StockMovementController extends Controller
             'product_id' => ['nullable', 'integer', 'exists:products,id'],
             'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
-            'type' => ['nullable', 'string', 'in:in,out,adjustment,transfer_in,transfer_out,transfer'],
+            'type' => ['nullable', 'string', 'in:in,out,adjustment,transfer_in,transfer_out,transfer,sale,return'],
             'user_id' => ['nullable', 'integer', 'exists:users,id'],
             'date_from' => ['nullable', 'date', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date', 'date_format:Y-m-d'],
@@ -163,30 +163,52 @@ class StockMovementController extends Controller
     public function stats(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
+        $isAdmin = !$tenantId; // Super admin if no tenant_id in route
 
-        $stats = DB::table('stock_movements')
-            ->where('tenant_id', $tenantId)
-            ->selectRaw('
-                COUNT(*) as total_movements,
-                SUM(CASE WHEN type = "in" THEN quantity ELSE 0 END) as total_in,
-                SUM(CASE WHEN type = "out" THEN quantity ELSE 0 END) as total_out,
-                SUM(CASE WHEN type = "adjustment" THEN quantity ELSE 0 END) as total_adjustments,
-                SUM(CASE WHEN type LIKE "transfer%" THEN quantity ELSE 0 END) as total_transfers,
-                SUM(COALESCE(total_cost, 0)) as total_value
-            ')
-            ->first();
+        // For super admin, allow filtering by tenant_id from query params
+        $validated = $request->validate([
+            'tenant_id' => ['nullable', 'integer', 'exists:tenants,id'],
+        ]);
+
+        $effectiveTenantId = $tenantId ?? $validated['tenant_id'] ?? null;
+
+        $query = DB::table('stock_movements');
+        if ($effectiveTenantId !== null) {
+            $query->where('tenant_id', $effectiveTenantId);
+        }
+
+        $stats = $query->selectRaw('
+            COUNT(*) as total_movements,
+            SUM(CASE WHEN type IN ("in", "sale", "return") AND quantity > 0 THEN quantity 
+                     WHEN type IN ("out", "sale", "transfer") AND quantity < 0 THEN ABS(quantity)
+                     ELSE 0 END) as total_in,
+            SUM(CASE WHEN type IN ("out", "sale", "transfer") AND quantity < 0 THEN ABS(quantity)
+                     WHEN type IN ("in", "return") AND quantity > 0 THEN 0
+                     ELSE 0 END) as total_out,
+            SUM(CASE WHEN type = "adjustment" THEN ABS(quantity) ELSE 0 END) as total_adjustments,
+            SUM(CASE WHEN type LIKE "transfer%" THEN ABS(quantity) ELSE 0 END) as total_transfers,
+            SUM(COALESCE(total_cost, 0)) as total_value
+        ')->first();
 
         // Get movements by type
-        $movementsByType = DB::table('stock_movements')
-            ->where('tenant_id', $tenantId)
-            ->selectRaw('type, COUNT(*) as count, SUM(quantity) as total_quantity')
+        $typeQuery = DB::table('stock_movements');
+        if ($effectiveTenantId !== null) {
+            $typeQuery->where('tenant_id', $effectiveTenantId);
+        }
+
+        $movementsByType = $typeQuery
+            ->selectRaw('type, COUNT(*) as count, SUM(ABS(quantity)) as total_quantity')
             ->groupBy('type')
             ->get()
             ->pluck('count', 'type');
 
         // Get recent activity (last 7 days)
-        $recentActivity = DB::table('stock_movements')
-            ->where('tenant_id', $tenantId)
+        $activityQuery = DB::table('stock_movements');
+        if ($effectiveTenantId !== null) {
+            $activityQuery->where('tenant_id', $effectiveTenantId);
+        }
+
+        $recentActivity = $activityQuery
             ->where('created_at', '>=', now()->subDays(7))
             ->selectRaw('DATE(created_at) as date, COUNT(*) as count')
             ->groupBy('date')
@@ -214,9 +236,16 @@ class StockMovementController extends Controller
      */
     public function show(Request $request, int $movementId): JsonResponse
     {
-        $movement = StockMovement::where('tenant_id', $request->route('tenant_id'))
-            ->with(['product', 'warehouse', 'store', 'user', 'layer.batch', 'order'])
-            ->findOrFail($movementId);
+        $tenantId = $request->route('tenant_id');
+
+        // For admin routes, no tenant filter; for tenant routes, filter by tenant_id
+        $query = StockMovement::with(['product', 'warehouse', 'store', 'user', 'layer.batch', 'order']);
+        
+        if ($tenantId) {
+            $query->where('tenant_id', $tenantId);
+        }
+
+        $movement = $query->findOrFail($movementId);
 
         return response()->json([
             'success' => true,
@@ -276,7 +305,7 @@ class StockMovementController extends Controller
             'product_id' => ['nullable', 'integer', 'exists:products,id'],
             'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
             'store_id' => ['nullable', 'integer', 'exists:stores,id'],
-            'type' => ['nullable', 'string', 'in:in,out,adjustment,transfer_in,transfer_out,transfer'],
+            'type' => ['nullable', 'string', 'in:in,out,adjustment,transfer_in,transfer_out,transfer,sale,return'],
             'date_from' => ['nullable', 'date', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date', 'date_format:Y-m-d'],
             'search' => ['nullable', 'string', 'max:255'],
