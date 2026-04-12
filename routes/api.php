@@ -177,6 +177,7 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     // Stock movements (cross-tenant)
     Route::get('/pos/movements', [StockMovementController::class, 'index'])->name('admin.pos.movements.index');
     Route::get('/pos/movements/stats', [StockMovementController::class, 'stats'])->name('admin.pos.movements.stats');
+    Route::get('/pos/movements/{movementId}', [StockMovementController::class, 'show'])->name('admin.pos.movements.show');
     Route::get('/pos/movements/export', [StockMovementController::class, 'export'])->name('admin.pos.movements.export');
 
     // Batch management (cross-tenant)
