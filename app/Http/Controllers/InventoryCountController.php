@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ListInventoryCountsRequest;
+use App\Http\Requests\RecordInventoryCountItemRequest;
+use App\Http\Requests\StoreInventoryCountRequest;
 use App\Models\Inventory;
 use App\Models\InventoryCount;
 use App\Models\InventoryCountItem;
@@ -15,22 +18,11 @@ class InventoryCountController extends Controller
     /**
      * List all inventory counts with filtering and pagination.
      */
-    public function index(Request $request): JsonResponse
+    public function index(ListInventoryCountsRequest $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-        $isAdmin = !$tenantId;
 
-        $validated = $request->validate([
-            'page' => ['nullable', 'integer', 'min:1'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'tenant_id' => ['nullable', 'integer', 'exists:tenants,id'],
-            'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
-            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
-            'status' => ['nullable', 'string', 'in:draft,in_progress,completed,approved,cancelled'],
-            'search' => ['nullable', 'string', 'max:255'],
-            'sort_by' => ['nullable', 'string', 'in:name,created_at,started_at,completed_at'],
-            'sort_direction' => ['nullable', 'string', 'in:asc,desc'],
-        ]);
+        $validated = $request->validated();
 
         $page = $validated['page'] ?? 1;
         $perPage = $validated['per_page'] ?? 20;
@@ -40,27 +32,27 @@ class InventoryCountController extends Controller
         // Filter by tenant
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
-        } elseif (!empty($validated['tenant_id'])) {
+        } elseif (! empty($validated['tenant_id'])) {
             $query->where('tenant_id', $validated['tenant_id']);
         }
 
         // Filter by warehouse
-        if (!empty($validated['warehouse_id'])) {
+        if (! empty($validated['warehouse_id'])) {
             $query->where('warehouse_id', $validated['warehouse_id']);
         }
 
         // Filter by store
-        if (!empty($validated['store_id'])) {
+        if (! empty($validated['store_id'])) {
             $query->where('store_id', $validated['store_id']);
         }
 
         // Filter by status
-        if (!empty($validated['status'])) {
+        if (! empty($validated['status'])) {
             $query->where('status', $validated['status']);
         }
 
         // Search
-        if (!empty($validated['search'])) {
+        if (! empty($validated['search'])) {
             $search = $validated['search'];
             $query->where('name', 'like', "%{$search}%");
         }
@@ -113,25 +105,10 @@ class InventoryCountController extends Controller
     /**
      * Create a new inventory count.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreInventoryCountRequest $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'warehouse_id' => ['nullable', 'integer', 'exists:warehouses,id'],
-            'store_id' => ['nullable', 'integer', 'exists:stores,id'],
-            'product_ids' => ['nullable', 'array'],
-            'product_ids.*' => ['integer', 'exists:products,id'],
-        ]);
-
-        if (!$validated['warehouse_id'] && !$validated['store_id']) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Either warehouse_id or store_id is required',
-            ], 422);
-        }
+        $validated = $request->validated();
 
         $count = DB::transaction(function () use ($tenantId, $validated) {
             $count = InventoryCount::create([
@@ -141,7 +118,6 @@ class InventoryCountController extends Controller
                 'warehouse_id' => $validated['warehouse_id'] ?? null,
                 'store_id' => $validated['store_id'] ?? null,
                 'status' => 'draft',
-                'started_by' => $request->user()?->id,
             ]);
 
             // Add products to count
@@ -151,15 +127,18 @@ class InventoryCountController extends Controller
                 $query = Product::where('tenant_id', $tenantId)
                     ->where('track_inventory', true);
 
-                if ($validated['warehouse_id']) {
-                    $query->whereHas('inventories', function ($q) use ($validated) {
-                        $q->where('warehouse_id', $validated['warehouse_id']);
+                $warehouseId = $validated['warehouse_id'] ?? null;
+                $storeId = $validated['store_id'] ?? null;
+
+                if ($warehouseId) {
+                    $query->whereHas('inventories', function ($q) use ($warehouseId) {
+                        $q->where('warehouse_id', $warehouseId);
                     });
                 }
 
-                if ($validated['store_id']) {
-                    $query->whereHas('inventories', function ($q) use ($validated) {
-                        $q->where('store_id', $validated['store_id']);
+                if ($storeId) {
+                    $query->whereHas('inventories', function ($q) use ($storeId) {
+                        $q->where('store_id', $storeId);
                     });
                 }
 
@@ -167,14 +146,17 @@ class InventoryCountController extends Controller
             }
 
             foreach ($productIds as $productId) {
+                $warehouseId = $validated['warehouse_id'] ?? null;
+                $storeId = $validated['store_id'] ?? null;
+
                 $inventory = Inventory::where('tenant_id', $tenantId)
                     ->where('product_id', $productId)
-                    ->where(function ($q) use ($validated) {
-                        if ($validated['warehouse_id']) {
-                            $q->where('warehouse_id', $validated['warehouse_id']);
+                    ->where(function ($q) use ($warehouseId, $storeId) {
+                        if ($warehouseId) {
+                            $q->where('warehouse_id', $warehouseId);
                         }
-                        if ($validated['store_id']) {
-                            $q->where('store_id', $validated['store_id']);
+                        if ($storeId) {
+                            $q->where('store_id', $storeId);
                         }
                     })
                     ->first();
@@ -202,6 +184,14 @@ class InventoryCountController extends Controller
      */
     public function show(Request $request, int $countId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage') && ! $user->hasPermission('inventory.view')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to view inventory counts.',
+            ], 403);
+        }
+
         $tenantId = $request->route('tenant_id');
 
         $query = InventoryCount::with([
@@ -261,13 +251,21 @@ class InventoryCountController extends Controller
      */
     public function start(Request $request, int $countId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to start inventory counts.',
+            ], 403);
+        }
+
         $tenantId = $request->route('tenant_id');
 
         $count = InventoryCount::where('tenant_id', $tenantId)
             ->where('status', 'draft')
             ->findOrFail($countId);
 
-        $count->start($request->user()?->id);
+        $count->start($user->id);
 
         return response()->json([
             'success' => true,
@@ -279,18 +277,21 @@ class InventoryCountController extends Controller
     /**
      * Record count for a specific item.
      */
-    public function recordItem(Request $request, int $countId, int $itemId): JsonResponse
+    public function recordItem(RecordInventoryCountItemRequest $request, int $countId, int $itemId): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-
-        $validated = $request->validate([
-            'counted_quantity' => ['required', 'integer', 'min:0'],
-            'notes' => ['nullable', 'string'],
-        ]);
+        $validated = $request->validated();
 
         $item = InventoryCountItem::whereHas('count', function ($q) use ($tenantId, $countId) {
             $q->where('tenant_id', $tenantId)->where('id', $countId);
         })->findOrFail($itemId);
+
+        if ($item->count->status !== 'in_progress') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Can only record counts when the inventory count is in progress.',
+            ], 422);
+        }
 
         $item->recordCount($validated['counted_quantity'], $validated['notes'] ?? null);
 
@@ -306,6 +307,14 @@ class InventoryCountController extends Controller
      */
     public function complete(Request $request, int $countId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to complete inventory counts.',
+            ], 403);
+        }
+
         $tenantId = $request->route('tenant_id');
 
         $count = InventoryCount::where('tenant_id', $tenantId)
@@ -321,7 +330,7 @@ class InventoryCountController extends Controller
             ], 422);
         }
 
-        $count->complete($request->user()?->id);
+        $count->complete($user->id);
 
         return response()->json([
             'success' => true,
@@ -335,13 +344,21 @@ class InventoryCountController extends Controller
      */
     public function approve(Request $request, int $countId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to approve inventory counts.',
+            ], 403);
+        }
+
         $tenantId = $request->route('tenant_id');
 
         $count = InventoryCount::where('tenant_id', $tenantId)
             ->where('status', 'completed')
             ->findOrFail($countId);
 
-        $count->approve($request->user()?->id);
+        $count->approve($user->id);
 
         return response()->json([
             'success' => true,
@@ -355,6 +372,14 @@ class InventoryCountController extends Controller
      */
     public function cancel(Request $request, int $countId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to cancel inventory counts.',
+            ], 403);
+        }
+
         $tenantId = $request->route('tenant_id');
 
         $count = InventoryCount::where('tenant_id', $tenantId)
@@ -375,6 +400,14 @@ class InventoryCountController extends Controller
      */
     public function destroy(Request $request, int $countId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to delete inventory counts.',
+            ], 403);
+        }
+
         $tenantId = $request->route('tenant_id');
 
         $count = InventoryCount::where('tenant_id', $tenantId)

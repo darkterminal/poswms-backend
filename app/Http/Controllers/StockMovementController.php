@@ -17,7 +17,7 @@ class StockMovementController extends Controller
     public function index(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-        $isAdmin = !$tenantId; // Super admin if no tenant_id in route
+        $isAdmin = ! $tenantId; // Super admin if no tenant_id in route
 
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
@@ -43,54 +43,54 @@ class StockMovementController extends Controller
         // Filter by tenant (required for tenant-scoped, optional for super admin)
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
-        } elseif (!empty($validated['tenant_id'])) {
+        } elseif (! empty($validated['tenant_id'])) {
             $query->where('tenant_id', $validated['tenant_id']);
         }
 
         // Filter by product
-        if (!empty($validated['product_id'])) {
+        if (! empty($validated['product_id'])) {
             $query->where('product_id', $validated['product_id']);
         }
 
         // Filter by warehouse
-        if (!empty($validated['warehouse_id'])) {
+        if (! empty($validated['warehouse_id'])) {
             $query->where('warehouse_id', $validated['warehouse_id']);
         }
 
         // Filter by store
-        if (!empty($validated['store_id'])) {
+        if (! empty($validated['store_id'])) {
             $query->where('store_id', $validated['store_id']);
         }
 
         // Filter by type
-        if (!empty($validated['type'])) {
+        if (! empty($validated['type'])) {
             $query->where('type', $validated['type']);
         }
 
         // Filter by user
-        if (!empty($validated['user_id'])) {
+        if (! empty($validated['user_id'])) {
             $query->where('user_id', $validated['user_id']);
         }
 
         // Filter by date range
-        if (!empty($validated['date_from'])) {
+        if (! empty($validated['date_from'])) {
             $query->whereDate('created_at', '>=', $validated['date_from']);
         }
 
-        if (!empty($validated['date_to'])) {
+        if (! empty($validated['date_to'])) {
             $query->whereDate('created_at', '<=', $validated['date_to']);
         }
 
         // Search by product name, SKU, or reference
-        if (!empty($validated['search'])) {
+        if (! empty($validated['search'])) {
             $search = $validated['search'];
             $query->where(function ($q) use ($search) {
                 $q->whereHas('product', function ($productQuery) use ($search) {
                     $productQuery->where('name', 'like', "%{$search}%")
                         ->orWhere('sku', 'like', "%{$search}%");
                 })
-                ->orWhere('reference', 'like', "%{$search}%")
-                ->orWhere('reason', 'like', "%{$search}%");
+                    ->orWhere('reference', 'like', "%{$search}%")
+                    ->orWhere('reason', 'like', "%{$search}%");
             });
         }
 
@@ -163,7 +163,7 @@ class StockMovementController extends Controller
     public function stats(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-        $isAdmin = !$tenantId; // Super admin if no tenant_id in route
+        $isAdmin = ! $tenantId; // Super admin if no tenant_id in route
 
         // For super admin, allow filtering by tenant_id from query params
         $validated = $request->validate([
@@ -240,7 +240,7 @@ class StockMovementController extends Controller
 
         // For admin routes, no tenant filter; for tenant routes, filter by tenant_id
         $query = StockMovement::with(['product', 'warehouse', 'store', 'user', 'layer.batch', 'order']);
-        
+
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
         }
@@ -316,43 +316,43 @@ class StockMovementController extends Controller
         // Apply tenant filter
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
-        } elseif (!empty($validated['tenant_id'])) {
+        } elseif (! empty($validated['tenant_id'])) {
             $query->where('tenant_id', $validated['tenant_id']);
         }
 
         // Apply same filters as index
-        if (!empty($validated['product_id'])) {
+        if (! empty($validated['product_id'])) {
             $query->where('product_id', $validated['product_id']);
         }
 
-        if (!empty($validated['warehouse_id'])) {
+        if (! empty($validated['warehouse_id'])) {
             $query->where('warehouse_id', $validated['warehouse_id']);
         }
 
-        if (!empty($validated['store_id'])) {
+        if (! empty($validated['store_id'])) {
             $query->where('store_id', $validated['store_id']);
         }
 
-        if (!empty($validated['type'])) {
+        if (! empty($validated['type'])) {
             $query->where('type', $validated['type']);
         }
 
-        if (!empty($validated['date_from'])) {
+        if (! empty($validated['date_from'])) {
             $query->whereDate('created_at', '>=', $validated['date_from']);
         }
 
-        if (!empty($validated['date_to'])) {
+        if (! empty($validated['date_to'])) {
             $query->whereDate('created_at', '<=', $validated['date_to']);
         }
 
-        if (!empty($validated['search'])) {
+        if (! empty($validated['search'])) {
             $search = $validated['search'];
             $query->where(function ($q) use ($search) {
                 $q->whereHas('product', function ($productQuery) use ($search) {
                     $productQuery->where('name', 'like', "%{$search}%")
                         ->orWhere('sku', 'like', "%{$search}%");
                 })
-                ->orWhere('reference', 'like', "%{$search}%");
+                    ->orWhere('reference', 'like', "%{$search}%");
             });
         }
 

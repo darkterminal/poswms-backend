@@ -47,11 +47,11 @@ class StoreScheduledReportRequest extends BaseFormRequest
             $frequency = $this->input('schedule_frequency');
             $day = $this->input('schedule_day');
 
-            if ($frequency === 'weekly' && !$day) {
+            if ($frequency === 'weekly' && ! $day) {
                 $validator->errors()->add('schedule_day', 'Schedule day is required for weekly frequency.');
             }
 
-            if ($frequency === 'monthly' && (!$day || $day < 1 || $day > 31)) {
+            if ($frequency === 'monthly' && (! $day || $day < 1 || $day > 31)) {
                 $validator->errors()->add('schedule_day', 'Schedule day (1-31) is required for monthly frequency.');
             }
         });

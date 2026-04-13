@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\InventoryAlertConfig;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class InventoryAlertConfigController extends Controller
 {
@@ -14,6 +13,14 @@ class InventoryAlertConfigController extends Controller
      */
     public function index(Request $request, int $tenantId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.reports.view')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to view alert configurations.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'product_id' => 'nullable|integer|exists:products,id',
             'warehouse_id' => 'nullable|integer|exists:warehouses,id',
@@ -88,6 +95,14 @@ class InventoryAlertConfigController extends Controller
      */
     public function store(Request $request, int $tenantId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to create alert configurations.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'product_id' => 'required|integer|exists:products,id',
             'warehouse_id' => 'nullable|integer|exists:warehouses,id',
@@ -137,6 +152,14 @@ class InventoryAlertConfigController extends Controller
      */
     public function show(Request $request, int $tenantId, int $configId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.reports.view')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to view alert configurations.',
+            ], 403);
+        }
+
         $config = InventoryAlertConfig::forTenant($tenantId)
             ->where('id', $configId)
             ->with(['product:id,name,sku', 'warehouse:id,name,code', 'store:id,name,code'])
@@ -153,6 +176,14 @@ class InventoryAlertConfigController extends Controller
      */
     public function update(Request $request, int $tenantId, int $configId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to update alert configurations.',
+            ], 403);
+        }
+
         $config = InventoryAlertConfig::forTenant($tenantId)->findOrFail($configId);
 
         $validated = $request->validate([
@@ -177,6 +208,14 @@ class InventoryAlertConfigController extends Controller
      */
     public function destroy(Request $request, int $tenantId, int $configId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to delete alert configurations.',
+            ], 403);
+        }
+
         $config = InventoryAlertConfig::forTenant($tenantId)->findOrFail($configId);
         $config->delete();
 
@@ -191,6 +230,14 @@ class InventoryAlertConfigController extends Controller
      */
     public function addRecipient(Request $request, int $tenantId, int $configId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to manage alert recipients.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'email' => 'required|email',
         ]);
@@ -210,6 +257,14 @@ class InventoryAlertConfigController extends Controller
      */
     public function removeRecipient(Request $request, int $tenantId, int $configId): JsonResponse
     {
+        $user = $request->user();
+        if (! $user->hasPermission('inventory.counts.manage')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized. You do not have permission to manage alert recipients.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'email' => 'required|email',
         ]);

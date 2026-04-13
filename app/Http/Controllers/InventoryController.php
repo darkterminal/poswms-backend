@@ -92,7 +92,7 @@ class InventoryController extends Controller
             $totalQuantity = $layers->sum('quantity');
             $totalAvailable = $layers->sum('available');
             $totalReserved = $layers->sum('reserved');
-            $totalValue = $layers->sum(fn ($l) => $l->quantity * $l->unit_cost);
+            $totalValue = $layers->sum(fn($l) => $l->quantity * $l->unit_cost);
             $weightedAvgCost = $totalQuantity > 0 ? $totalValue / $totalQuantity : 0;
 
             $fifoLayers = [
@@ -101,7 +101,7 @@ class InventoryController extends Controller
                 'total_reserved' => $totalReserved,
                 'total_value' => round($totalValue, 2),
                 'weighted_average_cost' => round($weightedAvgCost, 2),
-                'layers' => $layers->map(fn ($l) => [
+                'layers' => $layers->map(fn($l) => [
                     'layer_id' => $l->id,
                     'quantity' => $l->quantity,
                     'available' => $l->available,

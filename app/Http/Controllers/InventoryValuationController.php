@@ -7,7 +7,6 @@ use App\Models\StockMovement;
 use App\Services\FifoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class InventoryValuationController extends Controller
 {
@@ -23,7 +22,7 @@ class InventoryValuationController extends Controller
         $tenantId = $request->route('tenant_id');
         $warehouseId = $request->query('warehouse_id');
 
-        if (!$tenantId) {
+        if (! $tenantId) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tenant ID is required',
