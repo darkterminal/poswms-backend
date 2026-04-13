@@ -13,16 +13,15 @@ class StockAdjustmentService
     /**
      * Adjust inventory stock.
      *
-     * @param int $tenantId The tenant ID
-     * @param int $inventoryId The inventory record ID
-     * @param int $quantity The quantity to adjust
-     * @param string $adjustmentType The type of adjustment (set, add, subtract)
-     * @param float|null $unitCost Optional unit cost (for creating FIFO layers when adding)
-     * @param string $reason Reason for the adjustment
-     * @param string|null $batchNumber Optional batch number
-     * @param string|null $notes Optional notes
-     * @param int|null $userId The user performing the adjustment
-     *
+     * @param  int  $tenantId  The tenant ID
+     * @param  int  $inventoryId  The inventory record ID
+     * @param  int  $quantity  The quantity to adjust
+     * @param  string  $adjustmentType  The type of adjustment (set, add, subtract)
+     * @param  float|null  $unitCost  Optional unit cost (for creating FIFO layers when adding)
+     * @param  string  $reason  Reason for the adjustment
+     * @param  string|null  $batchNumber  Optional batch number
+     * @param  string|null  $notes  Optional notes
+     * @param  int|null  $userId  The user performing the adjustment
      * @return array{inventory: Inventory, movement: StockMovement, quantity_before: int, quantity_after: int, adjustment: int}
      *
      * @throws \RuntimeException
@@ -46,7 +45,6 @@ class StockAdjustmentService
             $reason,
             $unitCost,
             $batchNumber,
-            $notes,
             $userId
         ) {
             // Find and lock the inventory record

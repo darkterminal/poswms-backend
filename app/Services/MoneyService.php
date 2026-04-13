@@ -6,8 +6,8 @@ use App\Models\CurrencyExchangeRate;
 use App\Models\Setting;
 use App\Models\Tenant;
 use Exchanger\CurrencyPair;
-use Exchanger\ExchangeRateQuery;
 use Exchanger\Exchanger;
+use Exchanger\ExchangeRateQuery;
 use Exchanger\Service\EuropeanCentralBank;
 use GuzzleHttp\Client;
 use Http\Adapter\Guzzle7\Client as Guzzle7Adapter;
@@ -26,7 +26,7 @@ class MoneyService
 
     public function __construct()
     {
-        $this->currencies = new ISOCurrencies();
+        $this->currencies = new ISOCurrencies;
     }
 
     /**
@@ -90,7 +90,7 @@ class MoneyService
 
     /**
      * Get exchange rate between two currencies.
-     * Returns rate as: 1 unit of $from = ? units of $to
+     * Returns rate as: 1 unit of $from = ? units of $to.
      */
     public function getExchangeRate(string $from, string $to): ?float
     {
@@ -309,7 +309,7 @@ class MoneyService
      */
     public function syncRatesFromECB(): int
     {
-        $httpClient = new Guzzle7Adapter(new Client());
+        $httpClient = new Guzzle7Adapter(new Client);
         $ecbService = new EuropeanCentralBank($httpClient);
         $exchanger = new Exchanger($ecbService);
 
@@ -317,7 +317,7 @@ class MoneyService
         // Get all available ISO currencies except EUR
         $targetCurrencies = array_filter(
             $this->getAvailableCurrencies(),
-            fn ($code) => $code !== 'EUR'
+            fn($code) => $code !== 'EUR'
         );
 
         $ratesSynced = 0;

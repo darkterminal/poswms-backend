@@ -77,15 +77,15 @@ class SettingsService
 
             foreach ($values as $key => $value) {
                 $fullKey = "{$group}.{$key}";
-                
+
                 // Determine type
                 $type = $this->defaults[$group][$key]['type'] ?? null;
-                
+
                 // Set the setting
                 Setting::set($fullKey, $value, $type, $userId);
-                
+
                 $updated[$group][$key] = $value;
-                
+
                 Log::info("System setting updated: {$fullKey}", [
                     'value' => $value,
                     'user_id' => $userId,
@@ -107,7 +107,7 @@ class SettingsService
         foreach ($this->defaults as $group => $settings) {
             foreach ($settings as $key => $config) {
                 $fullKey = "{$group}.{$key}";
-                
+
                 // Only create if doesn't exist
                 if (! Setting::where('key', $fullKey)->exists()) {
                     Setting::set($fullKey, $config['value'], $config['type'], $userId);

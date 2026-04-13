@@ -13,13 +13,12 @@ class LowStockAlertService
      */
     public function checkLowStock(int $tenantId): array
     {
-        $lowStockItems = Inventory::where('tenant_id', $tenantId)
-            ->with(['product', 'warehouse', 'store'])
+        $lowStockItems = Inventory::where('inventories.tenant_id', $tenantId)
+            ->join('products', 'inventories.product_id', '=', 'products.id')
+            ->whereNotNull('products.min_stock')
+            ->whereColumn('inventories.available', '<=', 'products.min_stock')
+            ->with(['product:id,name,sku,min_stock', 'warehouse:id,name', 'store:id,name'])
             ->get()
-            ->filter(function ($inventory) {
-                return $inventory->product &&
-                       $inventory->available <= $inventory->product->min_stock;
-            })
             ->map(function ($inventory) {
                 return [
                     'product_id' => $inventory->product_id,
@@ -75,21 +74,22 @@ class LowStockAlertService
      */
     public function generateReport(int $tenantId, ?int $warehouseId = null, ?int $storeId = null): array
     {
-        $query = Inventory::where('tenant_id', $tenantId)
-            ->with(['product', 'warehouse', 'store']);
+        $query = Inventory::where('inventories.tenant_id', $tenantId)
+            ->join('products', 'inventories.product_id', '=', 'products.id')
+            ->with(['product:id,name,sku,min_stock', 'warehouse:id,name', 'store:id,name']);
 
         if ($warehouseId) {
-            $query->where('warehouse_id', $warehouseId);
+            $query->where('inventories.warehouse_id', $warehouseId);
         }
 
         if ($storeId) {
-            $query->where('store_id', $storeId);
+            $query->where('inventories.store_id', $storeId);
         }
 
         $inventories = $query->get();
 
         $totalProducts = $inventories->count();
-        $lowStockCount = $inventories->filter(fn($i) => $i->product && $i->available <= $i->product->min_stock)->count();
+        $lowStockCount = $inventories->filter(fn($i) => $i->product && $i->product->min_stock !== null && $i->available <= $i->product->min_stock)->count();
         $outOfStockCount = $inventories->filter(fn($i) => $i->available === 0)->count();
 
         return [
@@ -102,7 +102,7 @@ class LowStockAlertService
                     : 100,
             ],
             'low_stock_items' => $inventories
-                ->filter(fn($i) => $i->product && $i->available <= $i->product->min_stock)
+                ->filter(fn($i) => $i->product && $i->product->min_stock !== null && $i->available <= $i->product->min_stock)
                 ->map(fn($i) => [
                     'product' => $i->product->name,
                     'sku' => $i->product->sku,

@@ -13,7 +13,7 @@ class MoneyServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(MoneyService::class, function ($app) {
-            return new MoneyService();
+            return new MoneyService;
         });
     }
 

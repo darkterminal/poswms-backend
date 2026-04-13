@@ -139,7 +139,7 @@ class StockTransferService
         // Source movements (type='transfer' or 'out')
         if (isset($transferResult['source_layers'])) {
             $sourceLayerIds = collect($transferResult['source_layers'])->pluck('layer_id')->filter()->toArray();
-            if (!empty($sourceLayerIds)) {
+            if (! empty($sourceLayerIds)) {
                 StockMovement::whereIn('layer_id', $sourceLayerIds)
                     ->whereNull('reference')
                     ->orWhere('reference', 'like', 'FIFO-%')
