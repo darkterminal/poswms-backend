@@ -197,7 +197,7 @@ class SavedReportTest extends TestCase
     public function test_download_returns_file(): void
     {
         Storage::fake('public');
-        
+
         $filePath = 'saved_reports/test-report.csv';
         Storage::disk('public')->put($filePath, 'test,csv,content');
 
@@ -229,7 +229,7 @@ class SavedReportTest extends TestCase
     public function test_deleting_report_removes_file(): void
     {
         Storage::fake('public');
-        
+
         $filePath = 'saved_reports/to-delete.csv';
         Storage::disk('public')->put($filePath, 'test content');
 

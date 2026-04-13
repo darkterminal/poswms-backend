@@ -2,11 +2,10 @@
 
 namespace Tests\Unit;
 
-use App\Models\Concerns\HasMoney;
-use App\Models\Product;
-use App\Models\Order;
-use App\Models\Tenant;
 use App\Models\CurrencyExchangeRate;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Money\Money;
 use Tests\TestCase;
@@ -31,7 +30,7 @@ class HasMoneyTraitTest extends TestCase
         $money = $product->priceAsMoney();
 
         // Debug: check money object currency
-        $this->assertEquals('IDR', $money->getCurrency()->getCode(), "Money currency should be IDR");
+        $this->assertEquals('IDR', $money->getCurrency()->getCode(), 'Money currency should be IDR');
 
         $this->assertInstanceOf(Money::class, $money);
         $this->assertEquals('99.99', app(\App\Services\MoneyService::class)->formatDecimal($money));

@@ -3,12 +3,12 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\Customer;
+use App\Models\Inventory;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Warehouse;
-use App\Models\Inventory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;

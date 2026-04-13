@@ -3,7 +3,6 @@
 namespace Tests\Unit;
 
 use App\Models\CurrencyExchangeRate;
-use App\Models\Product;
 use App\Models\Setting;
 use App\Models\Tenant;
 use App\Services\MoneyService;

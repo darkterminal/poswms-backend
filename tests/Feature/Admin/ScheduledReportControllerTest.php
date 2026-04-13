@@ -126,7 +126,7 @@ class ScheduledReportControllerTest extends TestCase
     public function test_can_get_execution_history(): void
     {
         $report = ScheduledReport::factory()->forTenant($this->tenant->id)->create();
-        
+
         ScheduledReportExecution::factory()
             ->forScheduledReport($report->id)
             ->count(5)

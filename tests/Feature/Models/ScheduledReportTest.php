@@ -61,7 +61,7 @@ class ScheduledReportTest extends TestCase
         ]);
 
         $nextRun = $report->calculateNextRun();
-        
+
         $this->assertTrue($nextRun->gt(now()));
     }
 
@@ -73,7 +73,7 @@ class ScheduledReportTest extends TestCase
         ]);
 
         $nextRun = $report->calculateNextRun();
-        
+
         $this->assertTrue($nextRun->gt(now()));
     }
 

@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Inventory;
-use App\Models\InventoryBatch;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\Tenant;
