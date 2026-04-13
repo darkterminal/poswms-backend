@@ -6,9 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\Inventory;
 use App\Models\Order;
-use App\Models\OrderItem;
-use App\Models\Product;
 use App\Models\Tenant;
+use App\Support\SqlDateFormatter;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,33 +21,31 @@ class AnalyticsController extends Controller
     public function salesTrend(Request $request): JsonResponse
     {
         $period = $request->query('period', '30d');
+        $tenantId = $request->query('tenant_id');
         $startDate = $this->getStartDate($period);
+        $user = $request->user();
 
-        $driver = DB::connection()->getDriverName();
-        
-        if ($driver === 'sqlite') {
-            $trendData = DB::table('orders')
-                ->whereIn('status', ['confirmed', 'fulfilled'])
-                ->where('created_at', '>=', $startDate)
-                ->selectRaw("strftime('%Y-%m-%d', created_at) as date, 
-                            COUNT(*) as orders, 
-                            SUM(subtotal) as revenue,
-                            AVG(subtotal) as avg_order_value")
-                ->groupByRaw("strftime('%Y-%m-%d', created_at)")
-                ->orderBy('date')
-                ->get();
-        } else {
-            $trendData = DB::table('orders')
-                ->whereIn('status', ['confirmed', 'fulfilled'])
-                ->where('created_at', '>=', $startDate)
-                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m-%d') as date, 
-                            COUNT(*) as orders, 
-                            SUM(subtotal) as revenue,
-                            AVG(subtotal) as avg_order_value")
-                ->groupByRaw("DATE_FORMAT(created_at, '%Y-%m-%d')")
-                ->orderBy('date')
-                ->get();
+        $query = DB::table('orders')
+            ->whereIn('status', ['confirmed', 'fulfilled'])
+            ->where('created_at', '>=', $startDate);
+
+        // Super admins can optionally filter by tenant; tenant users always scoped
+        if ($user->is_super_admin && $tenantId) {
+            $query->where('orders.tenant_id', $tenantId);
+        } elseif (! $user->is_super_admin && $user->tenant_id) {
+            $query->where('orders.tenant_id', $user->tenant_id);
         }
+
+        $dateExpr = SqlDateFormatter::dateColumn('created_at', 'date');
+
+        $trendData = $query
+            ->selectRaw("{$dateExpr} as date,
+                        COUNT(*) as orders,
+                        SUM(subtotal) as revenue,
+                        AVG(subtotal) as avg_order_value")
+            ->groupByRaw($dateExpr)
+            ->orderBy('date')
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -71,11 +68,15 @@ class AnalyticsController extends Controller
     public function orderStatusDistribution(Request $request): JsonResponse
     {
         $tenantId = $request->query('tenant_id');
+        $user = $request->user();
 
         $query = DB::table('orders');
-        
-        if ($tenantId) {
+
+        // Super admins can optionally filter by tenant; tenant users always scoped
+        if ($user->is_super_admin && $tenantId) {
             $query->where('tenant_id', $tenantId);
+        } elseif (! $user->is_super_admin && $user->tenant_id) {
+            $query->where('tenant_id', $user->tenant_id);
         }
 
         $statusData = $query
@@ -105,12 +106,16 @@ class AnalyticsController extends Controller
     public function inventoryLevelDistribution(Request $request): JsonResponse
     {
         $tenantId = $request->query('tenant_id');
+        $user = $request->user();
 
         $query = DB::table('inventories')
             ->join('products', 'inventories.product_id', '=', 'products.id');
 
-        if ($tenantId) {
+        // Super admins can optionally filter by tenant; tenant users always scoped
+        if ($user->is_super_admin && $tenantId) {
             $query->where('inventories.tenant_id', $tenantId);
+        } elseif (! $user->is_super_admin && $user->tenant_id) {
+            $query->where('inventories.tenant_id', $user->tenant_id);
         }
 
         $distribution = $query
@@ -152,18 +157,29 @@ class AnalyticsController extends Controller
      */
     public function topProducts(Request $request): JsonResponse
     {
-        $limit = $request->query('limit', 10);
+        $limit = min($request->query('limit', 10), 100);
         $sortBy = $request->query('sort_by', 'revenue');
         $period = $request->query('period', '30d');
+        $tenantId = $request->query('tenant_id');
         $startDate = $this->getStartDate($period);
+        $user = $request->user();
 
         $orderByField = $sortBy === 'quantity' ? 'total_quantity' : 'total_revenue';
 
-        $topProducts = DB::table('order_items')
+        $query = DB::table('order_items')
             ->join('products', 'order_items.product_id', '=', 'products.id')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereIn('orders.status', ['confirmed', 'fulfilled'])
-            ->where('orders.created_at', '>=', $startDate)
+            ->where('orders.created_at', '>=', $startDate);
+
+        // Super admins can optionally filter by tenant; tenant users always scoped
+        if ($user->is_super_admin && $tenantId) {
+            $query->where('orders.tenant_id', $tenantId);
+        } elseif (! $user->is_super_admin && $user->tenant_id) {
+            $query->where('orders.tenant_id', $user->tenant_id);
+        }
+
+        $topProducts = $query
             ->selectRaw('
                 products.id,
                 products.name,
@@ -201,23 +217,34 @@ class AnalyticsController extends Controller
     public function customerSegments(Request $request): JsonResponse
     {
         $tenantId = $request->query('tenant_id');
+        $user = $request->user();
 
         $query = DB::table('customers')
             ->leftJoin('orders', 'customers.id', '=', 'orders.customer_id')
             ->whereIn('orders.status', ['confirmed', 'fulfilled']);
 
-        if ($tenantId) {
+        // Super admins can optionally filter by tenant; tenant users always scoped
+        if ($user->is_super_admin && $tenantId) {
             $query->where('customers.tenant_id', $tenantId);
+        } elseif (! $user->is_super_admin && $user->tenant_id) {
+            $query->where('customers.tenant_id', $user->tenant_id);
         }
 
         $segments = $query
-            ->selectRaw('
+            ->selectRaw("
                 customers.id,
                 customers.name,
                 COUNT(orders.id) as total_orders,
                 COALESCE(SUM(orders.total), 0) as total_spent,
-                MAX(orders.created_at) as last_order_date
-            ')
+                MAX(orders.created_at) as last_order_date,
+                CASE
+                    WHEN COUNT(orders.id) = 0 THEN 'inactive'
+                    WHEN COUNT(orders.id) >= 10 OR COALESCE(SUM(orders.total), 0) >= 1000 THEN 'vip'
+                    WHEN COUNT(orders.id) >= 5 OR COALESCE(SUM(orders.total), 0) >= 500 THEN 'loyal'
+                    WHEN COUNT(orders.id) >= 2 OR COALESCE(SUM(orders.total), 0) >= 100 THEN 'regular'
+                    ELSE 'new'
+                END as segment
+            ")
             ->groupBy('customers.id', 'customers.name')
             ->get();
 
@@ -228,7 +255,7 @@ class AnalyticsController extends Controller
             'total_orders' => (int) $customer->total_orders,
             'total_spent' => round($customer->total_spent, 2),
             'last_order_date' => $customer->last_order_date,
-            'segment' => $this->getCustomerSegment($customer->total_orders, $customer->total_spent),
+            'segment' => $customer->segment,
         ]);
 
         // Group by segment
@@ -297,33 +324,30 @@ class AnalyticsController extends Controller
     public function activityHeatmap(Request $request): JsonResponse
     {
         $period = $request->query('period', '30d');
+        $tenantId = $request->query('tenant_id');
         $startDate = $this->getStartDate($period);
+        $user = $request->user();
 
-        $driver = DB::connection()->getDriverName();
+        $query = DB::table('orders')
+            ->whereIn('status', ['confirmed', 'fulfilled'])
+            ->where('created_at', '>=', $startDate);
 
-        if ($driver === 'sqlite') {
-            $heatmapData = DB::table('orders')
-                ->whereIn('status', ['confirmed', 'fulfilled'])
-                ->where('created_at', '>=', $startDate)
-                ->selectRaw('
-                    CAST(strftime("%w", created_at) AS INTEGER) + 1 as day_of_week,
-                    CAST(strftime("%H", created_at) AS INTEGER) as hour,
-                    COUNT(*) as order_count
-                ')
-                ->groupByRaw('day_of_week, hour')
-                ->get();
-        } else {
-            $heatmapData = DB::table('orders')
-                ->whereIn('status', ['confirmed', 'fulfilled'])
-                ->where('created_at', '>=', $startDate)
-                ->selectRaw('
-                    DAYOFWEEK(created_at) as day_of_week,
-                    HOUR(created_at) as hour,
-                    COUNT(*) as order_count
-                ')
-                ->groupByRaw('DAYOFWEEK(created_at), HOUR(created_at)')
-                ->get();
+        // Super admins can optionally filter by tenant; tenant users always scoped
+        if ($user->is_super_admin && $tenantId) {
+            $query->where('orders.tenant_id', $tenantId);
+        } elseif (! $user->is_super_admin && $user->tenant_id) {
+            $query->where('orders.tenant_id', $user->tenant_id);
         }
+
+        $dayOfWeekExpr = SqlDateFormatter::dateColumn('created_at', 'day_of_week');
+        $hourExpr = SqlDateFormatter::dateColumn('created_at', 'hour');
+
+        $heatmapData = $query
+            ->selectRaw("{$dayOfWeekExpr} as day_of_week,
+                        {$hourExpr} as hour,
+                        COUNT(*) as order_count")
+            ->groupByRaw("{$dayOfWeekExpr}, {$hourExpr}")
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -345,6 +369,7 @@ class AnalyticsController extends Controller
     public function inventoryByWarehouse(Request $request): JsonResponse
     {
         $tenantId = $request->query('tenant_id');
+        $user = $request->user();
 
         $query = DB::table('inventories')
             ->join('warehouses', 'inventories.warehouse_id', '=', 'warehouses.id')
@@ -356,8 +381,11 @@ class AnalyticsController extends Controller
                 COUNT(DISTINCT inventories.product_id) as product_count
             ');
 
-        if ($tenantId) {
+        // Super admins can optionally filter by tenant; tenant users always scoped
+        if ($user->is_super_admin && $tenantId) {
             $query->where('inventories.tenant_id', $tenantId);
+        } elseif (! $user->is_super_admin && $user->tenant_id) {
+            $query->where('inventories.tenant_id', $user->tenant_id);
         }
 
         $warehouseData = $query
@@ -384,12 +412,12 @@ class AnalyticsController extends Controller
      */
     public function recurringRevenue(Request $request): JsonResponse
     {
-        $planPrices = [
+        $planPrices = config('pricing.subscription_plans', [
             'free' => 0,
             'starter' => 29,
             'professional' => 99,
             'enterprise' => 299,
-        ];
+        ]);
 
         $tenantCounts = Tenant::selectRaw('subscription_plan, COUNT(*) as count')
             ->where('status', 'active')
@@ -439,7 +467,7 @@ class AnalyticsController extends Controller
             '90d' => now()->subDays(90),
             '180d' => now()->subDays(180),
             '1y' => now()->subYear(),
-            'all' => now()->subYear(),
+            'all' => now()->subYears(5), // Return 5 years for "all" instead of 1 year
             default => now()->subDays(30),
         };
     }
