@@ -202,7 +202,7 @@ class PosProductController extends Controller
         $validated['tenant_id'] = $request->input('tenant_id');
         $validated['active'] = $validated['active'] ?? true;
         $validated['track_inventory'] = $validated['track_inventory'] ?? true;
-        
+
         // Convert empty strings to null for optional fields
         foreach (['barcode', 'description', 'unit', 'image'] as $field) {
             if (isset($validated[$field]) && $validated[$field] === '') {
@@ -228,7 +228,7 @@ class PosProductController extends Controller
         $product = Product::withoutGlobalScopes()->findOrFail($productId);
 
         $validated = $request->validated();
-        
+
         // Convert empty strings to null for optional fields
         foreach (['barcode', 'description', 'unit', 'image'] as $field) {
             if (isset($validated[$field]) && $validated[$field] === '') {

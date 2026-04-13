@@ -64,6 +64,7 @@ class SavedReportController extends Controller
             $item['file_url'] = $report->getFileUrl();
             $item['formatted_file_size'] = $report->getFormattedFileSize();
             $item['is_expired'] = $report->isExpired();
+
             return $item;
         });
 
@@ -89,9 +90,9 @@ class SavedReportController extends Controller
     public function store(StoreSavedReportRequest $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Super admins can specify tenant_id, tenant users use their own
-        $tenantId = $user->is_super_admin 
+        $tenantId = $user->is_super_admin
             ? ($request->input('tenant_id') ?? $user->tenant_id)
             : $user->tenant_id;
 
@@ -255,7 +256,7 @@ class SavedReportController extends Controller
         }
 
         $total = $query->notExpired()->count();
-        
+
         $byType = (clone $query)->notExpired()
             ->selectRaw('type, count(*) as count')
             ->groupBy('type')

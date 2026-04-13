@@ -198,12 +198,24 @@ class ApiExceptionHandler extends ExceptionHandler
             'trace' => $e->getTraceAsString(),
         ]);
 
+        $errorData = [
+            'code' => 'internal_server_error',
+            'message' => 'An internal server error occurred.',
+        ];
+
+        // Include debug info when APP_DEBUG is true
+        if (config('app.debug')) {
+            $errorData['debug'] = [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'message' => $e->getMessage(),
+            ];
+        }
+
         return response()->json([
             'success' => false,
-            'error' => [
-                'code' => 'internal_server_error',
-                'message' => 'An internal server error occurred.',
-            ],
+            'error' => $errorData,
             'meta' => [
                 'timestamp' => now()->toIso8601String(),
             ],

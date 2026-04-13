@@ -5,10 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreApiKeyRequest;
 use App\Http\Requests\Admin\UpdateApiKeyRequest;
-use App\Models\ApiKey;
 use App\Models\Tenant;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class ApiKeyController extends Controller
@@ -33,7 +31,7 @@ class ApiKeyController extends Controller
                     'last_used_at' => $apiKey->last_used_at?->toIso8601String(),
                     'expires_at' => $apiKey->expires_at?->toIso8601String(),
                     'is_expired' => $apiKey->isExpired(),
-                    'is_active' => !$apiKey->isExpired(),
+                    'is_active' => ! $apiKey->isExpired(),
                     'created_at' => $apiKey->created_at->toIso8601String(),
                     'updated_at' => $apiKey->updated_at->toIso8601String(),
                     'user' => $apiKey->user ? [
@@ -93,7 +91,7 @@ class ApiKeyController extends Controller
                 'last_used_at' => $apiKey->last_used_at?->toIso8601String(),
                 'expires_at' => $apiKey->expires_at?->toIso8601String(),
                 'is_expired' => $apiKey->isExpired(),
-                'is_active' => !$apiKey->isExpired(),
+                'is_active' => ! $apiKey->isExpired(),
                 'created_at' => $apiKey->created_at->toIso8601String(),
                 'updated_at' => $apiKey->updated_at->toIso8601String(),
                 'user' => $apiKey->user ? [

@@ -25,10 +25,10 @@ class ReportTemplateController extends Controller
         $sortOrder = $request->query('sort_order', 'desc');
 
         $user = $request->user();
-        
+
         $query = ReportTemplate::query()
             ->with(['createdBy', 'updatedBy', 'tenant']);
-        
+
         // Super admins see all templates, tenant users see only their templates + global
         if (! $user->is_super_admin && $user->tenant_id) {
             $query->forTenant($user->tenant_id);

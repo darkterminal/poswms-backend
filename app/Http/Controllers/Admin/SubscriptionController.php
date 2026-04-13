@@ -7,7 +7,6 @@ use App\Models\AuditLog;
 use App\Models\Tenant;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class SubscriptionController extends Controller
 {
@@ -37,7 +36,7 @@ class SubscriptionController extends Controller
         ];
 
         foreach ($tenants as $tenant) {
-            if (!$tenant->subscription_plan || !$tenant->subscription_ends_at) {
+            if (! $tenant->subscription_plan || ! $tenant->subscription_ends_at) {
                 $noSubscription++;
                 continue;
             }
@@ -65,9 +64,10 @@ class SubscriptionController extends Controller
         ];
 
         $mrr = $tenants->sum(function ($tenant) use ($planPrices) {
-            if (!$tenant->subscription_plan) {
+            if (! $tenant->subscription_plan) {
                 return 0;
             }
+
             return $planPrices[$tenant->subscription_plan] ?? 0;
         });
 
@@ -79,9 +79,10 @@ class SubscriptionController extends Controller
 
         if ($tenantsWithSubscription->count() > 0) {
             $totalDays = $tenantsWithSubscription->sum(function ($tenant) {
-                if (!$tenant->created_at || !$tenant->subscription_ends_at) {
+                if (! $tenant->created_at || ! $tenant->subscription_ends_at) {
                     return 0;
                 }
+
                 return max(0, $tenant->created_at->diffInDays($tenant->subscription_ends_at));
             });
             $avgSubscriptionLength = round($totalDays / $tenantsWithSubscription->count());

@@ -40,9 +40,9 @@ return new class extends Migration
             $table->foreignId('count_id')->constrained('inventory_counts')->onDelete('cascade');
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
             $table->foreignId('inventory_id')->nullable()->constrained('inventories')->onDelete('set null');
-            $table->integer('expected_quantity')->default(0);
-            $table->integer('counted_quantity')->nullable();
-            $table->integer('variance')->default(0);
+            $table->decimal('expected_quantity', 15, 2)->default(0);
+            $table->decimal('counted_quantity', 15, 2)->nullable();
+            $table->decimal('variance', 15, 2)->default(0);
             $table->text('notes')->nullable();
             $table->timestamps();
 

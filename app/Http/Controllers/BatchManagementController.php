@@ -21,7 +21,7 @@ class BatchManagementController extends Controller
     public function index(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-        $isAdmin = !$tenantId;
+        $isAdmin = ! $tenantId;
 
         $validated = $request->validate([
             'page' => ['nullable', 'integer', 'min:1'],
@@ -46,27 +46,27 @@ class BatchManagementController extends Controller
         // Filter by tenant
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
-        } elseif (!empty($validated['tenant_id'])) {
+        } elseif (! empty($validated['tenant_id'])) {
             $query->where('tenant_id', $validated['tenant_id']);
         }
 
         // Filter by product
-        if (!empty($validated['product_id'])) {
+        if (! empty($validated['product_id'])) {
             $query->where('product_id', $validated['product_id']);
         }
 
         // Filter by warehouse
-        if (!empty($validated['warehouse_id'])) {
+        if (! empty($validated['warehouse_id'])) {
             $query->where('warehouse_id', $validated['warehouse_id']);
         }
 
         // Filter by status
-        if (!empty($validated['status'])) {
+        if (! empty($validated['status'])) {
             $query->where('status', $validated['status']);
         }
 
         // Filter by expiry status
-        if (!empty($validated['expiry_status'])) {
+        if (! empty($validated['expiry_status'])) {
             if ($validated['expiry_status'] === 'expiring_soon') {
                 $days = $validated['days_until_expiry'] ?? 30;
                 $query->expiringSoon($days);
@@ -76,7 +76,7 @@ class BatchManagementController extends Controller
         }
 
         // Search by batch/lot number
-        if (!empty($validated['search'])) {
+        if (! empty($validated['search'])) {
             $search = str_replace(['%', '_'], ['\%', '\_'], $validated['search']);
             $query->where(function ($q) use ($search) {
                 $q->where('batch_number', 'like', "%{$search}%")
@@ -253,7 +253,7 @@ class BatchManagementController extends Controller
         $days = $request->query('days', 30);
 
         // For super admin, get expiring batches across all tenants or a specific tenant
-        if (!$tenantId) {
+        if (! $tenantId) {
             // Super admin: get expiring batches for a specific tenant if provided
             $filterTenantId = $request->query('tenant_id');
             if ($filterTenantId) {
@@ -338,23 +338,23 @@ class BatchManagementController extends Controller
         // Filter by tenant: route param (tenant-scoped) or query param (super admin)
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
-        } elseif (!empty($validated['tenant_id'])) {
+        } elseif (! empty($validated['tenant_id'])) {
             $query->where('tenant_id', $validated['tenant_id']);
         }
 
-        if (!empty($validated['product_id'])) {
+        if (! empty($validated['product_id'])) {
             $query->where('product_id', $validated['product_id']);
         }
 
-        if (!empty($validated['warehouse_id'])) {
+        if (! empty($validated['warehouse_id'])) {
             $query->where('warehouse_id', $validated['warehouse_id']);
         }
 
-        if (!empty($validated['status'])) {
+        if (! empty($validated['status'])) {
             $query->where('status', $validated['status']);
         }
 
-        if (!empty($validated['search'])) {
+        if (! empty($validated['search'])) {
             $search = str_replace(['%', '_'], ['\%', '\_'], $validated['search']);
             $query->where(function ($q) use ($search) {
                 $q->where('batch_number', 'like', "%{$search}%")
