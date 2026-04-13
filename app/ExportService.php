@@ -2,6 +2,7 @@
 
 namespace App;
 
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -56,6 +57,48 @@ class ExportService
     }
 
     /**
+     * Export data to CSV directly from a database query using chunking.
+     * This method streams results in chunks to avoid loading all data into memory.
+     *
+     * @param  Builder|\Illuminate\Database\Eloquent\Builder  $query  Database query builder
+     * @param  array<string, string>  $columns  Column headers (key => label)
+     * @param  string  $filename  Output filename
+     * @param  int  $chunkSize  Number of records per chunk (default 500)
+     */
+    public function exportCsvFromQuery($query, array $columns, string $filename = 'export.csv', int $chunkSize = 500): StreamedResponse
+    {
+        return Response::streamDownload(function () use ($query, $columns, $chunkSize) {
+            $output = fopen('php://output', 'w');
+
+            // Add BOM for UTF-8 encoding
+            fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+            // Write header row
+            fputcsv($output, array_values($columns));
+
+            // Stream results in chunks to avoid memory issues
+            $query->chunk($chunkSize, function ($results) use ($output, $columns) {
+                foreach ($results as $row) {
+                    $rowData = [];
+                    // Convert object to array if needed
+                    $rowArray = is_array($row) ? $row : (array) $row;
+
+                    foreach (array_keys($columns) as $key) {
+                        $value = $rowArray[$key] ?? '';
+                        $rowData[] = $this->formatCsvValue($value);
+                    }
+                    fputcsv($output, $rowData);
+                }
+            });
+
+            fclose($output);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
      * Export data to Excel format (.xlsx).
      *
      * @param  array<int, array<string, mixed>>  $data  Data to export
@@ -65,14 +108,14 @@ class ExportService
      */
     public function exportExcel(array $data, array $columns, string $filename = 'export.xlsx', ?string $sheetName = null): StreamedResponse
     {
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
-        
+
         // Set sheet name if provided
         if ($sheetName) {
             $sheet->setTitle(substr($sheetName, 0, 31));
         }
-        
+
         // Set header style
         $headerStyle = [
             'font' => ['bold' => true],
@@ -82,7 +125,7 @@ class ExportService
             ],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER],
         ];
-        
+
         // Write header row
         $columnIndex = 1;
         foreach ($columns as $key => $label) {
@@ -90,7 +133,7 @@ class ExportService
             $columnIndex++;
         }
         $sheet->getStyle('1:' . 1)->applyFromArray($headerStyle);
-        
+
         // Write data rows
         $rowIndex = 2;
         foreach ($data as $row) {
@@ -102,15 +145,15 @@ class ExportService
             }
             $rowIndex++;
         }
-        
+
         // Auto-size columns
         foreach (range(1, count($columns)) as $columnIndex) {
             $sheet->getColumnDimensionByColumn($columnIndex)->setAutoSize(true);
         }
-        
+
         // Set headers for download
         $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
-        
+
         return Response::streamDownload(function () use ($writer) {
             $writer->save('php://output');
         }, $filename, [
@@ -145,7 +188,7 @@ class ExportService
     {
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($view, $data);
         $pdf->setPaper($paper, $orientation);
-        
+
         return $pdf->stream($filename);
     }
 
@@ -163,7 +206,7 @@ class ExportService
         $html = $this->generateTableHtml($data, $columns, $title);
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHtml($html);
         $pdf->setPaper('a4', $orientation);
-        
+
         return $pdf->stream($filename);
     }
 
@@ -212,6 +255,7 @@ class ExportService
     {
         $csvContent = $this->generateCsvString($data, $columns);
         \Illuminate\Support\Facades\Storage::disk('public')->put($path, $csvContent);
+
         return $path;
     }
 
@@ -226,20 +270,20 @@ class ExportService
      */
     public function saveExcel(array $data, array $columns, string $path, ?string $sheetName = null): string
     {
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
-        
+
         if ($sheetName) {
             $sheet->setTitle(substr($sheetName, 0, 31));
         }
-        
+
         // Write header row
         $columnIndex = 1;
         foreach ($columns as $key => $label) {
             $sheet->setCellValueByColumnAndRow($columnIndex, 1, $label);
             $columnIndex++;
         }
-        
+
         // Write data rows
         $rowIndex = 2;
         foreach ($data as $row) {
@@ -251,21 +295,21 @@ class ExportService
             }
             $rowIndex++;
         }
-        
+
         // Auto-size columns
         foreach (range(1, count($columns)) as $columnIndex) {
             $sheet->getColumnDimensionByColumn($columnIndex)->setAutoSize(true);
         }
-        
+
         // Save to storage
         $tempFile = tempnam(sys_get_temp_dir(), 'excel_');
         $writer = \PhpOffice\PhpSpreadsheet\IOFactory::createWriter($spreadsheet, 'Xlsx');
         $writer->save($tempFile);
-        
+
         $content = file_get_contents($tempFile);
         \Illuminate\Support\Facades\Storage::disk('public')->put($path, $content);
         unlink($tempFile);
-        
+
         return $path;
     }
 
@@ -297,15 +341,15 @@ class ExportService
     <table>
         <thead>
             <tr>';
-        
+
         foreach ($columns as $label) {
             $html .= '<th>' . e($label) . '</th>';
         }
-        
+
         $html .= '</tr>
         </thead>
         <tbody>';
-        
+
         foreach ($data as $row) {
             $html .= '<tr>';
             foreach (array_keys($columns) as $key) {
@@ -314,7 +358,7 @@ class ExportService
             }
             $html .= '</tr>';
         }
-        
+
         $html .= '</tbody>
     </table>
     <div class="footer">
@@ -322,7 +366,7 @@ class ExportService
     </div>
 </body>
 </html>';
-        
+
         return $html;
     }
 

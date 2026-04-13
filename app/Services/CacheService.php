@@ -125,6 +125,14 @@ class CacheService
      */
     public function tagAndRemember(string $tag, string $key, int $ttl, callable $callback): mixed
     {
+        $driver = config('cache.default');
+
+        // Tagged cache only supported by Redis and Memcached
+        if (! in_array($driver, ['redis', 'memcached'])) {
+            // Fallback to regular cache without tags
+            return Cache::remember("{$tag}:{$key}", $ttl, $callback);
+        }
+
         return Cache::tags([$tag])->remember($key, $ttl, $callback);
     }
 
@@ -133,6 +141,16 @@ class CacheService
      */
     public function clearTaggedCache(string $tag): void
     {
+        $driver = config('cache.default');
+
+        // Tagged cache only supported by Redis and Memcached
+        if (! in_array($driver, ['redis', 'memcached'])) {
+            // Log warning and skip - cache will expire naturally via TTL
+            \Log::warning("Cache tags not supported for driver: {$driver}. Tagged cache skipped.");
+
+            return;
+        }
+
         Cache::tags([$tag])->flush();
     }
 

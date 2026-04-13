@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SalesReportController extends Controller
@@ -21,6 +22,7 @@ class SalesReportController extends Controller
 
     /**
      * Get sales report with revenue analytics.
+     * Note: Authorization enforced by role:admin middleware.
      */
     public function revenue(Request $request): JsonResponse
     {
@@ -50,28 +52,57 @@ class SalesReportController extends Controller
             $query->where('warehouse_id', $warehouseId);
         }
 
-        $orders = $query->get();
+        // Get summary stats in a single query
+        $summary = (clone $query)
+            ->selectRaw('
+                COUNT(*) as total_orders,
+                SUM(subtotal) as total_revenue,
+                SUM(tax) as total_tax,
+                SUM(discount) as total_discount,
+                SUM(shipping) as total_shipping,
+                AVG(subtotal) as avg_order_value
+            ')
+            ->first();
 
-        // Group by period in PHP for database agnosticism
-        $groupedData = $orders->groupBy(function ($order) use ($period) {
-            return $this->formatPeriod($order->created_at, $period);
-        });
+        // Get revenue grouped by period using database aggregation
+        $driver = DB::connection()->getDriverName();
 
-        $revenueData = $groupedData->map(function ($group, $period) {
-            return [
-                'period' => $period,
-                'order_count' => $group->count(),
-                'total_revenue' => round($group->sum('subtotal'), 2),
-                'total_tax' => round($group->sum('tax'), 2),
-                'total_discount' => round($group->sum('discount'), 2),
-                'total_shipping' => round($group->sum('shipping'), 2),
-                'avg_order_value' => round($group->avg('subtotal'), 2),
-            ];
-        })->values();
+        if ($driver === 'sqlite') {
+            $dateExpr = match ($period) {
+                'yearly' => "strftime('%Y', created_at)",
+                'monthly' => "strftime('%Y-%m', created_at)",
+                'weekly' => "strftime('%Y-%W', created_at)",
+                default => "strftime('%Y-%m-%d', created_at)",
+            };
+        } else {
+            $dateExpr = match ($period) {
+                'yearly' => "DATE_FORMAT(created_at, '%Y')",
+                'monthly' => "DATE_FORMAT(created_at, '%Y-%m')",
+                'weekly' => "DATE_FORMAT(created_at, '%Y-%u')",
+                default => "DATE_FORMAT(created_at, '%Y-%m-%d')",
+            };
+        }
 
-        $totalRevenue = $orders->sum('subtotal');
-        $totalOrders = $orders->count();
-        $avgOrderValue = $totalOrders > 0 ? $totalRevenue / $totalOrders : 0;
+        $revenueData = (clone $query)
+            ->selectRaw("{$dateExpr} as period,
+                        COUNT(*) as order_count,
+                        SUM(subtotal) as total_revenue,
+                        SUM(tax) as total_tax,
+                        SUM(discount) as total_discount,
+                        SUM(shipping) as total_shipping,
+                        AVG(subtotal) as avg_order_value")
+            ->groupByRaw($dateExpr)
+            ->orderBy('period')
+            ->get()
+            ->map(fn($item) => [
+                'period' => $item->period,
+                'order_count' => (int) $item->order_count,
+                'total_revenue' => round($item->total_revenue, 2),
+                'total_tax' => round($item->total_tax, 2),
+                'total_discount' => round($item->total_discount, 2),
+                'total_shipping' => round($item->total_shipping, 2),
+                'avg_order_value' => round($item->avg_order_value, 2),
+            ]);
 
         return response()->json([
             'success' => true,
@@ -79,12 +110,12 @@ class SalesReportController extends Controller
                 'period' => $period,
                 'revenue_by_period' => $revenueData,
                 'summary' => [
-                    'total_revenue' => round($totalRevenue, 2),
-                    'total_orders' => $totalOrders,
-                    'average_order_value' => round($avgOrderValue, 2),
-                    'total_tax' => round($orders->sum('tax'), 2),
-                    'total_discount' => round($orders->sum('discount'), 2),
-                    'total_shipping' => round($orders->sum('shipping'), 2),
+                    'total_revenue' => round($summary->total_revenue ?? 0, 2),
+                    'total_orders' => (int) ($summary->total_orders ?? 0),
+                    'average_order_value' => round($summary->avg_order_value ?? 0, 2),
+                    'total_tax' => round($summary->total_tax ?? 0, 2),
+                    'total_discount' => round($summary->total_discount ?? 0, 2),
+                    'total_shipping' => round($summary->total_shipping ?? 0, 2),
                 ],
             ],
         ]);
@@ -92,6 +123,7 @@ class SalesReportController extends Controller
 
     /**
      * Get orders by period.
+     * Note: Authorization enforced by role:admin middleware.
      */
     public function ordersByPeriod(Request $request): JsonResponse
     {
@@ -152,18 +184,21 @@ class SalesReportController extends Controller
 
     /**
      * Get top products report.
+     * Note: Authorization enforced by role:admin middleware.
      */
     public function topProducts(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-        $limit = $request->query('limit', 10);
+        $limit = min($request->query('limit', 10), 100);
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
         $sortBy = $request->query('sort_by', 'quantity'); // quantity, revenue
 
+        $orderByField = $sortBy === 'quantity' ? 'total_quantity' : 'total_revenue';
+
         $query = OrderItem::where('order_items.tenant_id', $tenantId)
-            ->with(['product', 'order'])
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('products', 'order_items.product_id', '=', 'products.id')
             ->whereIn('orders.status', ['confirmed', 'fulfilled']);
 
         if ($startDate) {
@@ -174,36 +209,33 @@ class SalesReportController extends Controller
             $query->whereDate('orders.created_at', '<=', $endDate);
         }
 
-        $orderItems = $query->get();
-
-        // Group by product and calculate totals
-        $productStats = $orderItems->groupBy('product_id')->map(function ($items) {
-            return [
-                'product_id' => $items->first()->product_id,
-                'total_quantity' => $items->sum('quantity'),
-                'total_revenue' => round($items->sum(function ($item) {
-                    return $item->unit_price * $item->quantity;
-                }), 2),
-                'order_count' => $items->pluck('order_id')->unique()->count(),
-                'avg_price' => round($items->avg('unit_price'), 2),
-            ];
-        });
-
-        // Sort by specified field
-        $sortedProducts = $sortBy === 'revenue'
-            ? $productStats->sortByDesc('total_revenue')
-            : $productStats->sortByDesc('total_quantity');
-
-        $topProducts = $sortedProducts->take($limit)->values()->map(function ($item) {
-            return [
-                'product_id' => $item['product_id'],
-                'product' => $this->getProductDetails($item['product_id']),
-                'total_quantity' => $item['total_quantity'],
-                'total_revenue' => $item['total_revenue'],
-                'order_count' => $item['order_count'],
-                'avg_price' => $item['avg_price'],
-            ];
-        });
+        // Use database-level aggregation instead of loading all into memory
+        $topProducts = $query
+            ->selectRaw('
+                products.id,
+                products.name,
+                products.sku,
+                SUM(order_items.quantity) as total_quantity,
+                SUM(order_items.unit_price * order_items.quantity) as total_revenue,
+                COUNT(DISTINCT orders.id) as order_count,
+                AVG(order_items.unit_price) as avg_price
+            ')
+            ->groupBy('products.id', 'products.name', 'products.sku')
+            ->orderByDesc($orderByField)
+            ->limit($limit)
+            ->get()
+            ->map(fn($item) => [
+                'product_id' => $item->id,
+                'product' => [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'sku' => $item->sku,
+                ],
+                'total_quantity' => (int) $item->total_quantity,
+                'total_revenue' => round($item->total_revenue, 2),
+                'order_count' => (int) $item->order_count,
+                'avg_price' => round($item->avg_price, 2),
+            ]);
 
         return response()->json([
             'success' => true,
@@ -217,6 +249,7 @@ class SalesReportController extends Controller
 
     /**
      * Get dashboard metrics (KPIs for tenant admin).
+     * Note: Authorization enforced by role:admin middleware.
      */
     public function dashboardMetrics(Request $request): JsonResponse
     {
@@ -224,47 +257,46 @@ class SalesReportController extends Controller
         $period = $request->query('period', 'today'); // today, week, month, year, all
 
         $dateRange = $this->getDateRange($period);
-
-        // Revenue metrics
-        $revenueQuery = Order::where('tenant_id', $tenantId)
-            ->whereIn('status', ['confirmed', 'fulfilled']);
-
-        if ($dateRange['start']) {
-            $revenueQuery->whereDate('created_at', '>=', $dateRange['start']);
-        }
-
-        if ($dateRange['end']) {
-            $revenueQuery->whereDate('created_at', '<=', $dateRange['end']);
-        }
-
-        $currentRevenue = $revenueQuery->sum('subtotal');
-        $currentOrders = $revenueQuery->count();
-
-        // Previous period comparison
         $previousDateRange = $this->getPreviousDateRange($period, $dateRange);
-        $previousRevenue = Order::where('tenant_id', $tenantId)
+
+        // Query 1: Current period stats (single query)
+        $currentStats = Order::where('tenant_id', $tenantId)
+            ->whereIn('status', ['confirmed', 'fulfilled'])
+            ->when($dateRange['start'], fn($q) => $q->whereDate('created_at', '>=', $dateRange['start']))
+            ->when($dateRange['end'], fn($q) => $q->whereDate('created_at', '<=', $dateRange['end']))
+            ->selectRaw('COUNT(*) as orders, SUM(subtotal) as revenue')
+            ->first();
+
+        $currentRevenue = $currentStats->revenue ?? 0;
+        $currentOrders = $currentStats->orders ?? 0;
+
+        // Query 2: Previous period stats (single query)
+        $previousStats = Order::where('tenant_id', $tenantId)
             ->whereIn('status', ['confirmed', 'fulfilled'])
             ->when($previousDateRange['start'], fn($q) => $q->whereDate('created_at', '>=', $previousDateRange['start']))
             ->when($previousDateRange['end'], fn($q) => $q->whereDate('created_at', '<=', $previousDateRange['end']))
-            ->sum('subtotal');
+            ->selectRaw('COUNT(*) as orders, SUM(subtotal) as revenue')
+            ->first();
 
-        $previousOrders = Order::where('tenant_id', $tenantId)
-            ->whereIn('status', ['confirmed', 'fulfilled'])
-            ->when($previousDateRange['start'], fn($q) => $q->whereDate('created_at', '>=', $previousDateRange['start']))
-            ->when($previousDateRange['end'], fn($q) => $q->whereDate('created_at', '<=', $previousDateRange['end']))
-            ->count();
+        $previousRevenue = $previousStats->revenue ?? 0;
+        $previousOrders = $previousStats->orders ?? 0;
 
+        // Calculate growth percentages
         $revenueGrowth = $previousRevenue > 0 ? (($currentRevenue - $previousRevenue) / $previousRevenue) * 100 : 0;
         $ordersGrowth = $previousOrders > 0 ? (($currentOrders - $previousOrders) / $previousOrders) * 100 : 0;
 
-        // Order status counts (all time for the tenant)
-        $allOrders = Order::where('tenant_id', $tenantId)->get();
+        // Query 3: All-time status counts (single GROUP BY query instead of loading all orders)
+        $statusCounts = Order::where('tenant_id', $tenantId)
+            ->selectRaw('status, COUNT(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status');
+
         $statusCounts = [
-            'total' => $allOrders->count(),
-            'pending' => $allOrders->where('status', 'pending')->count(),
-            'confirmed' => $allOrders->where('status', 'confirmed')->count(),
-            'fulfilled' => $allOrders->where('status', 'fulfilled')->count(),
-            'cancelled' => $allOrders->where('status', 'cancelled')->count(),
+            'total' => $statusCounts->sum(),
+            'pending' => $statusCounts->get('pending', 0),
+            'confirmed' => $statusCounts->get('confirmed', 0),
+            'fulfilled' => $statusCounts->get('fulfilled', 0),
+            'cancelled' => $statusCounts->get('cancelled', 0),
         ];
 
         // Average order value
@@ -374,15 +406,50 @@ class SalesReportController extends Controller
      */
     public function exportRevenue(Request $request): StreamedResponse
     {
-        $response = $this->revenue($request);
-        $data = $response->getData(true);
+        $tenantId = $request->route('tenant_id');
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $period = $request->query('period', 'daily');
+        $storeId = $request->query('store_id');
+        $warehouseId = $request->query('warehouse_id');
 
-        if (! $data['success']) {
-            abort(500, 'Failed to generate revenue report');
+        $query = Order::where('tenant_id', $tenantId)
+            ->whereIn('status', ['confirmed', 'fulfilled']);
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
         }
 
-        $revenueData = $data['data']['revenue_by_period'];
-        $period = $data['data']['period'];
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        if ($storeId) {
+            $query->where('store_id', $storeId);
+        }
+
+        if ($warehouseId) {
+            $query->where('warehouse_id', $warehouseId);
+        }
+
+        // Group by period using database aggregation
+        $driver = DB::connection()->getDriverName();
+        $dateExpr = match ($period) {
+            'yearly' => $driver === 'sqlite' ? "strftime('%Y', created_at)" : "DATE_FORMAT(created_at, '%Y')",
+            'monthly' => $driver === 'sqlite' ? "strftime('%Y-%m', created_at)" : "DATE_FORMAT(created_at, '%Y-%m')",
+            'weekly' => $driver === 'sqlite' ? "strftime('%Y-%W', created_at)" : "DATE_FORMAT(created_at, '%Y-%u')",
+            default => $driver === 'sqlite' ? "strftime('%Y-%m-%d', created_at)" : "DATE_FORMAT(created_at, '%Y-%m-%d')",
+        };
+
+        $query->selectRaw("{$dateExpr} as period,
+                    COUNT(*) as order_count,
+                    SUM(subtotal) as total_revenue,
+                    SUM(tax) as total_tax,
+                    SUM(discount) as total_discount,
+                    SUM(shipping) as total_shipping,
+                    AVG(subtotal) as avg_order_value")
+            ->groupByRaw($dateExpr)
+            ->orderBy('period');
 
         $columns = [
             'period' => 'Period',
@@ -396,7 +463,7 @@ class SalesReportController extends Controller
 
         $filename = sprintf('sales_revenue_%s_%s.csv', $period, now()->format('Y-m-d'));
 
-        return $this->exportService->exportCsv($revenueData, $columns, $filename);
+        return $this->exportService->exportCsvFromQuery($query, $columns, $filename);
     }
 
     /**
@@ -404,14 +471,44 @@ class SalesReportController extends Controller
      */
     public function exportOrdersByPeriod(Request $request): StreamedResponse
     {
-        $response = $this->ordersByPeriod($request);
-        $data = $response->getData(true);
+        $tenantId = $request->route('tenant_id');
+        $period = $request->query('period', 'daily');
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $status = $request->query('status');
 
-        if (! $data['success']) {
-            abort(500, 'Failed to generate orders report');
+        $query = Order::where('tenant_id', $tenantId);
+
+        if ($startDate) {
+            $query->whereDate('created_at', '>=', $startDate);
         }
 
-        $ordersData = $data['data']['orders_by_period'];
+        if ($endDate) {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        // Group by period using database aggregation
+        $driver = DB::connection()->getDriverName();
+        $dateExpr = match ($period) {
+            'yearly' => $driver === 'sqlite' ? "strftime('%Y', created_at)" : "DATE_FORMAT(created_at, '%Y')",
+            'monthly' => $driver === 'sqlite' ? "strftime('%Y-%m', created_at)" : "DATE_FORMAT(created_at, '%Y-%m')",
+            'weekly' => $driver === 'sqlite' ? "strftime('%Y-%W', created_at)" : "DATE_FORMAT(created_at, '%Y-%u')",
+            default => $driver === 'sqlite' ? "strftime('%Y-%m-%d', created_at)" : "DATE_FORMAT(created_at, '%Y-%m-%d')",
+        };
+
+        $query->selectRaw("{$dateExpr} as period,
+                    COUNT(*) as order_count,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+                    SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed_count,
+                    SUM(CASE WHEN status = 'fulfilled' THEN 1 ELSE 0 END) as fulfilled_count,
+                    SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled_count,
+                    SUM(subtotal) as total_revenue")
+            ->groupByRaw($dateExpr)
+            ->orderBy('period');
 
         $columns = [
             'period' => 'Period',
@@ -425,7 +522,7 @@ class SalesReportController extends Controller
 
         $filename = sprintf('orders_by_period_%s.csv', now()->format('Y-m-d'));
 
-        return $this->exportService->exportCsv($ordersData, $columns, $filename);
+        return $this->exportService->exportCsvFromQuery($query, $columns, $filename);
     }
 
     /**
@@ -433,27 +530,39 @@ class SalesReportController extends Controller
      */
     public function exportTopProducts(Request $request): StreamedResponse
     {
-        $response = $this->topProducts($request);
-        $data = $response->getData(true);
+        $tenantId = $request->route('tenant_id');
+        $limit = min($request->query('limit', 10), 100);
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $sortBy = $request->query('sort_by', 'quantity');
 
-        if (! $data['success']) {
-            abort(500, 'Failed to generate top products report');
+        $orderByField = $sortBy === 'quantity' ? 'total_quantity' : 'total_revenue';
+
+        $query = OrderItem::where('order_items.tenant_id', $tenantId)
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->whereIn('orders.status', ['confirmed', 'fulfilled']);
+
+        if ($startDate) {
+            $query->whereDate('orders.created_at', '>=', $startDate);
         }
 
-        $productsData = $data['data']['top_products'];
+        if ($endDate) {
+            $query->whereDate('orders.created_at', '<=', $endDate);
+        }
 
-        // Flatten product data for CSV
-        $flatData = array_map(function ($item) {
-            return [
-                'product_id' => $item['product_id'],
-                'product_name' => $item['product']['name'],
-                'product_sku' => $item['product']['sku'],
-                'total_quantity' => $item['total_quantity'],
-                'total_revenue' => $item['total_revenue'],
-                'order_count' => $item['order_count'],
-                'avg_price' => $item['avg_price'],
-            ];
-        }, $productsData);
+        $query->selectRaw('
+                products.id as product_id,
+                products.name as product_name,
+                products.sku as product_sku,
+                SUM(order_items.quantity) as total_quantity,
+                SUM(order_items.unit_price * order_items.quantity) as total_revenue,
+                COUNT(DISTINCT orders.id) as order_count,
+                AVG(order_items.unit_price) as avg_price
+            ')
+            ->groupBy('products.id', 'products.name', 'products.sku')
+            ->orderByDesc($orderByField)
+            ->limit($limit);
 
         $columns = [
             'product_id' => 'Product ID',
@@ -467,6 +576,6 @@ class SalesReportController extends Controller
 
         $filename = sprintf('top_products_%s.csv', now()->format('Y-m-d'));
 
-        return $this->exportService->exportCsv($flatData, $columns, $filename);
+        return $this->exportService->exportCsvFromQuery($query, $columns, $filename);
     }
 }

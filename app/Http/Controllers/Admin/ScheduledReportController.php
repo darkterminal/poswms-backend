@@ -7,7 +7,6 @@ use App\Http\Requests\Admin\StoreScheduledReportRequest;
 use App\Http\Requests\Admin\UpdateScheduledReportRequest;
 use App\Models\ScheduledReport;
 use App\Models\ScheduledReportExecution;
-use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -65,6 +64,7 @@ class ScheduledReportController extends Controller
             $item = $report->toArray();
             $item['schedule_description'] = $report->getScheduleDescription();
             $item['last_execution'] = $report->executionHistory->first()?->toArray();
+
             return $item;
         });
 
@@ -90,9 +90,9 @@ class ScheduledReportController extends Controller
     public function store(StoreScheduledReportRequest $request): JsonResponse
     {
         $user = $request->user();
-        
+
         // Super admins can specify tenant_id, tenant users use their own
-        $tenantId = $user->is_super_admin 
+        $tenantId = $user->is_super_admin
             ? ($request->input('tenant_id') ?? $user->tenant_id)
             : $user->tenant_id;
 
@@ -277,28 +277,29 @@ class ScheduledReportController extends Controller
             ], 404);
         }
 
-        // In a real implementation, this would dispatch a job
-        // For now, we'll just update the last_run_at and next_run_at
-        $report->updateNextRun();
+        try {
+            // Dispatch job to generate and send report
+            \App\Jobs\GenerateScheduledReportJob::dispatch($report);
 
-        // Create execution record
-        ScheduledReportExecution::create([
-            'scheduled_report_id' => $report->id,
-            'tenant_id' => $report->tenant_id,
-            'executed_at' => now(),
-            'success' => true,
-            'records_count' => 0, // Would be populated by actual execution
-            'recipients_notified' => $report->recipients,
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Report execution queued',
+            ], 200);
+        } catch (\Exception $e) {
+            // Create failed execution record
+            ScheduledReportExecution::create([
+                'scheduled_report_id' => $report->id,
+                'tenant_id' => $report->tenant_id,
+                'executed_at' => now(),
+                'success' => false,
+                'error_message' => $e->getMessage(),
+            ]);
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'report' => $report,
-                'message' => 'Scheduled report executed successfully',
-            ],
-            'message' => 'Report execution triggered',
-        ], 200);
+            return response()->json([
+                'success' => false,
+                'message' => 'Report execution failed: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**
@@ -318,7 +319,7 @@ class ScheduledReportController extends Controller
         }
 
         $perPage = $request->query('per_page', 15);
-        
+
         $history = ScheduledReportExecution::forScheduledReport($id)
             ->latest('executed_at')
             ->paginate($perPage);

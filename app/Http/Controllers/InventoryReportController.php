@@ -141,31 +141,35 @@ class InventoryReportController extends Controller
      */
     public function exportStockLevels(Request $request): StreamedResponse
     {
-        $response = $this->stockLevels($request);
-        $data = $response->getData(true);
+        $tenantId = $request->route('tenant_id');
+        $warehouseId = $request->query('warehouse_id');
+        $storeId = $request->query('store_id');
 
-        if (! $data['success']) {
-            abort(500, 'Failed to generate stock levels report');
+        $query = Inventory::where('inventories.tenant_id', $tenantId)
+            ->join('products', 'inventories.product_id', '=', 'products.id')
+            ->leftJoin('warehouses', 'inventories.warehouse_id', '=', 'warehouses.id')
+            ->leftJoin('stores', 'inventories.store_id', '=', 'stores.id')
+            ->selectRaw('
+                inventories.id,
+                products.id as product_id,
+                products.name as product_name,
+                products.sku as product_sku,
+                warehouses.name as warehouse,
+                stores.name as store,
+                inventories.quantity,
+                inventories.reserved,
+                inventories.available,
+                inventories.cost,
+                inventories.quantity * inventories.cost as total_value
+            ');
+
+        if ($warehouseId) {
+            $query->where('inventories.warehouse_id', $warehouseId);
         }
 
-        $inventories = $data['data']['inventories'];
-
-        // Flatten inventory data for CSV
-        $flatData = array_map(function ($item) {
-            return [
-                'id' => $item['id'],
-                'product_id' => $item['product']['id'],
-                'product_name' => $item['product']['name'],
-                'product_sku' => $item['product']['sku'],
-                'warehouse' => $item['location']['warehouse'] ?? 'N/A',
-                'store' => $item['location']['store'] ?? 'N/A',
-                'quantity' => $item['quantity'],
-                'reserved' => $item['reserved'],
-                'available' => $item['available'],
-                'cost' => $item['cost'],
-                'total_value' => $item['total_value'],
-            ];
-        }, $inventories);
+        if ($storeId) {
+            $query->where('inventories.store_id', $storeId);
+        }
 
         $columns = [
             'id' => 'ID',
@@ -183,7 +187,7 @@ class InventoryReportController extends Controller
 
         $filename = sprintf('stock_levels_%s.csv', now()->format('Y-m-d'));
 
-        return $this->exportService->exportCsv($flatData, $columns, $filename);
+        return $this->exportService->exportCsvFromQuery($query, $columns, $filename);
     }
 
     /**
@@ -191,32 +195,40 @@ class InventoryReportController extends Controller
      */
     public function exportMovements(Request $request): StreamedResponse
     {
-        $response = $this->movements($request);
-        $data = $response->getData(true);
+        $tenantId = $request->route('tenant_id');
+        $productId = $request->query('product_id');
+        $warehouseId = $request->query('warehouse_id');
+        $limit = $request->query('limit', 1000);
 
-        if (! $data['success']) {
-            abort(500, 'Failed to generate movements report');
+        $query = StockMovement::where('stock_movements.tenant_id', $tenantId)
+            ->join('products', 'stock_movements.product_id', '=', 'products.id')
+            ->leftJoin('warehouses', 'stock_movements.warehouse_id', '=', 'warehouses.id')
+            ->leftJoin('stores', 'stock_movements.store_id', '=', 'stores.id')
+            ->leftJoin('users', 'stock_movements.user_id', '=', 'users.id')
+            ->selectRaw('
+                stock_movements.id,
+                products.name as product_name,
+                products.sku as product_sku,
+                warehouses.name as warehouse,
+                stores.name as store,
+                stock_movements.movement_type,
+                stock_movements.quantity,
+                stock_movements.quantity_before,
+                stock_movements.quantity_after,
+                stock_movements.reference,
+                users.name as user,
+                stock_movements.created_at
+            ')
+            ->orderBy('stock_movements.created_at', 'desc')
+            ->limit($limit);
+
+        if ($productId) {
+            $query->where('stock_movements.product_id', $productId);
         }
 
-        $movements = $data['data']['movements'];
-
-        // Flatten movement data for CSV
-        $flatData = array_map(function ($item) {
-            return [
-                'id' => $item['id'] ?? $item->id,
-                'product_name' => $item['product']['name'] ?? $item->product?->name ?? 'N/A',
-                'product_sku' => $item['product']['sku'] ?? $item->product?->sku ?? 'N/A',
-                'warehouse' => $item['warehouse']['name'] ?? $item->warehouse?->name ?? 'N/A',
-                'store' => $item['store']['name'] ?? $item->store?->name ?? 'N/A',
-                'movement_type' => $item['movement_type'] ?? $item->movement_type,
-                'quantity' => $item['quantity'] ?? $item->quantity,
-                'quantity_before' => $item['quantity_before'] ?? $item->quantity_before ?? 'N/A',
-                'quantity_after' => $item['quantity_after'] ?? $item->quantity_after ?? 'N/A',
-                'reference' => $item['reference'] ?? $item->reference ?? 'N/A',
-                'user' => $item['user']['name'] ?? $item->user?->name ?? 'System',
-                'created_at' => $item['created_at'] ?? $item->created_at,
-            ];
-        }, (array) $movements);
+        if ($warehouseId) {
+            $query->where('stock_movements.warehouse_id', $warehouseId);
+        }
 
         $columns = [
             'id' => 'ID',
@@ -235,7 +247,7 @@ class InventoryReportController extends Controller
 
         $filename = sprintf('inventory_movements_%s.csv', now()->format('Y-m-d'));
 
-        return $this->exportService->exportCsv($flatData, $columns, $filename);
+        return $this->exportService->exportCsvFromQuery($query, $columns, $filename);
     }
 
     /**
@@ -243,16 +255,9 @@ class InventoryReportController extends Controller
      */
     public function exportLowStock(Request $request): StreamedResponse
     {
-        $response = $this->lowStock($request);
-        $data = $response->getData(true);
+        $alerts = $this->alertService->checkLowStock($request->route('tenant_id'));
 
-        if (! $data['success']) {
-            abort(500, 'Failed to generate low stock report');
-        }
-
-        $alerts = $data['data'] ?? [];
-
-        // Flatten alert data for CSV
+        // Convert alerts to flat array for CSV
         $flatData = array_map(function ($item) {
             return [
                 'product_id' => $item['product_id'] ?? '',
@@ -265,7 +270,7 @@ class InventoryReportController extends Controller
                 'shortage' => $item['shortage'] ?? 0,
                 'severity' => $item['severity'] ?? 'low',
             ];
-        }, (array) $alerts);
+        }, $alerts);
 
         $columns = [
             'product_id' => 'Product ID',

@@ -7,6 +7,7 @@ use App\Models\ScheduledReportExecution;
 use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class ScheduledReportControllerTest extends TestCase
@@ -106,16 +107,20 @@ class ScheduledReportControllerTest extends TestCase
     {
         $report = ScheduledReport::factory()->forTenant($this->tenant->id)->create();
 
+        // Fake the queue to test job dispatch
+        Queue::fake();
+
         $response = $this->actingAs($this->superAdmin)
             ->postJson("/api/v1/admin/reports/schedules/{$report->id}/run");
 
         $response->assertStatus(200)
-            ->assertJsonPath('success', true);
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('message', 'Report execution queued');
 
-        $this->assertDatabaseHas('scheduled_report_executions', [
-            'scheduled_report_id' => $report->id,
-            'success' => true,
-        ]);
+        // Assert job was dispatched
+        Queue::assertPushed(\App\Jobs\GenerateScheduledReportJob::class, function ($job) use ($report) {
+            return $job->scheduledReport->id === $report->id;
+        });
     }
 
     public function test_can_get_execution_history(): void
