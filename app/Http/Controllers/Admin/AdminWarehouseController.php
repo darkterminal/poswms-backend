@@ -102,6 +102,12 @@ class AdminWarehouseController extends Controller
         $inactiveWarehouses = $totalWarehouses - $activeWarehouses;
         $tenantsWithWarehouses = Warehouse::distinct()->count('tenant_id');
 
+        // Inventory and order stats for warehouses
+        $warehouseIds = Warehouse::pluck('id');
+        $totalInventory = \App\Models\Inventory::whereIn('warehouse_id', $warehouseIds)->sum('quantity');
+        $totalOrders = Order::whereIn('warehouse_id', $warehouseIds)->count();
+        $avgInventory = $totalWarehouses > 0 ? round($totalInventory / $totalWarehouses, 2) : 0;
+
         $topLocations = Warehouse::selectRaw('country, state, city, COUNT(*) as count')
             ->groupBy('country', 'state', 'city')
             ->orderByDesc('count')
@@ -119,6 +125,9 @@ class AdminWarehouseController extends Controller
                 'active_warehouses' => $activeWarehouses,
                 'inactive_warehouses' => $inactiveWarehouses,
                 'tenants_with_warehouses' => $tenantsWithWarehouses,
+                'total_inventory' => (int) $totalInventory,
+                'total_orders' => (int) $totalOrders,
+                'avg_inventory_per_warehouse' => $avgInventory,
                 'top_locations' => $topLocations,
             ],
         ]);
