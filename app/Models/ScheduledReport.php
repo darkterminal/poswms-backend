@@ -153,7 +153,7 @@ class ScheduledReport extends Model
      */
     public function isDue(): bool
     {
-        return $this->is_active && 
+        return $this->is_active &&
             ($this->next_run_at === null || $this->next_run_at->isPast());
     }
 
@@ -168,7 +168,7 @@ class ScheduledReport extends Model
             'daily' => "Daily at {$time}",
             'weekly' => "Weekly on day {$this->schedule_day} at {$time}",
             'monthly' => "Monthly on day {$this->schedule_day} at {$time}",
-            default => "Unknown schedule",
+            default => 'Unknown schedule',
         };
     }
 

@@ -23,9 +23,9 @@ class InventoryCountItem extends Model
     protected function casts(): array
     {
         return [
-            'expected_quantity' => 'integer',
-            'counted_quantity' => 'integer',
-            'variance' => 'integer',
+            'expected_quantity' => 'decimal:2',
+            'counted_quantity' => 'decimal:2',
+            'variance' => 'decimal:2',
         ];
     }
 
@@ -61,7 +61,7 @@ class InventoryCountItem extends Model
     /**
      * Record the counted quantity.
      */
-    public function recordCount(int $countedQuantity, ?string $notes = null): void
+    public function recordCount(float|int $countedQuantity, ?string $notes = null): void
     {
         $this->update([
             'counted_quantity' => $countedQuantity,
@@ -80,9 +80,9 @@ class InventoryCountItem extends Model
     /**
      * Get absolute variance.
      */
-    public function absoluteVariance(): int
+    public function absoluteVariance(): float
     {
-        return abs($this->variance);
+        return abs((float) $this->variance);
     }
 
     /**

@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
-    use HasFactory, ScopedByTenant, SoftDeletes, HasMoney;
+    use HasFactory, HasMoney, ScopedByTenant, SoftDeletes;
 
     protected function moneyFields(): array
     {

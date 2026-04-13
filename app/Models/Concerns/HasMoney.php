@@ -7,7 +7,7 @@ use Money\Currency as MoneyCurrency;
 use Money\Money;
 
 /**
- * Trait HasMoney
+ * Trait HasMoney.
  *
  * Provides Money object accessors for models with monetary fields.
  *
@@ -64,7 +64,7 @@ trait HasMoney
      */
     protected function toMinorUnits(float|string $amount, string $currencyCode): int
     {
-        $currencies = new ISOCurrencies();
+        $currencies = new ISOCurrencies;
         $currency = new MoneyCurrency($currencyCode);
         $subunit = $currencies->subunitFor($currency);
 

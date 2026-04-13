@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class InventoryCount extends Model
 {
@@ -151,17 +152,41 @@ class InventoryCount extends Model
      */
     public function approve(?int $userId = null): void
     {
-        $this->update([
-            'status' => 'approved',
-            'approved_at' => now(),
-            'approved_by' => $userId,
-        ]);
+        DB::transaction(function () use ($userId) {
+            $this->update([
+                'status' => 'approved',
+                'approved_at' => now(),
+                'approved_by' => $userId,
+            ]);
 
-        // Apply adjustments for variances
-        $this->items()->with(['inventory', 'product'])->get()->each(function ($item) {
-            if ($item->variance !== 0 && $item->inventory) {
-                $item->inventory->updateQuantity($item->variance);
-            }
+            // Apply adjustments for variances with full audit trail
+            $this->items()->with(['inventory', 'product'])->get()->each(function ($item) use ($userId) {
+                if ($item->variance !== 0 && $item->inventory) {
+                    $inventory = $item->inventory;
+                    $quantityBefore = $inventory->quantity;
+                    $quantityAfter = $quantityBefore + $item->variance;
+
+                    // Record stock movement for audit trail
+                    StockMovement::recordMovement(
+                        tenantId: $this->tenant_id,
+                        productId: $item->product_id,
+                        type: 'adjustment',
+                        quantity: $item->variance,
+                        quantityBefore: $quantityBefore,
+                        quantityAfter: $quantityAfter,
+                        inventoryId: $inventory->id,
+                        storeId: $inventory->store_id,
+                        warehouseId: $inventory->warehouse_id,
+                        userId: $userId,
+                        reason: 'Inventory count adjustment',
+                        reference: "Count: {$this->name} (ID: {$this->id})",
+                        unitCost: $inventory->cost !== null ? (float) $inventory->cost : null
+                    );
+
+                    // Apply the adjustment with cost for FIFO layer creation
+                    $inventory->updateQuantity($item->variance, $inventory->cost !== null ? (float) $inventory->cost : null);
+                }
+            });
         });
     }
 
@@ -178,12 +203,19 @@ class InventoryCount extends Model
      */
     public function getSummary(): array
     {
-        $items = $this->items()->with(['product', 'inventory'])->get();
+        $stats = $this->items()
+            ->selectRaw('
+                COUNT(*) as total_items,
+                COUNT(counted_quantity) as counted_items,
+                SUM(CASE WHEN variance != 0 THEN 1 ELSE 0 END) as items_with_variance,
+                COALESCE(SUM(variance), 0) as total_variance
+            ')
+            ->first();
 
-        $totalItems = $items->count();
-        $countedItems = $items->whereNotNull('counted_quantity')->count();
-        $itemsWithVariance = $items->where('variance', '!=', 0)->count();
-        $totalVariance = $items->sum('variance');
+        $totalItems = (int) $stats->total_items;
+        $countedItems = (int) $stats->counted_items;
+        $itemsWithVariance = (int) $stats->items_with_variance;
+        $totalVariance = (int) $stats->total_variance;
 
         return [
             'total_items' => $totalItems,

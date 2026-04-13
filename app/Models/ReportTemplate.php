@@ -97,7 +97,7 @@ class ReportTemplate extends Model
     {
         return $query->where(function ($q) use ($tenantId) {
             $q->where('is_global', true)
-              ->orWhere('tenant_id', $tenantId);
+                ->orWhere('tenant_id', $tenantId);
         });
     }
 }

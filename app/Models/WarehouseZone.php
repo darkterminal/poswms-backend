@@ -51,7 +51,7 @@ class WarehouseZone extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('name', 'like', "%{$search}%")
-              ->orWhere('code', 'like', "%{$search}%");
+                ->orWhere('code', 'like', "%{$search}%");
         });
     }
 
@@ -75,7 +75,7 @@ class WarehouseZone extends Model
      */
     public function getUsageStats(): array
     {
-        $inventoryCount = \App\Models\Inventory::where('warehouse_id', $this->warehouse_id)
+        $inventoryCount = Inventory::where('warehouse_id', $this->warehouse_id)
             ->where('location', $this->code)
             ->count();
 
@@ -100,7 +100,7 @@ class WarehouseZone extends Model
             return false;
         }
 
-        $inventoryCount = \App\Models\Inventory::where('warehouse_id', $this->warehouse_id)
+        $inventoryCount = Inventory::where('warehouse_id', $this->warehouse_id)
             ->where('location', $this->code)
             ->count();
 

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Concerns\HasMoney;
 use App\Models\Concerns\ScopedByTenant;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -141,7 +140,7 @@ class InventoryAlertConfig extends Model
      */
     public function isTriggered(Inventory $inventory): bool
     {
-        if (!$this->alert_enabled) {
+        if (! $this->alert_enabled) {
             return false;
         }
 
@@ -163,7 +162,7 @@ class InventoryAlertConfig extends Model
     {
         $recipients = $this->getRecipientsList();
 
-        if (!in_array($email, $recipients)) {
+        if (! in_array($email, $recipients)) {
             $recipients[] = $email;
             $this->email_recipients = $recipients;
             $this->save();

@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Inventory extends Model
 {
-    use HasFactory, ScopedByTenant, HasMoney;
+    use HasFactory, HasMoney, ScopedByTenant;
 
     protected function moneyFields(): array
     {

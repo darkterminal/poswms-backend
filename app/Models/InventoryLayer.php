@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
 
 class InventoryLayer extends Model
 {
-    use HasFactory, ScopedByTenant, HasMoney;
+    use HasFactory, HasMoney, ScopedByTenant;
 
     protected function moneyFields(): array
     {
