@@ -43,8 +43,14 @@ class StockMovement extends Model
         parent::boot();
 
         static::saving(function (self $movement) {
-            if ($movement->unit_cost !== null && $movement->total_cost === null) {
+            // If total_cost is null, try to calculate it from unit_cost
+            if ($movement->total_cost === null && $movement->unit_cost !== null) {
                 $movement->total_cost = $movement->quantity * $movement->unit_cost;
+            }
+
+            // Ensure total_cost is never null to prevent silent SUM() errors
+            if ($movement->total_cost === null) {
+                $movement->total_cost = 0;
             }
         });
     }
