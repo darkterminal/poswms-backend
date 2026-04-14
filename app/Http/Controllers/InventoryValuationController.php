@@ -12,7 +12,8 @@ use Illuminate\Validation\Rule;
 class InventoryValuationController extends Controller
 {
     public function __construct(
-        private FifoService $fifoService
+        private FifoService $fifoService,
+        private \App\Services\CacheService $cacheService
     ) {}
 
     /**
@@ -20,7 +21,7 @@ class InventoryValuationController extends Controller
      */
     public function valuation(Request $request): JsonResponse
     {
-        $tenantId = $request->route('tenant_id');
+        $tenantId = (int) $request->route('tenant_id');
         $warehouseId = $request->query('warehouse_id');
         $limit = min($request->query('limit', 100), 1000);
         $offset = $request->query('offset', 0);
@@ -32,7 +33,13 @@ class InventoryValuationController extends Controller
             ], 400);
         }
 
-        $valuation = $this->fifoService->getInventoryValuation($tenantId, $warehouseId, (int) $limit, (int) $offset);
+        $valuation = $this->cacheService->rememberReport('valuation', $tenantId, [
+            'warehouse_id' => $warehouseId,
+            'limit' => $limit,
+            'offset' => $offset,
+        ], function () use ($tenantId, $warehouseId, $limit, $offset) {
+            return $this->fifoService->getInventoryValuation($tenantId, $warehouseId, (int) $limit, (int) $offset);
+        });
 
         return response()->json([
             'success' => true,
@@ -146,7 +153,7 @@ class InventoryValuationController extends Controller
      */
     public function weightedAverageCost(Request $request): JsonResponse
     {
-        $tenantId = $request->route('tenant_id');
+        $tenantId = (int) $request->route('tenant_id');
 
         if (! $tenantId) {
             return response()->json([
@@ -159,53 +166,56 @@ class InventoryValuationController extends Controller
         $limit = min($request->query('limit', 100), 1000);
         $offset = $request->query('offset', 0);
 
-        $query = InventoryLayer::where('tenant_id', $tenantId)
-            ->fifoLayers()
-            ->withStock()
-            ->with(['product:id,name,sku', 'warehouse:id,name,code']);
+        $report = $this->cacheService->rememberReport('wac', $tenantId, [
+            'warehouse_id' => $warehouseId,
+            'limit' => $limit,
+            'offset' => $offset,
+        ], function () use ($tenantId, $warehouseId, $limit, $offset) {
+            $query = InventoryLayer::where('tenant_id', $tenantId)
+                ->fifoLayers()
+                ->withStock()
+                ->with(['product:id,name,sku', 'warehouse:id,name,code']);
 
-        if ($warehouseId) {
-            $query->where('warehouse_id', $warehouseId);
-        }
+            if ($warehouseId) {
+                $query->where('warehouse_id', $warehouseId);
+            }
 
-        // Clone query for totals calculation before applying limit/offset
-        $totalQuantity = (clone $query)->sum('quantity');
-        $totalValue = (clone $query)->sum('total_cost');
-        $totalCount = (clone $query)->count();
+            // Clone query for totals calculation before applying limit/offset
+            $totalQuantity = (clone $query)->sum('quantity');
+            $totalValue = (clone $query)->sum('total_cost');
+            $totalCount = (clone $query)->count();
 
-        $layers = $query->offset($offset)->limit($limit)->get();
+            $layers = $query->offset($offset)->limit($limit)->get();
 
-        $byProduct = $layers->groupBy('product_id')->map(function ($group) {
-            $totalQuantity = $group->sum('quantity');
-            $totalValue = $group->sum('total_cost');
+            $byProduct = $layers->groupBy('product_id')->map(function ($group) {
+                $totalQuantity = $group->sum('quantity');
+                $totalValue = $group->sum('total_cost');
 
-            return [
-                'product' => $group->first()?->product ? [
-                    'id' => $group->first()->product->id,
-                    'name' => $group->first()->product->name,
-                    'sku' => $group->first()->product->sku,
-                ] : null,
+                return [
+                    'product' => $group->first()?->product ? [
+                        'id' => $group->first()->product->id,
+                        'name' => $group->first()->product->name,
+                        'sku' => $group->first()->product->sku,
+                    ] : null,
+                    'total_quantity' => $totalQuantity,
+                    'total_value' => round($totalValue, 2),
+                    'weighted_average_cost' => $totalQuantity > 0
+                        ? round($totalValue / $totalQuantity, 4)
+                        : 0,
+                    'layer_count' => $group->count(),
+                ];
+            })->values();
+
+            $summary = [
                 'total_quantity' => $totalQuantity,
                 'total_value' => round($totalValue, 2),
                 'weighted_average_cost' => $totalQuantity > 0
                     ? round($totalValue / $totalQuantity, 4)
                     : 0,
-                'layer_count' => $group->count(),
+                'total_count' => $totalCount,
             ];
-        })->values();
 
-        $summary = [
-            'total_quantity' => $totalQuantity,
-            'total_value' => round($totalValue, 2),
-            'weighted_average_cost' => $totalQuantity > 0
-                ? round($totalValue / $totalQuantity, 4)
-                : 0,
-            'total_count' => $totalCount,
-        ];
-
-        return response()->json([
-            'success' => true,
-            'data' => [
+            return [
                 'summary' => $summary,
                 'by_product' => $byProduct,
                 'pagination' => [
@@ -213,7 +223,12 @@ class InventoryValuationController extends Controller
                     'offset' => (int) $offset,
                     'total' => $totalCount,
                 ],
-            ],
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $report,
             'message' => 'Weighted average cost report retrieved successfully',
         ], 200);
     }
@@ -227,7 +242,7 @@ class InventoryValuationController extends Controller
      */
     public function valueTrends(Request $request): JsonResponse
     {
-        $tenantId = $request->route('tenant_id');
+        $tenantId = (int) $request->route('tenant_id');
 
         if (! $tenantId) {
             return response()->json([
@@ -238,29 +253,29 @@ class InventoryValuationController extends Controller
 
         $days = min((int) $request->query('days', 30), 365);
 
-        $trends = StockMovement::where('tenant_id', $tenantId)
-            ->where('created_at', '>=', now()->subDays($days))
-            ->selectRaw('
-                DATE(created_at) as date,
-                SUM(CASE WHEN type = "in" THEN total_cost ELSE 0 END) as value_in,
-                SUM(CASE WHEN type = "out" THEN total_cost ELSE 0 END) as value_out,
-                SUM(CASE WHEN type = "adjustment" THEN (CASE WHEN quantity_after > quantity_before THEN 1 ELSE -1 END) * total_cost ELSE 0 END) as value_adjustments,
-                SUM(CASE WHEN type LIKE "transfer%" THEN total_cost ELSE 0 END) as value_transfers
-            ')
-            ->groupBy('date')
-            ->orderBy('date')
-            ->limit(100) // Cap daily entries for safety
-            ->get();
+        $report = $this->cacheService->rememberReport('trends', $tenantId, [
+            'days' => $days,
+        ], function () use ($tenantId, $days) {
+            $trends = StockMovement::where('tenant_id', $tenantId)
+                ->where('created_at', '>=', now()->subDays($days))
+                ->selectRaw('
+                    DATE(created_at) as date,
+                    SUM(CASE WHEN type = "in" THEN total_cost ELSE 0 END) as value_in,
+                    SUM(CASE WHEN type = "out" THEN total_cost ELSE 0 END) as value_out,
+                    SUM(CASE WHEN type = "adjustment" THEN (CASE WHEN quantity_after > quantity_before THEN 1 ELSE -1 END) * total_cost ELSE 0 END) as value_adjustments,
+                    SUM(CASE WHEN type LIKE "transfer%" THEN total_cost ELSE 0 END) as value_transfers
+                ')
+                ->groupBy('date')
+                ->orderBy('date')
+                ->limit(100) // Cap daily entries for safety
+                ->get();
 
-        $currentValue = InventoryLayer::where('tenant_id', $tenantId)
-            ->fifoLayers()
-            ->withStock()
-            ->sum('total_cost');
+            $currentValue = InventoryLayer::where('tenant_id', $tenantId)
+                ->fifoLayers()
+                ->withStock()
+                ->sum('total_cost');
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'report_type' => 'cash_flow',
+            return [
                 'current_value' => round($currentValue, 2),
                 'period_days' => $days,
                 'trends' => $trends->map(fn($item) => [
@@ -271,7 +286,12 @@ class InventoryValuationController extends Controller
                     'value_transfers' => round($item->value_transfers, 2),
                     'net_change' => round($item->value_in - $item->value_out + $item->value_adjustments, 2),
                 ]),
-            ],
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => array_merge(['report_type' => 'cash_flow'], $report),
             'message' => 'Inventory cash flow report retrieved successfully',
         ], 200);
     }

@@ -53,12 +53,27 @@ A comprehensive audit of the Inventory Valuation implementation identified **13 
 | ID    | Title                                              | Severity | Status |
 | ----- | -------------------------------------------------- | -------- | ------ |
 | B-011 | React tables use array index as key — causes unnecessary re-renders | Low      | Fixed   |
-| B-012 | No query cache or response caching on read-heavy valuation endpoints | Low      | Open   |
+| B-012 | No query cache or response caching on read-heavy valuation endpoints | Low      | Fixed   |
 | B-013 | Valuation endpoint has no `as_of_date` parameter — only supports "as of now" | Low      | Open   |
 
 ---
 
 ## Detailed Bug Specifications
+
+...
+
+### Fix Notes (B-012):
+- **Date Fixed:** 2026-04-15
+- **Files Modified:** `poswms-backend/app/Http/Controllers/InventoryValuationController.php`
+- **Changes:**
+  - Integrated `App\Services\CacheService` into `InventoryValuationController` constructor.
+  - Wrapped `valuation()`, `weightedAverageCost()`, and `valueTrends()` report logic with `$this->cacheService->rememberReport()`.
+  - Used appropriate cache keys with parameters (`warehouse_id`, `limit`, `offset`, `days`) to ensure cache isolation and correctness.
+- **Tests:** 26/26 tests passed.
+- **Code Quality:** Formatted with Laravel Pint.
+- **Deviations:** None.
+
+---
 
 ### B-001: Frontend Service Calls Wrong URLs
 
