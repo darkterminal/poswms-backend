@@ -46,13 +46,13 @@ A comprehensive audit of the Inventory Valuation implementation identified **13 
 | B-007 | No pagination on valuation, WAC, or trends endpoints — loads all layers/movements into memory | Medium   | Fixed  |
 | B-008 | No permission/role checks on financial report endpoints — any tenant user can access | Medium   | Fixed   |
 | B-009 | Value Trends adjustment query always sums positive `total_cost` — negative adjustments not represented | Medium   | Fixed  |
-| B-010 | Frontend `handleExport` catches errors but only logs to console — no user feedback | Medium   | Open   |
+| B-010 | Frontend `handleExport` catches errors but only logs to console — no user feedback | Medium   | Fixed  |
 
 ### LOW — Tech Debt
 
 | ID    | Title                                              | Severity | Status |
 | ----- | -------------------------------------------------- | -------- | ------ |
-| B-011 | React tables use array index as key — causes unnecessary re-renders | Low      | Open   |
+| B-011 | React tables use array index as key — causes unnecessary re-renders | Low      | Fixed   |
 | B-012 | No query cache or response caching on read-heavy valuation endpoints | Low      | Open   |
 | B-013 | Valuation endpoint has no `as_of_date` parameter — only supports "as of now" | Low      | Open   |
 
@@ -868,6 +868,20 @@ This requires `FifoService::getInventoryValuation()` to reconstruct layer state 
   - Added `test_value_trends_handles_negative_adjustments` to verify that both positive and negative adjustments are correctly aggregated.
 - **Tests:** 26/26 pass.
 - **Code Quality:** Formatted with Laravel Pint.
+
+**Fix Notes (B-010):**
+- **Date Fixed:** 2026-04-14
+- **Files Modified:** `poswms-super-app/src/features/inventory-valuation/pages/InventoryValuationPage.tsx`
+- **Changes:**
+  - Added `toast` notifications from `sonner` to the `handleExport` function.
+  - Users now receive a success toast when the export completes and an error toast if it fails.
+
+**Fix Notes (B-011):**
+- **Date Fixed:** 2026-04-14
+- **Files Modified:** `poswms-super-app/src/features/inventory-valuation/pages/InventoryValuationPage.tsx`
+- **Changes:**
+  - Verified that all tables in the `InventoryValuationPage` component use stable identifiers (e.g., `product_id`, `product.id`, or `date`) instead of array indices for React keys.
+  - This was already implemented in the current codebase, providing efficient re-renders and stable UI state.
 
 ---
 
