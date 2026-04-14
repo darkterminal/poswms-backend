@@ -410,13 +410,15 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
     Route::post('/counts/{countId}/cancel', [InventoryCountController::class, 'cancel']);
     Route::delete('/counts/{countId}', [InventoryCountController::class, 'destroy']);
 
-    // Inventory valuation
-    Route::get('/reports/inventory/valuation', [InventoryValuationController::class, 'valuation']);
-    Route::get('/reports/inventory/valuation/export', [InventoryValuationController::class, 'exportValuation']);
-    Route::get('/reports/inventory/cogs', [InventoryValuationController::class, 'cogs']);
-    Route::get('/reports/inventory/weighted-average', [InventoryValuationController::class, 'weightedAverageCost']);
-    Route::get('/reports/inventory/value-trends', [InventoryValuationController::class, 'valueTrends']);
-    Route::post('/reports/inventory/reconcile', [InventoryValuationController::class, 'reconcile']);
+    // Inventory valuation (requires reports.view permission)
+    Route::middleware(['permission:reports.view'])->group(function () {
+        Route::get('/reports/inventory/valuation', [InventoryValuationController::class, 'valuation']);
+        Route::get('/reports/inventory/valuation/export', [InventoryValuationController::class, 'exportValuation']);
+        Route::get('/reports/inventory/cogs', [InventoryValuationController::class, 'cogs']);
+        Route::get('/reports/inventory/weighted-average', [InventoryValuationController::class, 'weightedAverageCost']);
+        Route::get('/reports/inventory/value-trends', [InventoryValuationController::class, 'valueTrends']);
+        Route::post('/reports/inventory/reconcile', [InventoryValuationController::class, 'reconcile']);
+    });
 
     // Inventory reports
     Route::get('/reports/inventory/low-stock', [InventoryReportController::class, 'lowStock']);
