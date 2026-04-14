@@ -827,4 +827,72 @@ class InventoryValuationTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('data.period_days', 365);
     }
+
+    /**
+     * Test value trends handles negative adjustments correctly.
+     */
+    public function test_value_trends_handles_negative_adjustments(): void
+    {
+        // 1. Arrange: Clear today's movements for clean test
+        StockMovement::where('tenant_id', $this->tenant->id)
+            ->whereDate('created_at', date('Y-m-d'))
+            ->delete();
+
+        // 2. Create inventory
+        $inventory = Inventory::create([
+            'tenant_id' => $this->tenant->id,
+            'product_id' => $this->product->id,
+            'warehouse_id' => $this->warehouse->id,
+            'store_id' => null,
+            'quantity' => 100,
+            'reserved' => 0,
+            'available' => 100,
+            'cost' => 10.00,
+        ]);
+
+        // 3. Add a positive adjustment (e.g., found 10 units)
+        // quantityAfter > quantityBefore => +1
+        StockMovement::recordMovement(
+            tenantId: $this->tenant->id,
+            productId: $this->product->id,
+            type: 'adjustment',
+            quantity: 10,
+            quantityBefore: 100,
+            quantityAfter: 110,
+            inventoryId: $inventory->id,
+            warehouseId: $inventory->warehouse_id,
+            unitCost: 10.00,
+            reason: 'Found stock'
+        );
+
+        // 4. Add a negative adjustment (e.g., damaged 20 units)
+        // quantityAfter < quantityBefore => -1
+        StockMovement::recordMovement(
+            tenantId: $this->tenant->id,
+            productId: $this->product->id,
+            type: 'adjustment',
+            quantity: 20,
+            quantityBefore: 110,
+            quantityAfter: 90,
+            inventoryId: $inventory->id,
+            warehouseId: $inventory->warehouse_id,
+            unitCost: 10.00,
+            reason: 'Damaged'
+        );
+
+        // 5. Act: Get value trends
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
+            ->getJson("/api/v1/tenants/{$this->tenant->id}/reports/inventory/value-trends");
+
+        // 6. Assert: Net adjustment should be (10 * 10) - (20 * 10) = -100
+        $response->assertStatus(200);
+
+        $trends = $response->json('data.trends');
+        $today = date('Y-m-d');
+
+        $todayTrend = collect($trends)->firstWhere('date', $today);
+
+        $this->assertNotNull($todayTrend, 'Trend for today not found');
+        $this->assertEquals(-100.00, (float) $todayTrend['value_adjustments']);
+    }
 }

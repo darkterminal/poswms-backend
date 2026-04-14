@@ -244,7 +244,7 @@ class InventoryValuationController extends Controller
                 DATE(created_at) as date,
                 SUM(CASE WHEN type = "in" THEN total_cost ELSE 0 END) as value_in,
                 SUM(CASE WHEN type = "out" THEN total_cost ELSE 0 END) as value_out,
-                SUM(CASE WHEN type = "adjustment" THEN total_cost ELSE 0 END) as value_adjustments,
+                SUM(CASE WHEN type = "adjustment" THEN (CASE WHEN quantity_after > quantity_before THEN 1 ELSE -1 END) * total_cost ELSE 0 END) as value_adjustments,
                 SUM(CASE WHEN type LIKE "transfer%" THEN total_cost ELSE 0 END) as value_transfers
             ')
             ->groupBy('date')
