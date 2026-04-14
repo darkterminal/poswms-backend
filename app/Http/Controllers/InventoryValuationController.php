@@ -25,6 +25,7 @@ class InventoryValuationController extends Controller
         $warehouseId = $request->query('warehouse_id');
         $limit = min($request->query('limit', 100), 1000);
         $offset = $request->query('offset', 0);
+        $asOfDate = $request->query('as_of_date');
 
         if (! $tenantId) {
             return response()->json([
@@ -37,8 +38,11 @@ class InventoryValuationController extends Controller
             'warehouse_id' => $warehouseId,
             'limit' => $limit,
             'offset' => $offset,
-        ], function () use ($tenantId, $warehouseId, $limit, $offset) {
-            return $this->fifoService->getInventoryValuation($tenantId, $warehouseId, (int) $limit, (int) $offset);
+            'as_of_date' => $asOfDate,
+        ], function () use ($tenantId, $warehouseId, $limit, $offset, $asOfDate) {
+            $date = $asOfDate ? new \DateTime($asOfDate) : null;
+
+            return $this->fifoService->getInventoryValuation($tenantId, $warehouseId, (int) $limit, (int) $offset, $date);
         });
 
         return response()->json([

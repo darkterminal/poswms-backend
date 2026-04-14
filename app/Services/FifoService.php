@@ -457,14 +457,29 @@ class FifoService
     /**
      * Get FIFO valuation for inventory.
      */
-    public function getInventoryValuation(int $tenantId, ?int $warehouseId = null, int $limit = 100, int $offset = 0): array
-    {
+    public function getInventoryValuation(
+        int $tenantId,
+        ?int $warehouseId = null,
+        int $limit = 100,
+        int $offset = 0,
+        ?\DateTimeInterface $asOfDate = null
+    ): array {
         $query = InventoryLayer::forTenant($tenantId)
             ->fifoLayers()
             ->withStock();
 
         if ($warehouseId !== null) {
             $query->forWarehouse($warehouseId);
+        }
+
+        if ($asOfDate !== null) {
+            // Reconstruct layer state at a point in time by filtering layers
+            // that existed and were not fully consumed/adjusted as of the date
+            $query->where('created_at', '<=', $asOfDate)
+                ->where(function ($q) use ($asOfDate) {
+                    $q->whereNull('updated_at')
+                        ->orWhere('updated_at', '>', $asOfDate);
+                });
         }
 
         // Calculate totals before pagination

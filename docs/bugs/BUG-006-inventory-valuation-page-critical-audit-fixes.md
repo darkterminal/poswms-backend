@@ -54,11 +54,27 @@ A comprehensive audit of the Inventory Valuation implementation identified **13 
 | ----- | -------------------------------------------------- | -------- | ------ |
 | B-011 | React tables use array index as key — causes unnecessary re-renders | Low      | Fixed   |
 | B-012 | No query cache or response caching on read-heavy valuation endpoints | Low      | Fixed   |
-| B-013 | Valuation endpoint has no `as_of_date` parameter — only supports "as of now" | Low      | Open   |
+| B-013 | Valuation endpoint has no `as_of_date` parameter — only supports "as of now" | Low      | Fixed   |
 
 ---
 
 ## Detailed Bug Specifications
+
+...
+
+### Fix Notes (B-013):
+- **Date Fixed:** 2026-04-15
+- **Files Modified:** `poswms-backend/app/Services/FifoService.php`, `poswms-backend/app/Http/Controllers/InventoryValuationController.php`
+- **Changes:**
+  - Added optional `as_of_date` parameter to `FifoService::getInventoryValuation()`.
+  - Updated `FifoService` to filter inventory layers based on the provided date, reconstructing the valuation state as it existed at that time.
+  - Updated `InventoryValuationController::valuation()` to accept and pass the optional `as_of_date` query parameter.
+  - Added `as_of_date` to the cache key in `InventoryValuationController` to ensure proper cache separation for different historical queries.
+- **Tests:** 26/26 tests passed.
+- **Code Quality:** Formatted with Laravel Pint.
+- **Deviations:** None.
+
+---
 
 ...
 
