@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Inventory;
+use App\Models\InventoryLayer;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\StockMovement;
@@ -730,5 +731,100 @@ class InventoryValuationTest extends TestCase
             ->assertJson([
                 'success' => true,
             ]);
+    }
+
+    /**
+     * Test valuation pagination.
+     */
+    public function test_valuation_pagination(): void
+    {
+        // Delete existing layers first for clean test
+        InventoryLayer::where('tenant_id', $this->tenant->id)->delete();
+
+        // Create 5 layers with unique products to ensure count matches
+        for ($i = 0; $i < 5; $i++) {
+            $product = Product::factory()->create(['tenant_id' => $this->tenant->id]);
+            $inventory = Inventory::create([
+                'tenant_id' => $this->tenant->id,
+                'product_id' => $product->id,
+                'warehouse_id' => $this->warehouse->id,
+                'quantity' => 10,
+                'available' => 10,
+            ]);
+
+            InventoryLayer::factory()->create([
+                'tenant_id' => $this->tenant->id,
+                'product_id' => $product->id,
+                'inventory_id' => $inventory->id,
+                'warehouse_id' => $this->warehouse->id,
+                'quantity' => 10,
+                'available' => 10,
+                'total_cost' => 100,
+            ]);
+        }
+
+        // Test limit
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
+            ->getJson("/api/v1/tenants/{$this->tenant->id}/reports/inventory/valuation?limit=2");
+        $response->assertStatus(200)
+            ->assertJsonPath('data.pagination.limit', 2)
+            ->assertJsonPath('data.pagination.total', 5)
+            ->assertJsonCount(2, 'data.by_product');
+
+        // Test offset
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
+            ->getJson("/api/v1/tenants/{$this->tenant->id}/reports/inventory/valuation?limit=2&offset=4");
+        $response->assertStatus(200)
+            ->assertJsonPath('data.pagination.offset', 4)
+            ->assertJsonPath('data.pagination.total', 5)
+            ->assertJsonCount(1, 'data.by_product');
+    }
+
+    /**
+     * Test weighted average cost pagination.
+     */
+    public function test_weighted_average_cost_pagination(): void
+    {
+        // Delete existing layers first
+        InventoryLayer::where('tenant_id', $this->tenant->id)->delete();
+
+        // Create 5 layers with unique products
+        for ($i = 0; $i < 5; $i++) {
+            $product = Product::factory()->create(['tenant_id' => $this->tenant->id]);
+            $inventory = Inventory::create([
+                'tenant_id' => $this->tenant->id,
+                'product_id' => $product->id,
+                'warehouse_id' => $this->warehouse->id,
+                'quantity' => 10,
+                'available' => 10,
+            ]);
+
+            InventoryLayer::factory()->create([
+                'tenant_id' => $this->tenant->id,
+                'product_id' => $product->id,
+                'inventory_id' => $inventory->id,
+                'warehouse_id' => $this->warehouse->id,
+                'quantity' => 10,
+                'total_cost' => 100,
+            ]);
+        }
+
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
+            ->getJson("/api/v1/tenants/{$this->tenant->id}/reports/inventory/weighted-average?limit=3");
+        $response->assertStatus(200)
+            ->assertJsonPath('data.pagination.limit', 3)
+            ->assertJsonPath('data.pagination.total', 5)
+            ->assertJsonCount(3, 'data.by_product');
+    }
+
+    /**
+     * Test value trends days capping.
+     */
+    public function test_value_trends_days_capping(): void
+    {
+        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $this->token])
+            ->getJson("/api/v1/tenants/{$this->tenant->id}/reports/inventory/value-trends?days=400");
+        $response->assertStatus(200)
+            ->assertJsonPath('data.period_days', 365);
     }
 }

@@ -457,7 +457,7 @@ class FifoService
     /**
      * Get FIFO valuation for inventory.
      */
-    public function getInventoryValuation(int $tenantId, ?int $warehouseId = null): array
+    public function getInventoryValuation(int $tenantId, ?int $warehouseId = null, int $limit = 100, int $offset = 0): array
     {
         $query = InventoryLayer::forTenant($tenantId)
             ->fifoLayers()
@@ -467,15 +467,26 @@ class FifoService
             $query->forWarehouse($warehouseId);
         }
 
-        $layers = $query->with(['product', 'warehouse', 'batch'])->get();
+        // Calculate totals before pagination
+        $totalQuantity = (clone $query)->sum('quantity');
+        $totalAvailable = (clone $query)->sum('available');
+        $totalValue = (clone $query)->sum('total_cost');
+        $totalCount = (clone $query)->count();
+
+        $layers = $query->with(['product', 'warehouse', 'batch'])
+            ->offset($offset)
+            ->limit($limit)
+            ->get();
 
         return [
-            'total_quantity' => $layers->sum('quantity'),
-            'total_available' => $layers->sum('available'),
-            'total_value' => $layers->sum('total_cost'),
+            'total_quantity' => $totalQuantity,
+            'total_available' => $totalAvailable,
+            'total_value' => $totalValue,
             'layer_count' => $layers->count(),
+            'total_count' => $totalCount,
             'by_product' => $layers->groupBy('product_id')->map(fn($group) => [
                 'quantity' => $group->sum('quantity'),
+                'available' => $group->sum('available'),
                 'value' => $group->sum('total_cost'),
                 'average_cost' => $group->sum('quantity') > 0
                     ? $group->sum('total_cost') / $group->sum('quantity')

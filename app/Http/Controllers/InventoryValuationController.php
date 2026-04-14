@@ -7,6 +7,7 @@ use App\Models\StockMovement;
 use App\Services\FifoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class InventoryValuationController extends Controller
 {
@@ -21,6 +22,8 @@ class InventoryValuationController extends Controller
     {
         $tenantId = $request->route('tenant_id');
         $warehouseId = $request->query('warehouse_id');
+        $limit = min($request->query('limit', 100), 1000);
+        $offset = $request->query('offset', 0);
 
         if (! $tenantId) {
             return response()->json([
@@ -29,7 +32,7 @@ class InventoryValuationController extends Controller
             ], 400);
         }
 
-        $valuation = $this->fifoService->getInventoryValuation($tenantId, $warehouseId);
+        $valuation = $this->fifoService->getInventoryValuation($tenantId, $warehouseId, (int) $limit, (int) $offset);
 
         return response()->json([
             'success' => true,
@@ -38,6 +41,11 @@ class InventoryValuationController extends Controller
                 'total_available' => $valuation['total_available'],
                 'total_value' => round($valuation['total_value'], 2),
                 'layer_count' => $valuation['layer_count'],
+                'pagination' => [
+                    'limit' => (int) $limit,
+                    'offset' => (int) $offset,
+                    'total' => $valuation['total_count'] ?? $valuation['layer_count'],
+                ],
                 'by_product' => $valuation['by_product']->map(fn($data, $productId) => [
                     'product_id' => $productId,
                     'quantity' => $data['quantity'],
@@ -60,6 +68,14 @@ class InventoryValuationController extends Controller
     public function cogs(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
+
+        if (! $tenantId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tenant ID is required',
+            ], 400);
+        }
+
         $productId = $request->query('product_id');
 
         $validated = $request->validate([
@@ -131,7 +147,17 @@ class InventoryValuationController extends Controller
     public function weightedAverageCost(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
+
+        if (! $tenantId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tenant ID is required',
+            ], 400);
+        }
+
         $warehouseId = $request->query('warehouse_id');
+        $limit = min($request->query('limit', 100), 1000);
+        $offset = $request->query('offset', 0);
 
         $query = InventoryLayer::where('tenant_id', $tenantId)
             ->fifoLayers()
@@ -142,7 +168,12 @@ class InventoryValuationController extends Controller
             $query->where('warehouse_id', $warehouseId);
         }
 
-        $layers = $query->get();
+        // Clone query for totals calculation before applying limit/offset
+        $totalQuantity = (clone $query)->sum('quantity');
+        $totalValue = (clone $query)->sum('total_cost');
+        $totalCount = (clone $query)->count();
+
+        $layers = $query->offset($offset)->limit($limit)->get();
 
         $byProduct = $layers->groupBy('product_id')->map(function ($group) {
             $totalQuantity = $group->sum('quantity');
@@ -164,11 +195,12 @@ class InventoryValuationController extends Controller
         })->values();
 
         $summary = [
-            'total_quantity' => $layers->sum('quantity'),
-            'total_value' => round($layers->sum('total_cost'), 2),
-            'weighted_average_cost' => $layers->sum('quantity') > 0
-                ? round($layers->sum('total_cost') / $layers->sum('quantity'), 4)
+            'total_quantity' => $totalQuantity,
+            'total_value' => round($totalValue, 2),
+            'weighted_average_cost' => $totalQuantity > 0
+                ? round($totalValue / $totalQuantity, 4)
                 : 0,
+            'total_count' => $totalCount,
         ];
 
         return response()->json([
@@ -176,18 +208,35 @@ class InventoryValuationController extends Controller
             'data' => [
                 'summary' => $summary,
                 'by_product' => $byProduct,
+                'pagination' => [
+                    'limit' => (int) $limit,
+                    'offset' => (int) $offset,
+                    'total' => $totalCount,
+                ],
             ],
             'message' => 'Weighted average cost report retrieved successfully',
         ], 200);
     }
 
     /**
-     * Get inventory value trends over time.
+     * Get inventory cash flow report over time.
+     *
+     * This report tracks money flowing in/out of the inventory account
+     * (purchases, COGS, adjustments, transfers) — NOT actual inventory
+     * value changes.
      */
     public function valueTrends(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
-        $days = $request->query('days', 30);
+
+        if (! $tenantId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tenant ID is required',
+            ], 400);
+        }
+
+        $days = min((int) $request->query('days', 30), 365);
 
         $trends = StockMovement::where('tenant_id', $tenantId)
             ->where('created_at', '>=', now()->subDays($days))
@@ -200,6 +249,7 @@ class InventoryValuationController extends Controller
             ')
             ->groupBy('date')
             ->orderBy('date')
+            ->limit(100) // Cap daily entries for safety
             ->get();
 
         $currentValue = InventoryLayer::where('tenant_id', $tenantId)
@@ -210,6 +260,7 @@ class InventoryValuationController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
+                'report_type' => 'cash_flow',
                 'current_value' => round($currentValue, 2),
                 'period_days' => $days,
                 'trends' => $trends->map(fn($item) => [
@@ -221,7 +272,7 @@ class InventoryValuationController extends Controller
                     'net_change' => round($item->value_in - $item->value_out + $item->value_adjustments, 2),
                 ]),
             ],
-            'message' => 'Inventory value trends retrieved successfully',
+            'message' => 'Inventory cash flow report retrieved successfully',
         ], 200);
     }
 
@@ -231,8 +282,20 @@ class InventoryValuationController extends Controller
     public function reconcile(Request $request): JsonResponse
     {
         $tenantId = $request->route('tenant_id');
+
+        if (! $tenantId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tenant ID is required',
+            ], 400);
+        }
+
         $validated = $request->validate([
-            'inventory_id' => ['required', 'integer', 'exists:inventories,id'],
+            'inventory_id' => [
+                'required',
+                'integer',
+                Rule::exists('inventories', 'id')->where('tenant_id', $tenantId),
+            ],
         ]);
 
         $inventory = \App\Models\Inventory::where('tenant_id', $tenantId)
@@ -259,6 +322,14 @@ class InventoryValuationController extends Controller
     public function exportValuation(Request $request)
     {
         $tenantId = $request->route('tenant_id');
+
+        if (! $tenantId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tenant ID is required',
+            ], 400);
+        }
+
         $warehouseId = $request->query('warehouse_id');
 
         $valuation = $this->fifoService->getInventoryValuation($tenantId, $warehouseId);
@@ -285,7 +356,7 @@ class InventoryValuationController extends Controller
                 fputcsv($file, [
                     $productId,
                     $data['quantity'],
-                    $data['quantity'],
+                    $data['available'] ?? 0,
                     round($data['value'], 2),
                     round($data['average_cost'], 4),
                 ]);

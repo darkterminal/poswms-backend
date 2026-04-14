@@ -43,7 +43,7 @@ A comprehensive audit of the Inventory Valuation implementation identified **13 
 
 | ID    | Title                                              | Severity | Status |
 | ----- | -------------------------------------------------- | -------- | ------ |
-| B-007 | No pagination on valuation, WAC, or trends endpoints — loads all layers/movements into memory | Medium   | Open   |
+| B-007 | No pagination on valuation, WAC, or trends endpoints — loads all layers/movements into memory | Medium   | Fixed  |
 | B-008 | No permission/role checks on financial report endpoints — any tenant user can access | Medium   | Fixed   |
 | B-009 | Value Trends adjustment query always sums positive `total_cost` — negative adjustments not represented | Medium   | Open   |
 | B-010 | Frontend `handleExport` catches errors but only logs to console — no user feedback | Medium   | Open   |
@@ -848,6 +848,17 @@ public function valuation(Request $request): JsonResponse
 This requires `FifoService::getInventoryValuation()` to reconstruct layer state at a point in time using `stock_movements` history — a non-trivial enhancement.
 
 **Verification:** Request valuation with `?as_of_date=2026-03-31`. Should return inventory value as of that date, not current value.
+
+**Fix Notes (B-007):**
+- **Date Fixed:** 2026-04-14
+- **Files Modified:** `poswms-backend/app/Services/FifoService.php`, `poswms-backend/app/Http/Controllers/InventoryValuationController.php`, `poswms-backend/tests/Feature/InventoryValuationTest.php`
+- **Changes:**
+  - Added `limit` and `offset` to `FifoService::getInventoryValuation()`.
+  - Implemented pagination metadata and parameters in `InventoryValuationController` for `valuation` and `weightedAverageCost`.
+  - Capped `days` at 365 and added safety `limit(100)` to `valueTrends`.
+  - Added 3 new tests in `InventoryValuationTest.php` for pagination and capping.
+- **Tests:** 25/25 pass.
+- **Code Quality:** Formatted with Laravel Pint.
 
 ---
 
