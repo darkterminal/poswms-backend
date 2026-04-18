@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\InventoryReportRequest;
 use App\ExportService;
 use App\Models\Inventory;
-use App\Models\StockMovement;
 use App\Services\LowStockAlertService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -53,99 +53,51 @@ class InventoryReportController extends Controller
     /**
      * Get stock levels report.
      */
-    public function stockLevels(Request $request): JsonResponse
+    public function stockLevels(InventoryReportRequest $request): JsonResponse
     {
-        $query = Inventory::where('tenant_id', $request->route('tenant_id'))
-            ->with(['product', 'warehouse', 'store']);
+        $tenantId = $request->route('tenant_id');
+        $warehouseId = $request->validated('warehouse_id');
+        $storeId = $request->validated('store_id');
 
-        $warehouseId = $request->query('warehouse_id');
-        $storeId = $request->query('store_id');
+        $query = Inventory::forTenantReport($tenantId, $warehouseId, $storeId)
+            ->with(['product:id,name,sku', 'warehouse:id,name', 'store:id,name']);
 
-        if ($warehouseId) {
-            $query->where('warehouse_id', $warehouseId);
-        }
+        $paginator = $query->paginate(50);
 
-        if ($storeId) {
-            $query->where('store_id', $storeId);
-        }
-
-        $inventories = $query->get()->map(function ($inventory) {
-            return [
-                'id' => $inventory->id,
-                'product' => $inventory->product ? [
-                    'id' => $inventory->product->id,
-                    'name' => $inventory->product->name,
-                    'sku' => $inventory->product->sku,
-                ] : null,
-                'location' => [
-                    'warehouse' => $inventory->warehouse?->name,
-                    'store' => $inventory->store?->name,
-                ],
-                'quantity' => $inventory->quantity,
-                'reserved' => $inventory->reserved,
-                'available' => $inventory->available,
-                'cost' => $inventory->cost,
-                'total_value' => $inventory->quantity * $inventory->cost,
-            ];
-        });
-
-        $totalValue = $inventories->sum('total_value');
+        // Calculate summary using a fresh aggregate query to avoid memory issues
+        $summaryQuery = Inventory::forTenantReport($tenantId, $warehouseId, $storeId);
+        $summary = [
+            'total_items' => $summaryQuery->count(),
+            'total_quantity' => $summaryQuery->sum('quantity'),
+            'total_available' => $summaryQuery->sum('available'),
+            'total_reserved' => $summaryQuery->sum('reserved'),
+            'total_value' => round($summaryQuery->sum(\DB::raw('quantity * cost')), 2),
+        ];
 
         return response()->json([
             'success' => true,
             'data' => [
-                'inventories' => $inventories,
-                'summary' => [
-                    'total_items' => $inventories->count(),
-                    'total_quantity' => $inventories->sum('quantity'),
-                    'total_available' => $inventories->sum('available'),
-                    'total_reserved' => $inventories->sum('reserved'),
-                    'total_value' => round($totalValue, 2),
+                'inventories' => $paginator->items(),
+                'summary' => $summary,
+                'pagination' => [
+                    'total' => $paginator->total(),
+                    'per_page' => $paginator->perPage(),
+                    'current_page' => $paginator->currentPage(),
                 ],
             ],
         ]);
     }
 
     /**
-     * Get inventory movement history.
-     */
-    public function movements(Request $request): JsonResponse
-    {
-        $productId = $request->query('product_id');
-        $warehouseId = $request->query('warehouse_id');
-        $limit = $request->query('limit', 50);
-
-        $query = StockMovement::where('tenant_id', $request->route('tenant_id'))
-            ->with(['product', 'warehouse', 'store', 'user'])
-            ->orderBy('created_at', 'desc')
-            ->limit($limit);
-
-        if ($productId) {
-            $query->where('product_id', $productId);
-        }
-
-        if ($warehouseId) {
-            $query->where('warehouse_id', $warehouseId);
-        }
-
-        $movements = $query->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => ['movements' => $movements],
-        ]);
-    }
-
-    /**
      * Export stock levels report to CSV.
      */
-    public function exportStockLevels(Request $request): StreamedResponse
+    public function exportStockLevels(InventoryReportRequest $request): StreamedResponse
     {
         $tenantId = $request->route('tenant_id');
-        $warehouseId = $request->query('warehouse_id');
-        $storeId = $request->query('store_id');
+        $warehouseId = $request->validated('warehouse_id');
+        $storeId = $request->validated('store_id');
 
-        $query = Inventory::where('inventories.tenant_id', $tenantId)
+        $query = Inventory::forTenantReport($tenantId, $warehouseId, $storeId)
             ->join('products', 'inventories.product_id', '=', 'products.id')
             ->leftJoin('warehouses', 'inventories.warehouse_id', '=', 'warehouses.id')
             ->leftJoin('stores', 'inventories.store_id', '=', 'stores.id')
@@ -163,14 +115,6 @@ class InventoryReportController extends Controller
                 inventories.quantity * inventories.cost as total_value
             ');
 
-        if ($warehouseId) {
-            $query->where('inventories.warehouse_id', $warehouseId);
-        }
-
-        if ($storeId) {
-            $query->where('inventories.store_id', $storeId);
-        }
-
         $columns = [
             'id' => 'ID',
             'product_id' => 'Product ID',
@@ -186,66 +130,6 @@ class InventoryReportController extends Controller
         ];
 
         $filename = sprintf('stock_levels_%s.csv', now()->format('Y-m-d'));
-
-        return $this->exportService->exportCsvFromQuery($query, $columns, $filename);
-    }
-
-    /**
-     * Export inventory movements report to CSV.
-     */
-    public function exportMovements(Request $request): StreamedResponse
-    {
-        $tenantId = $request->route('tenant_id');
-        $productId = $request->query('product_id');
-        $warehouseId = $request->query('warehouse_id');
-        $limit = $request->query('limit', 1000);
-
-        $query = StockMovement::where('stock_movements.tenant_id', $tenantId)
-            ->join('products', 'stock_movements.product_id', '=', 'products.id')
-            ->leftJoin('warehouses', 'stock_movements.warehouse_id', '=', 'warehouses.id')
-            ->leftJoin('stores', 'stock_movements.store_id', '=', 'stores.id')
-            ->leftJoin('users', 'stock_movements.user_id', '=', 'users.id')
-            ->selectRaw('
-                stock_movements.id,
-                products.name as product_name,
-                products.sku as product_sku,
-                warehouses.name as warehouse,
-                stores.name as store,
-                stock_movements.movement_type,
-                stock_movements.quantity,
-                stock_movements.quantity_before,
-                stock_movements.quantity_after,
-                stock_movements.reference,
-                users.name as user,
-                stock_movements.created_at
-            ')
-            ->orderBy('stock_movements.created_at', 'desc')
-            ->limit($limit);
-
-        if ($productId) {
-            $query->where('stock_movements.product_id', $productId);
-        }
-
-        if ($warehouseId) {
-            $query->where('stock_movements.warehouse_id', $warehouseId);
-        }
-
-        $columns = [
-            'id' => 'ID',
-            'product_name' => 'Product',
-            'product_sku' => 'SKU',
-            'warehouse' => 'Warehouse',
-            'store' => 'Store',
-            'movement_type' => 'Type',
-            'quantity' => 'Quantity',
-            'quantity_before' => 'Before',
-            'quantity_after' => 'After',
-            'reference' => 'Reference',
-            'user' => 'User',
-            'created_at' => 'Date',
-        ];
-
-        $filename = sprintf('inventory_movements_%s.csv', now()->format('Y-m-d'));
 
         return $this->exportService->exportCsvFromQuery($query, $columns, $filename);
     }

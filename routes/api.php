@@ -1,7 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminInventoryController;
+use App\Http\Controllers\Admin\AdminInventoryReportController;
 use App\Http\Controllers\Admin\AdminOrderController;
+use App\Http\Controllers\Admin\AdminStoreController;
 use App\Http\Controllers\Admin\AdminWarehouseController;
 use App\Http\Controllers\Admin\AnalyticsController;
 use App\Http\Controllers\Admin\ApiKeyController;
@@ -168,17 +170,24 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     Route::post('/wms/warehouses/{warehouse}/toggle-status', [AdminWarehouseController::class, 'toggleStatus'])->name('admin.wms.warehouses.toggle-status');
     Route::delete('/wms/warehouses/{warehouse}', [AdminWarehouseController::class, 'destroy'])->name('admin.wms.warehouses.destroy');
 
+    // POS Store Management
+    Route::get('/pos/stores', [AdminStoreController::class, 'index'])->name('admin.pos.stores.index');
+
     // POS Inventory Management
     Route::get('/pos/inventory', [AdminInventoryController::class, 'index'])->name('admin.pos.inventory.index');
     Route::get('/pos/inventory/stats', [AdminInventoryController::class, 'stats'])->name('admin.pos.inventory.stats');
     Route::get('/pos/inventory/export', [AdminInventoryController::class, 'export'])->name('admin.pos.inventory.export');
     Route::get('/pos/inventory/{inventory}', [AdminInventoryController::class, 'show'])->name('admin.pos.inventory.show');
 
+    // Inventory Reports
+    Route::get('/reports/inventory/stock-levels', [AdminInventoryReportController::class, 'stockLevels'])->name('admin.reports.inventory.stock-levels');
+    Route::get('/reports/inventory/export/stock-levels', [AdminInventoryReportController::class, 'exportStockLevels'])->name('admin.reports.inventory.export.stock-levels');
+
     // Stock movements (cross-tenant)
     Route::get('/pos/movements', [StockMovementController::class, 'index'])->name('admin.pos.movements.index');
     Route::get('/pos/movements/stats', [StockMovementController::class, 'stats'])->name('admin.pos.movements.stats');
-    Route::get('/pos/movements/{movementId}', [StockMovementController::class, 'show'])->name('admin.pos.movements.show');
     Route::get('/pos/movements/export', [StockMovementController::class, 'export'])->name('admin.pos.movements.export');
+    Route::get('/pos/movements/{movementId}', [StockMovementController::class, 'show'])->name('admin.pos.movements.show');
 
     // Batch management (cross-tenant)
     Route::get('/pos/batches', [BatchManagementController::class, 'index'])->name('admin.pos.batches.index');
@@ -312,8 +321,6 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
         // These endpoints are resource-heavy and have stricter rate limiting (throttle:api-exports)
         Route::get('/reports/inventory/export/stock-levels', [InventoryReportController::class, 'exportStockLevels'])
             ->middleware('throttle:api-exports');
-        Route::get('/reports/inventory/export/movements', [InventoryReportController::class, 'exportMovements'])
-            ->middleware('throttle:api-exports');
         Route::get('/reports/inventory/export/low-stock', [InventoryReportController::class, 'exportLowStock'])
             ->middleware('throttle:api-exports');
 
@@ -388,8 +395,8 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
     // Stock movements
     Route::get('/movements', [StockMovementController::class, 'index']);
     Route::get('/movements/stats', [StockMovementController::class, 'stats']);
-    Route::get('/movements/{movementId}', [StockMovementController::class, 'show']);
     Route::get('/movements/export', [StockMovementController::class, 'export']);
+    Route::get('/movements/{movementId}', [StockMovementController::class, 'show']);
 
     // Batch management
     Route::get('/batches', [BatchManagementController::class, 'index']);
@@ -424,7 +431,6 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
     Route::get('/reports/inventory/low-stock', [InventoryReportController::class, 'lowStock']);
     Route::get('/reports/inventory', [InventoryReportController::class, 'report']);
     Route::get('/reports/inventory/stock-levels', [InventoryReportController::class, 'stockLevels']);
-    Route::get('/reports/inventory/movements', [InventoryReportController::class, 'movements']);
 
     // Inventory alert configurations
     Route::get('/inventory/alert-configs', [InventoryAlertConfigController::class, 'index']);

@@ -928,12 +928,6 @@ class RestClient
             return $response['status'] === 200;
         });
 
-        $this->test('GET /tenants/{id}/reports/inventory/movements', function () {
-            $response = $this->get("/api/v1/tenants/{$this->tenantId}/reports/inventory/movements");
-
-            return $response['status'] === 200;
-        });
-
         $this->test('GET /tenants/{id}/reports/inventory/low-stock', function () {
             $response = $this->get("/api/v1/tenants/{$this->tenantId}/reports/inventory/low-stock");
 

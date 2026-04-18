@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Inventory;
 use App\Models\Product;
 use App\Models\Role;
-use App\Models\StockMovement;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -141,30 +140,6 @@ class InventoryReportTest extends TestCase
         $this->assertEquals(100, $data['summary']['total_quantity']);
         $this->assertEquals(80, $data['summary']['total_available']);
         $this->assertEquals(5000, $data['summary']['total_value']); // 100 * 50
-    }
-
-    public function test_can_get_inventory_movements(): void
-    {
-        $tenant = Tenant::factory()->active()->create();
-        $admin = $this->createAdmin($tenant);
-        $token = $admin->createToken('test-token')->plainTextToken;
-
-        $product = Product::factory()->forTenant($tenant->id)->create();
-
-        StockMovement::factory()->forTenant($tenant->id)->create([
-            'product_id' => $product->id,
-            'type' => 'in',
-            'quantity' => 100,
-        ]);
-
-        $response = $this->withHeaders(['Authorization' => 'Bearer ' . $token])
-            ->getJson("/api/v1/tenants/{$tenant->id}/reports/inventory/movements");
-
-        $response->assertStatus(200)
-            ->assertJsonStructure([
-                'success',
-                'data' => ['movements' => []],
-            ]);
     }
 
     public function test_low_stock_detects_critical_levels(): void

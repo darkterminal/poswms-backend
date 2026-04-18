@@ -66,17 +66,27 @@ class Inventory extends Model
     /**
      * Scope to filter by warehouse.
      */
-    public function scopeForWarehouse(Builder $query, int $warehouseId): Builder
+    public function scopeForWarehouse(Builder $query, ?int $warehouseId): Builder
     {
-        return $query->where('warehouse_id', $warehouseId);
+        return $warehouseId ? $query->where('warehouse_id', $warehouseId) : $query;
     }
 
     /**
      * Scope to filter by store.
      */
-    public function scopeForStore(Builder $query, int $storeId): Builder
+    public function scopeForStore(Builder $query, ?int $storeId): Builder
     {
-        return $query->where('store_id', $storeId);
+        return $storeId ? $query->where('store_id', $storeId) : $query;
+    }
+
+    /**
+     * Scope for inventory reports.
+     */
+    public function scopeForTenantReport(Builder $query, int $tenantId, ?int $warehouseId, ?int $storeId): Builder
+    {
+        return $query->forTenant($tenantId)
+            ->forWarehouse($warehouseId)
+            ->forStore($storeId);
     }
 
     public function tenant(): BelongsTo

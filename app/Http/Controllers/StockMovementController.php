@@ -179,14 +179,10 @@ class StockMovementController extends Controller
 
         $stats = $query->selectRaw('
             COUNT(*) as total_movements,
-            SUM(CASE WHEN type IN ("in", "sale", "return") AND quantity > 0 THEN quantity 
-                     WHEN type IN ("out", "sale", "transfer") AND quantity < 0 THEN ABS(quantity)
-                     ELSE 0 END) as total_in,
-            SUM(CASE WHEN type IN ("out", "sale", "transfer") AND quantity < 0 THEN ABS(quantity)
-                     WHEN type IN ("in", "return") AND quantity > 0 THEN 0
-                     ELSE 0 END) as total_out,
+            SUM(CASE WHEN quantity > 0 THEN quantity ELSE 0 END) as total_in,
+            SUM(CASE WHEN quantity < 0 THEN ABS(quantity) ELSE 0 END) as total_out,
             SUM(CASE WHEN type = "adjustment" THEN ABS(quantity) ELSE 0 END) as total_adjustments,
-            SUM(CASE WHEN type LIKE "transfer%" THEN ABS(quantity) ELSE 0 END) as total_transfers,
+            SUM(CASE WHEN type LIKE "transfer%" OR type = "transfer" THEN ABS(quantity) ELSE 0 END) as total_transfers,
             SUM(COALESCE(total_cost, 0)) as total_value
         ')->first();
 
@@ -239,7 +235,7 @@ class StockMovementController extends Controller
         $tenantId = $request->route('tenant_id');
 
         // For admin routes, no tenant filter; for tenant routes, filter by tenant_id
-        $query = StockMovement::with(['product', 'warehouse', 'store', 'user', 'layer.batch', 'order']);
+        $query = StockMovement::with(['tenant', 'product', 'warehouse', 'store', 'user', 'layer.batch', 'order']);
 
         if ($tenantId) {
             $query->where('tenant_id', $tenantId);
@@ -252,6 +248,8 @@ class StockMovementController extends Controller
             'data' => [
                 'movement' => [
                     'id' => $movement->id,
+                    'tenant_id' => $movement->tenant_id,
+                    'tenant_name' => $movement->tenant?->name ?? null,
                     'product' => $movement->product ? [
                         'id' => $movement->product->id,
                         'name' => $movement->product->name,
@@ -285,6 +283,10 @@ class StockMovementController extends Controller
                     'total_cost' => $movement->total_cost,
                     'reason' => $movement->reason,
                     'reference' => $movement->reference,
+                    'order' => $movement->order ? [
+                        'id' => $movement->order->id,
+                        'order_number' => $movement->order->order_number,
+                    ] : null,
                     'created_at' => $movement->created_at->toIso8601String(),
                     'updated_at' => $movement->updated_at->toIso8601String(),
                 ],
@@ -356,18 +358,19 @@ class StockMovementController extends Controller
             });
         }
 
-        $movements = $query->orderBy('created_at', 'desc')->get();
-
-        // Generate CSV
         $filename = 'stock-movements-' . date('Y-m-d') . '.csv';
 
         $headers = [
-            'Content-Type' => 'text/csv',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ];
 
-        $callback = function () use ($movements) {
+        // Use a database cursor to stream results without loading all into memory at once
+        $callback = function () use ($query) {
             $file = fopen('php://output', 'w');
+
+            // Add BOM for UTF-8 encoding
+            fprintf($file, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
             // CSV Headers
             fputcsv($file, [
@@ -389,8 +392,8 @@ class StockMovementController extends Controller
                 'Date',
             ]);
 
-            // CSV Data
-            foreach ($movements as $movement) {
+            // Stream results using cursor
+            foreach ($query->orderBy('created_at', 'desc')->cursor() as $movement) {
                 fputcsv($file, [
                     $movement->id,
                     $movement->tenant?->name,
