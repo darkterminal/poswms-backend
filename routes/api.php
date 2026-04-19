@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\TenantController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\ProfileController;
 use App\Http\Controllers\Auth\SuperAdminAuthController;
 use App\Http\Controllers\BatchManagementController;
 use App\Http\Controllers\CategoryController;
@@ -86,6 +87,10 @@ Route::middleware(['auth:sanctum', 'superadmin', 'throttle:api-admin'])->prefix(
     // Super Admin Auth routes
     Route::post('/auth/logout', [SuperAdminAuthController::class, 'logout'])->name('admin.auth.logout');
     Route::get('/auth/me', [SuperAdminAuthController::class, 'me'])->name('admin.auth.me');
+
+    // Profile Management
+    Route::put('/auth/profile', [ProfileController::class, 'update'])->name('admin.profile.update');
+    Route::put('/auth/profile/password', [ProfileController::class, 'updatePassword'])->name('admin.profile.password');
 
     // Tenant Management
     Route::get('/tenants', [TenantController::class, 'index'])->name('admin.tenants.index');
@@ -294,6 +299,10 @@ Route::middleware(['auth:sanctum', 'tenant.scoped', 'throttle:api'])->prefix('te
     Route::post('/auth/logout', [LoginController::class, 'logout'])->name('auth.logout');
     Route::post('/auth/refresh', [LoginController::class, 'refresh'])->name('auth.refresh');
     Route::get('/auth/me', [LoginController::class, 'me'])->name('auth.me');
+
+    // Profile Management
+    Route::put('/auth/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::put('/auth/profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password');
 
     // Admin-only routes with higher rate limits
     Route::middleware(['role:admin', 'throttle:api-admin'])->group(function () {
